@@ -10,5 +10,4 @@ jobs:
     secrets: inherit
     with:
       imageTagName: ghcr.io/openmfp/iam-service
-      useTask: true
       useLocalCoverageConfig: true

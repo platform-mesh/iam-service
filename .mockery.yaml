@@ -1,0 +1,4 @@
+all: true
+with-expecter: true
+case: underscore
+output: pkg/mocks

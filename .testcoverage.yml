@@ -1,0 +1,6 @@
+exclude:
+  paths:
+    - ^pkg/mocks/.*
+    - ^pkg/layers/db/.*
+    - ^pkg/noop/.*
+
