@@ -1,0 +1,24 @@
+image:
+  name: ghcr.io/openmfp/iam-service
+  tag: latest
+
+imagePullSecrets: "github"
+
+crds:
+  enabled: true
+
+health:
+  port: 8081
+
+metrics:
+  port: 8080
+
+deployment:
+  revisionHistoryLimit: 3
+  resources:
+    limits:
+      cpu: 260m
+      memory: 512Mi
+    requests:
+      cpu: 150m
+      memory: 128Mi
