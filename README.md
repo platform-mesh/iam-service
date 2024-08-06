@@ -23,6 +23,12 @@ Core layers also is responsible for the proper error handling and logging.
 ## No-Op
 If there is no actual implementation for an interface, you can find a no-op implementation in the `./pkg/interfaces/no-op` package. 
 
+## Packages
+
+### graph
+
+This package contains the GraphQL models and resolvers as reusable code. The `graph/openmfp.graphql` file contains the schema.
+
 ## Getting started
 
 TBD

@@ -17,7 +17,7 @@ tasks:
   mockery:
     deps: [setup:mockery]
     cmds:
-      - "{{.LOCAL_BIN}}/mockery"
+      - "{{.LOCAL_BIN}}/mockery --output=pkg/mocks"
   fmt:
     cmds:
       - go fmt ./...

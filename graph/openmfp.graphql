@@ -1,0 +1,150 @@
+type PageInfo {
+	totalCount: Int!
+}
+
+type UserConnection {
+	user: [User!]!
+	pageInfo: PageInfo
+}
+
+type User {
+	userId: String!
+	email: String!
+	firstName: String
+	lastName: String
+	invitationOutstanding: Boolean!
+}
+
+type Team {
+	name: String!
+	parentTeam: Team
+	childTeams(limit: Int = 10, page: Int = 1): TeamConnection!
+}
+
+input UserInput {
+	userId: String!
+	email: String!
+	firstName: String
+	lastName: String
+	invitationOutstanding: Boolean
+}
+
+input TeamInput {
+	name: String!
+	adminUserID: String!
+}
+
+""" An entity of Hyperspace Portal"""
+input EntityInput {
+	"""the type of entity e.g. team, project etc."""
+	entityType: String!
+	"""the identifier for the entity itself e.g. name or id"""
+	entityId: ID!
+}
+
+type TeamConnection {
+	teams: [Team!]!
+	pageInfo: PageInfo!
+}
+
+type Zone {
+    zoneId: String!
+    tenantId: String!
+}
+
+type TenantInfo {
+    tenantId: String!
+	subdomain: String!
+	emailDomain: String!
+	emailDomains: [String!]
+}
+
+type Permission {
+	displayName: String!
+	relation: String!
+}
+
+type Role {
+	displayName: String!
+	technicalName: String!
+	permissions: [Permission!]
+}
+
+type GrantedUser {
+	user: User!
+	roles: [Role!]
+}
+
+type GrantedUserConnection {
+	users: [GrantedUser]
+	pageInfo: PageInfo!
+}
+
+type Query {
+	"""Get all users and their roles of the entity"""
+	usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false): GrantedUserConnection @tenant(peers:true)
+	"""Get all roles that are granted to the user of the referenced entity"""
+	rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @tenant(peers: false)
+	"""Get all roles that exist for the referenced entity type"""
+	availableRolesForEntity(tenantId: ID!, entity: EntityInput!): [Role]! @tenant(peers: false)
+	"""Get all roles that exist for the specific entity type"""
+	availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @tenant(peers: false)
+
+	# token must be of user requesting info
+	user(tenantId:String!, userId:String!): User  @tenant(peers: true)
+	userByEmail(tenantId:String!, email:String!): User  @tenant(peers: true)
+
+	# doesnt return groupAssignment of the user / implements basic offset pagination
+	usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @tenant(peers: true)
+
+	zoneByZoneId(zoneId: String!) : Zone! 
+
+	# if the tenantId is not provided, the tenant will be taken from the JWT of the request
+	tenantInfo(tenantId: String): TenantInfo! 
+
+	#Teams
+	teams(tenantId: String!, limit: Int = 10, page: Int = 1): TeamConnection!  @tenant(peers: true)
+	teamByName(tenantId: String!, teamName: String!): Team  @tenant(peers: true)
+}
+
+input Change {
+	userId: String!
+	roles: [String!]!
+}
+
+input Invite {
+	email: String!
+	entity: EntityInput!
+	roles: [String!]!
+}
+
+type Mutation {
+    inviteUser(tenantId: String!, invite: Invite!, notifyByEmail: Boolean!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
+	deleteInvite(tenantId: String!, invite: Invite!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
+
+	assignRoleBindings(tenantId: ID!, entityType: String!, entityId: ID!, input: [Change]!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
+	removeFromEntity(tenantId: ID!, entityType: String!, userId: ID!, entityId: ID!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
+	leaveEntity(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @tenant(peers: false)
+
+	createAccount(tenantId: ID!, entityType: String!, entityId: ID!, owner: String!): Boolean! @peersOnly
+	removeAccount(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @peersOnly
+
+	## Only for administrative use
+	createUser(tenantId: String!, input: UserInput!): User! @peersOnly
+	removeUser(tenantId:String!, userId: String, email: String): Boolean @peersOnly
+}
+
+schema{
+	query: Query
+	mutation: Mutation
+}
+
+directive @tenant(peers: Boolean!) on FIELD_DEFINITION
+directive @user(peers: Boolean!) on FIELD_DEFINITION
+directive @peersOnly on FIELD_DEFINITION
+directive @authorized(
+    relation: String!
+    entityType: String
+    entityTypeParamName: String
+    entityParamName: String!
+) on FIELD_DEFINITION
