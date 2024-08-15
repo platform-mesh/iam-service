@@ -34,7 +34,6 @@ input TeamInput {
 	adminUserID: String!
 }
 
-""" An entity of Hyperspace Portal"""
 input EntityInput {
 	"""the type of entity e.g. team, project etc."""
 	entityType: String!
