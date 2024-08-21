@@ -2,4 +2,5 @@ exclude:
   paths:
     - ^pkg/mocks/.*
     - ^pkg/graph/*
+    - ^pkg/db/mocks/.*
 

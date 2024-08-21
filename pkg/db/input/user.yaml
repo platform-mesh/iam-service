@@ -1,0 +1,180 @@
+user:
+  - tenant_id: tnt1234567
+    user_id: USR897423
+    email: USR897423@company.com
+    first_name: Zachary
+    groupsAssignments:
+      - group: projectManagers
+        scope: demoProject
+        entity: project
+  - tenant_id: tnt1234567
+    user_id: USR234678
+    email: USR234678@company.com
+    first_name: Andrew
+    groupsAssignments:
+      - group: projectContributors
+        scope: demoProject
+        entity: project
+  - tenant_id: tnt1234567
+    user_id: USR547890
+    email: USR547890@company.com
+    first_name: Brian
+    groupsAssignments:
+      - group: projectContributors
+        scope: demoProject
+        entity: project
+  - tenant_id: tnt1234567
+    user_id: USR345789
+    email: USR345789@company.com
+  ## Start Default User
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR112233
+    email: USR112233@company.com
+  ## End Default User
+  ## Start Used in Invitation
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    email: invited-admin@example.com
+  ## End Used in Invitation
+  ## Start Used in TestSetGroupAssignmentForUserProject
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR778899
+    email: USR778899@company.com
+    groupsAssignments:
+      - group: projectContributors
+        scope: demoProject
+        entity: project
+  ## End Used in TestSetGroupAssignmentForUserProject
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR665544
+    email: USR665544@company.com
+    invitationoutstanding: true
+    groupsAssignments:
+      - group: projectContributors
+        scope: demoProject
+        entity: project
+  ## Start Used in TestPoliciesChildTeamAssignment
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR221133
+    email: USR221133@company.com
+    groupsAssignments:
+      - group: teamLeaders
+        scope: exampleTeamA
+        entity: team
+  ## End Used in TestPoliciesChildTeamAssignment
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR998877
+    email: USR998877@company.com
+  ## Start Used in TestPoliciesNoAssignment
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR334455
+    email: USR334455@company.com
+    groupsAssignments:
+      - group: teamLeaders
+        scope: exampleTeamB
+        entity: team
+  ## End Used in TestPoliciesNoAssignment
+  ## Start Used in TestPoliciesMultiAssignment
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR445566
+    email: USR445566@company.com
+    groupsAssignments:
+      - group: teamLeaders
+        scope: exampleTeamC
+        entity: team
+  ## End Used in TestPoliciesMultiAssignment
+  ## Start Used in TestPoliciesTeamAssignment
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR554433
+    email: USR554433@company.com
+    groupsAssignments:
+      - group: teamLeaders
+        scope: exampleTeamD
+        entity: team
+  ## End Used in TestPoliciesTeamAssignment
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR112244
+    email: USR112244@company.com
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR667788
+    email: USR667788@company.com
+  ## Start Used in TestPoliciesDirectAssignment
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR224466
+    email: USR224466@company.com
+    groupsAssignments:
+      - group: projectManagers
+        scope: test-direct-assignment
+        entity: project
+  ## End Used in TestPoliciesDirectAssignment
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR887766
+    email: USR887766@company.com
+  ## Start Used in TestPoliciesDirectAssignment
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR778899
+    email: USR778899@company.com
+  ## End Used in TestPoliciesDirectAssignment
+  ## Start Used in TestEmailDomain
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR123321
+    email: USR123321@company.com
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR132435
+    email: USR132435@intl.corp.company
+  ## End Used in TestEmailDomain
+  ## Start Used in RemoveUser
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR998811
+    email: USR998811@company.com
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR667899
+    email: example.user@company.com
+  ## End Used in RemoveUser
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR111222
+    email: USR111222@company.com
+  ## Start default team admin
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR334455
+    email: USR334455@company.com
+    groupsAssignments:
+      - group: teamLeaders
+        scope: test-team
+        entity: team
+  ## End default team admin
+  ## Start default team admin
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR665577
+    email: USR665577@company.com
+    groupsAssignments:
+      - group: teamLeaders
+        scope: test-team
+        entity: team
+      - group: projectManagers
+        scope: test-direct-assignment
+        entity: project
+  ## End default leave Scope
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR998877
+    email: USR998877@company.com
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR223344
+    email: USR223344@company.com
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR667788
+    email: USR667788@company.com
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR112244
+    email: USR112244@company.com
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR334455
+    email: USR334455@company.com
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR998811
+    email: USR998811@company.com
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR554433
+    email: USR554433@company.com
+  - tenant_id: 02xy6v4q4mzn7hjw5x3l9y0t8
+    user_id: USR998877
+    email: USR998877@company.com

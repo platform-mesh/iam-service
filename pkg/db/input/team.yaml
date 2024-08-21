@@ -1,0 +1,30 @@
+---
+team:
+  ## Start Used in TestPoliciesChildTeamAssignment
+  - tenantId: 02fnx4p9l4cbgytdf84wrt9kv
+    name: demoTeamA
+  - tenantId: 02fnx4p9l4cbgytdf84wrt9kv
+    name: demoTeamC
+    parentTeam: demoTeamA
+  ## End Used in TestPoliciesChildTeamAssignment
+  - tenantId: 02fnx4p9l4cbgytdf84wrt9kv
+    name: demoTeamB
+  ## Start Used in TestPoliciesMultiAssignment
+  - tenantId: 02fnx4p9l4cbgytdf84wrt9kv
+    name: demoTeamD
+
+  ## End Used in TestPoliciesMultiAssignment
+  ## Start Used in TestPoliciesTeamAssignment
+  - tenantId: 02fnx4p9l4cbgytdf84wrt9kv
+    name: demoTeamE
+  ## End Used in TestPoliciesTeamAssignment
+  - tenantId: 02fnx4p9l4cbgytdf84wrt9kv
+    name: demoTeamF
+  - tenantId: 02fnx4p9l4cbgytdf84wrt9kv
+    name: demoTeamG
+  - tenantId: 02fnx4p9l4cbgytdf84wrt9kv
+    name: demoTeamH
+  - tenantId: 02fnx4p9l4cbgytdf84wrt9kv
+    name: demoTeamI
+  - tenantId: 02fnx4p9l4cbgytdf84wrt9kv
+    name: demoTeamJ

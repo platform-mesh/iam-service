@@ -1,0 +1,17 @@
+configs:
+  - tenantId: tenant1
+    issuer: https://auth.tenant1.com
+    audience: 12345678-aaaa-bbbb-cccc-1234567890ab
+    zoneId: 00000000-1111-2222-3333-000000000000
+  - tenantId: tenant2
+    issuer: https://login.tenant2.com
+    audience: abcdef12-3456-7890-abcd-ef1234567890
+    zoneId: 11111111-2222-3333-4444-111111111111
+  - tenantId: tenant3
+    issuer: https://auth.tenant3.com
+    audience: 9abcd123-ef45-6789-0123-456789abcdef
+    zoneId: 22222222-3333-4444-5555-222222222222
+  - tenantId: tenant4
+    issuer: https://login.tenant4.com
+    audience: fedcba98-7654-3210-9876-54321fedcba9
+    zoneId: 33333333-4444-5555-6666-333333333333

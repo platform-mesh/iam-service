@@ -12,12 +12,16 @@ tasks:
     internal: true
     cmds:
       - test -s {{.LOCAL_BIN}}/golangci-lint || GOBIN=$(pwd)/{{.LOCAL_BIN}} go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+  setup:go-test-coverage:
+    internal: true
+    cmds:
+      - test -s {{.LOCAL_BIN}}/go-test-coverage || GOBIN=$(pwd)/{{.LOCAL_BIN}} go install github.com/vladopajic/go-test-coverage/v2@latest
 
   ## Development
   mockery:
     deps: [setup:mockery]
     cmds:
-      - "{{.LOCAL_BIN}}/mockery --output=pkg/mocks"
+      - "{{.LOCAL_BIN}}/mockery"
   fmt:
     cmds:
       - go fmt ./...
@@ -32,12 +36,15 @@ tasks:
     deps:
       - task: mockery
     cmds:
-      - go test ./...
+      - go clean -testcache
+      - go test -coverprofile=coverage.out ./...
   cover:
     deps:
       - task: mockery
+      - task: setup:go-test-coverage
+      - task: test
     cmds:
-        - go test -coverprofile=coverage.out ./...
+        - "{{.LOCAL_BIN}}/go-test-coverage --threshold-file 80 --threshold-package 80 --threshold-total 95 --profile coverage.out --config ./.testcoverage.yml"
   validate:
     cmds:
       - task: lint

@@ -1,3 +1,14 @@
-all: true
 with-expecter: true
-case: underscore
+packages:
+  github.com/openmfp/iam-service/pkg/db:
+    config:
+      dir: pkg/db/mocks
+      outpkg: mocks
+    interfaces:
+      UserHooks:
+        config:
+          mockname: UserHooks
+      Service:
+        config:
+          mockname: Service
+

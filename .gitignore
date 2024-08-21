@@ -2,3 +2,4 @@
 bin
 coverage.out
 .env
+.DS_Store
