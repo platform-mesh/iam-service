@@ -35,11 +35,6 @@ input EntityInput {
 	entityId: ID!
 }
 
-type Zone {
-    zoneId: String!
-    tenantId: String!
-}
-
 type TenantInfo {
     tenantId: String!
 	subdomain: String!
@@ -84,8 +79,6 @@ type Query {
 
 	# doesnt return groupAssignment of the user / implements basic offset pagination
 	usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @tenant(peers: true)
-
-	zoneByZoneId(zoneId: String!) : Zone! 
 
 	# if the tenantId is not provided, the tenant will be taken from the JWT of the request
 	tenantInfo(tenantId: String): TenantInfo! 
