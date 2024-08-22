@@ -3,11 +3,11 @@ version: '3'
 vars:
   LOCAL_BIN: bin
 tasks:
+  ## Setup
   setup:mockery:
     internal: true
     cmds:
       - test -s {{.LOCAL_BIN}}/mockery || GOBIN=$(pwd)/{{.LOCAL_BIN}} go install github.com/vektra/mockery/v2@v2.43.2
-  ## Setup
   setup:golangci-lint:
     internal: true
     cmds:
@@ -30,6 +30,9 @@ tasks:
     cmds:
       - task: fmt
       - "{{.LOCAL_BIN}}/golangci-lint run --timeout 15m ./..."
+  build:
+    cmds:
+      - go build ./...
   test:
     env:
       GO111MODULE: on
@@ -47,5 +50,7 @@ tasks:
         - "{{.LOCAL_BIN}}/go-test-coverage --threshold-file 80 --threshold-package 80 --threshold-total 95 --profile coverage.out --config ./.testcoverage.yml"
   validate:
     cmds:
+      - task: fmt
       - task: lint
+      - task: build
       - task: test

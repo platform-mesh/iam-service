@@ -10,5 +10,5 @@ packages:
           mockname: UserHooks
       Service:
         config:
-          mockname: Service
+          mockname: DatabaseService
 

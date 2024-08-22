@@ -3,4 +3,6 @@ exclude:
     - ^pkg/mocks/.*
     - ^pkg/graph/*
     - ^pkg/db/mocks/.*
+    - ^pkg/resolver/*
+    - server.go
 

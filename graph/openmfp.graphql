@@ -15,12 +15,6 @@ type User {
 	invitationOutstanding: Boolean!
 }
 
-type Team {
-	name: String!
-	parentTeam: Team
-	childTeams(limit: Int = 10, page: Int = 1): TeamConnection!
-}
-
 input UserInput {
 	userId: String!
 	email: String!
@@ -39,11 +33,6 @@ input EntityInput {
 	entityType: String!
 	"""the identifier for the entity itself e.g. name or id"""
 	entityId: ID!
-}
-
-type TeamConnection {
-	teams: [Team!]!
-	pageInfo: PageInfo!
 }
 
 type Zone {
@@ -100,10 +89,6 @@ type Query {
 
 	# if the tenantId is not provided, the tenant will be taken from the JWT of the request
 	tenantInfo(tenantId: String): TenantInfo! 
-
-	#Teams
-	teams(tenantId: String!, limit: Int = 10, page: Int = 1): TeamConnection!  @tenant(peers: true)
-	teamByName(tenantId: String!, teamName: String!): Team  @tenant(peers: true)
 }
 
 input Change {
