@@ -4,19 +4,27 @@ import (
 	"context"
 	"math"
 
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/openmfp/golang-commons/logger"
 	"github.com/pkg/errors"
+
+	"github.com/openmfp/golang-commons/context/keys"
+	"github.com/openmfp/golang-commons/logger"
 )
 
 func setupLogger(ctx context.Context) *logger.Logger {
 	log := logger.LoadLoggerFromContext(ctx)
 
-	requestID := middleware.GetReqID(ctx)
+	requestID := getRequestId(ctx)
 
 	return logger.NewFromZerolog(
-		log.With().Str("requestid", requestID).Logger(),
+		log.With().Str("request_id", requestID).Logger(),
 	)
+}
+
+func getRequestId(ctx context.Context) string {
+	if val, ok := ctx.Value(keys.RequestIdCtxKey).(string); ok {
+		return val
+	}
+	return "no_request_id_error"
 }
 
 func VerifyLimitsWithOverride(limit *int, page *int) error {
