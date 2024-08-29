@@ -1,5 +1,16 @@
 with-expecter: true
 packages:
+  # third party
+  github.com/openfga/api/proto/openfga/v1:
+    config:
+      dir: pkg/fga/mocks
+      outpkg: mocks
+    interfaces:
+      OpenFGAServiceClient:
+        config:
+          mockname: OpenFGAServiceClient
+
+  # internal
   github.com/openmfp/iam-service/pkg/db:
     config:
       dir: pkg/db/mocks
@@ -11,4 +22,18 @@ packages:
       Service:
         config:
           mockname: DatabaseService
+  github.com/openmfp/iam-service/pkg/fga:
+    config:
+      dir: pkg/fga/mocks
+      outpkg: mocks
+    interfaces:
+      Service:
+        config:
+          mockname: Service
+      InviteManger:
+        config:
+          mockname: InviteManger
+      FgaEvents:
+        config:
+          mockname: FgaEvents
 

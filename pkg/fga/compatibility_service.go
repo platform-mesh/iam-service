@@ -1,0 +1,517 @@
+package fga
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strings"
+
+	openfgav1 "github.com/openfga/api/proto/openfga/v1"
+	"github.com/r3labs/diff/v3"
+	"go.opentelemetry.io/otel"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	dxpcontext "github.com/openmfp/golang-commons/context"
+	openmfpFga "github.com/openmfp/golang-commons/fga/store"
+	dxplogger "github.com/openmfp/golang-commons/logger"
+	dxpsentry "github.com/openmfp/golang-commons/sentry"
+
+	"github.com/openmfp/iam-service/pkg/db"
+	"github.com/openmfp/iam-service/pkg/fga/middleware/principal"
+	"github.com/openmfp/iam-service/pkg/fga/types"
+	graphql "github.com/openmfp/iam-service/pkg/graph"
+)
+
+// TODO: get a list of roles to ask for from the database
+func getRoles() []string {
+	return []string{"owner", "member", "vault_maintainer"}
+}
+
+type Service interface {
+	UsersForEntity(ctx context.Context, tenantID string, entityID string, entityType string) (types.UserIDToRoles, error)
+	CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, ownerUserID string) error
+	RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) error
+	AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graphql.Change) error
+	RemoveFromEntity(ctx context.Context, tenantID string, entityType string, entityID string, userID string) error
+}
+
+type UserService interface {
+	GetUserByID(ctx context.Context, tenantID string, userId string) (*graphql.User, error)
+}
+
+type CompatService struct {
+	openfgav1.UnimplementedOpenFGAServiceServer
+	upstream openfgav1.OpenFGAServiceClient
+	helper   openmfpFga.FGAStoreHelper
+	database db.Service
+	events   FgaEvents
+	roles    []string
+}
+
+type FgaEvents interface {
+	UserRoleChanged(ctx context.Context, tenantID string, entityID string, entityType string, userID string, oldRoles []string, newRoles []string) error
+}
+
+func NewCompatClient(cl openfgav1.OpenFGAServiceClient, db db.Service, fgaEvents FgaEvents) (*CompatService, error) {
+	return &CompatService{
+		upstream: cl,
+		helper:   openmfpFga.New(),
+		database: db,
+		events:   fgaEvents,
+		roles:    getRoles(),
+	}, nil
+}
+
+var _ openfgav1.OpenFGAServiceServer = (*CompatService)(nil)
+
+func userIDFromContext(ctx context.Context) (string, error) {
+	principalID, principalErr := principal.GetPrincipalFromContext(ctx)
+	if principalErr != nil {
+		return "", principalErr
+	}
+
+	token, err := dxpcontext.GetWebTokenFromContext(ctx)
+	if err != nil && principalID == "" {
+		return "", status.Error(codes.Unauthenticated, "unauthorized")
+	}
+
+	if token.Subject != "" {
+		return token.Subject, nil
+	}
+
+	return principalID, nil
+}
+
+type Tuple interface {
+	GetUser() string
+	GetObject() string
+	GetRelation() string
+}
+
+// Write implements openfgav1.OpenFGAServiceServer.
+func (c *CompatService) Write(ctx context.Context, in *openfgav1.WriteRequest) (*openfgav1.WriteResponse, error) {
+	userID, err := userIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tupleLen := 0
+	if in.Writes != nil {
+		tupleLen += len(in.Writes.TupleKeys)
+	}
+	if in.Deletes != nil {
+		tupleLen += len(in.Deletes.TupleKeys)
+	}
+
+	tuples := make([]Tuple, 0, tupleLen)
+	if in.Writes != nil {
+		for i := range in.Writes.TupleKeys {
+			tuples = append(tuples, in.Writes.TupleKeys[i])
+		}
+	}
+	if in.Deletes != nil {
+		for i := range in.Deletes.TupleKeys {
+			tuples = append(tuples, in.Deletes.TupleKeys[i])
+		}
+	}
+
+	logger := dxplogger.LoadLoggerFromContext(ctx)
+	tags := dxpsentry.Tags{}
+	for _, write := range tuples { // of course we can parallize this loop, but lets see if it works first 😅
+		writeToEntityType := strings.Split(write.GetUser(), ":")[0]
+		writeToEntityID := strings.Split(write.GetUser(), ":")[1]
+
+		writeFromEntityType := strings.Split(write.GetObject(), ":")[0]
+
+		tags = dxpsentry.Tags{"entityType": writeToEntityID, "entityID": writeToEntityID, "userID": userID}
+		res, err := c.upstream.Check(ctx, &openfgav1.CheckRequest{
+			StoreId:              in.StoreId,
+			AuthorizationModelId: in.AuthorizationModelId,
+			TupleKey: &openfgav1.CheckRequestTupleKey{
+				User:     fmt.Sprintf("user:%s", userID),
+				Relation: fmt.Sprintf("%s_%s_%s", writeFromEntityType, write.GetRelation(), writeToEntityType),
+				Object:   fmt.Sprintf("%s:%s", writeToEntityType, writeToEntityID),
+			},
+		})
+		if err != nil {
+			logger.Error().AnErr("openFGA check error", err).Send()
+			dxpsentry.CaptureError(err, tags)
+			return nil, err
+		}
+		if !res.Allowed {
+			logger.Debug().AnErr("openFGA unauthorized error", err).Send()
+			dxpsentry.CaptureError(err, tags)
+			return nil, status.Error(codes.Unauthenticated, "not authorized to perform this write operation")
+		}
+	}
+
+	res, err := c.upstream.Write(ctx, in)
+	if c.helper.IsDuplicateWriteError(err) {
+		err = nil
+	}
+	if err != nil {
+		logger.Error().AnErr("openFGA write error", err).Send()
+		dxpsentry.CaptureError(err, tags)
+	}
+
+	return res, err
+}
+
+// TODO: to prevent mistakes, we should probably have a separate type for entityType and entityID. Or at least create a separate struct with those two fields.
+
+// UsersForEntity returns a map of user IDs to roles for a given entity.
+func (s *CompatService) UsersForEntity(ctx context.Context, tenantID string, entityID string, entityType string) (types.UserIDToRoles, error) {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.GrantedUsers")
+	defer span.End()
+
+	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	logger := dxplogger.LoadLoggerFromContext(ctx)
+	userIDToRoles := types.UserIDToRoles{}
+	for _, role := range s.roles {
+		roleMembers, err := s.upstream.Read(ctx, &openfgav1.ReadRequest{
+			StoreId: storeID,
+			TupleKey: &openfgav1.ReadRequestTupleKey{
+				Object:   fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role),
+				Relation: "assignee",
+			},
+		})
+		if err != nil {
+			logger.Error().AnErr("openFGA read error", err).Send()
+			dxpsentry.CaptureError(err, dxpsentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "role": role})
+			return nil, err
+		}
+
+		for _, tuple := range roleMembers.Tuples {
+			user := tuple.Key.User
+			userID := strings.TrimPrefix(user, "user:")
+
+			roleIdRaw := strings.Split(tuple.Key.Object, "/")
+			if len(roleIdRaw) < 3 {
+				logger.Error().Str("role", tuple.Key.Object).Msg("role ID is not in expected format")
+				dxpsentry.CaptureError(errors.New("role ID not in expected format"), dxpsentry.Tags{"role": tuple.Key.Object})
+				continue
+			}
+			roleID := roleIdRaw[2]
+
+			userIDToRoles[userID] = append(userIDToRoles[userID], roleID)
+		}
+	}
+
+	return userIDToRoles, nil
+}
+
+func (s *CompatService) CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, ownerUserID string) error {
+	entityType = strings.ToLower(entityType)
+
+	writes := []*openfgav1.TupleKey{
+		{
+			Object:   fmt.Sprintf("role:%s/%s/owner", entityType, entityID),
+			Relation: "assignee",
+			User:     fmt.Sprintf("user:%s", ownerUserID),
+		},
+		{
+			Object:   fmt.Sprintf("%s:%s", entityType, entityID),
+			Relation: "owner",
+			User:     fmt.Sprintf("role:%s/%s/owner#assignee", entityType, entityID),
+		},
+	}
+
+	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, tenantID)
+	if err != nil {
+		return err
+	}
+
+	modelID, err := s.helper.GetModelIDForTenant(ctx, s.upstream, tenantID)
+	if err != nil {
+		return err
+	}
+
+	logger := dxplogger.LoadLoggerFromContext(ctx)
+	for _, write := range writes {
+		_, err = s.upstream.Write(ctx, &openfgav1.WriteRequest{
+			StoreId:              storeID,
+			AuthorizationModelId: modelID,
+			Writes: &openfgav1.WriteRequestWrites{
+				TupleKeys: []*openfgav1.TupleKey{write},
+			},
+		})
+		if s.helper.IsDuplicateWriteError(err) {
+			return err
+		}
+		if err != nil {
+			logger.Error().AnErr("openFGA write error", err).Send()
+			dxpsentry.CaptureError(err, dxpsentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "ownerUserID": ownerUserID})
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *CompatService) RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) error {
+	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, tenantID)
+	if err != nil {
+		return err
+	}
+	modelID, err := s.helper.GetModelIDForTenant(ctx, s.upstream, tenantID)
+	if err != nil {
+		return err
+	}
+
+	entityType = strings.ToLower(entityType)
+
+	logger := dxplogger.LoadLoggerFromContext(ctx)
+	tags := dxpsentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID}
+	var deletes []*openfgav1.TupleKeyWithoutCondition
+	for _, role := range s.roles {
+		assignees, err := s.upstream.Read(ctx, &openfgav1.ReadRequest{
+			StoreId: storeID,
+			TupleKey: &openfgav1.ReadRequestTupleKey{
+				Object:   fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role),
+				Relation: "assignee",
+			},
+		})
+		if err != nil {
+			logger.Error().AnErr("openFGA read error", err).Send()
+			dxpsentry.CaptureError(err, tags)
+			return err
+		}
+
+		for _, assignee := range assignees.Tuples {
+			deletes = append(deletes, &openfgav1.TupleKeyWithoutCondition{
+				Object:   assignee.Key.Object,
+				Relation: assignee.Key.Relation,
+				User:     assignee.Key.User,
+			})
+		}
+	}
+
+	if len(deletes) > 0 {
+		_, err = s.upstream.Write(ctx, &openfgav1.WriteRequest{
+			StoreId:              storeID,
+			AuthorizationModelId: modelID,
+			Deletes: &openfgav1.WriteRequestDeletes{
+				TupleKeys: deletes,
+			},
+		})
+		if err != nil {
+			logger.Error().AnErr("openFGA write error", err).Send()
+			dxpsentry.CaptureError(err, tags)
+			return err
+		}
+	}
+
+	for _, role := range s.roles {
+		_, err = s.upstream.Write(ctx, &openfgav1.WriteRequest{
+			StoreId:              storeID,
+			AuthorizationModelId: modelID,
+			Deletes: &openfgav1.WriteRequestDeletes{
+				TupleKeys: []*openfgav1.TupleKeyWithoutCondition{
+					{
+						Object:   fmt.Sprintf("%s:%s", entityType, entityID),
+						Relation: role,
+						User:     fmt.Sprintf("role:%s/%s/%s#assignee", entityType, entityID, role),
+					},
+				},
+			},
+		})
+		if s.helper.IsDuplicateWriteError(err) {
+			return err
+		}
+		if err != nil {
+			logger.Error().AnErr("openFGA write error", err).Send()
+			dxpsentry.CaptureError(err, dxpsentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "role": role})
+			return err
+		}
+	}
+
+	return err
+}
+
+func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graphql.Change) error {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.AssignRoleBindings")
+	defer span.End()
+
+	logger := dxplogger.LoadLoggerFromContext(ctx)
+
+	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, tenantID)
+	if err != nil {
+		return err
+	}
+
+	modelID, err := s.helper.GetModelIDForTenant(ctx, s.upstream, tenantID)
+	if err != nil {
+		return err
+	}
+
+	for _, change := range input {
+		tags := dxpsentry.Tags{"tenant": tenantID, "entityType": entityType, "entityID": entityID, "change.userID": change.UserID}
+
+		previousUserRoles, err := s.upstream.ListObjects(ctx, &openfgav1.ListObjectsRequest{
+			StoreId:              storeID,
+			AuthorizationModelId: modelID,
+			User:                 fmt.Sprintf("user:%s", change.UserID),
+			Relation:             "assignee",
+			Type:                 "role",
+		})
+		if err != nil {
+			logger.Error().AnErr("openFGA read error", err).Send()
+			dxpsentry.CaptureError(err, tags)
+			return err
+		}
+
+		previousUserRolesForEntity := make([]string, 0, len(previousUserRoles.Objects))
+		for _, role := range previousUserRoles.Objects {
+			if strings.Contains(role, fmt.Sprintf("%s/%s", entityType, entityID)) {
+				previousUserRolesForEntity = append(previousUserRolesForEntity, role)
+			}
+		}
+
+		adjustedRequestRoles := make([]string, len(change.Roles))
+		for i, r := range change.Roles {
+			adjustedRequestRoles[i] = fmt.Sprintf("role:%s/%s/%s", entityType, entityID, r)
+		}
+
+		changelog, err := diff.Diff(previousUserRolesForEntity, adjustedRequestRoles)
+		if err != nil {
+			return err
+		}
+
+		writes := []*openfgav1.TupleKey{}
+		deletes := []*openfgav1.TupleKeyWithoutCondition{}
+		for _, diffChange := range changelog {
+			switch diffChange.Type {
+			case diff.CREATE:
+				writes = append(writes, &openfgav1.TupleKey{
+					Object:   diffChange.To.(string),
+					Relation: "assignee",
+					User:     fmt.Sprintf("user:%s", change.UserID),
+				})
+			case diff.UPDATE:
+				writes = append(writes, &openfgav1.TupleKey{
+					Object:   diffChange.To.(string),
+					Relation: "assignee",
+					User:     fmt.Sprintf("user:%s", change.UserID),
+				})
+
+				deletes = append(deletes, &openfgav1.TupleKeyWithoutCondition{
+					Object:   diffChange.From.(string),
+					Relation: "assignee",
+					User:     fmt.Sprintf("user:%s", change.UserID),
+				})
+			case diff.DELETE:
+				deletes = append(deletes, &openfgav1.TupleKeyWithoutCondition{
+					Object:   diffChange.From.(string),
+					Relation: "assignee",
+					User:     fmt.Sprintf("user:%s", change.UserID),
+				})
+			}
+		}
+
+		req := &openfgav1.WriteRequest{
+			StoreId:              storeID,
+			AuthorizationModelId: modelID,
+		}
+		if len(writes) > 0 {
+			req.Writes = &openfgav1.WriteRequestWrites{
+				TupleKeys: writes,
+			}
+		}
+		if len(deletes) > 0 {
+			req.Deletes = &openfgav1.WriteRequestDeletes{
+				TupleKeys: deletes,
+			}
+		}
+
+		if req.Writes != nil || req.Deletes != nil {
+			_, err = s.upstream.Write(ctx, req)
+			if s.helper.IsDuplicateWriteError(err) {
+				err = nil
+			}
+			if err != nil {
+				logger.Error().AnErr("openFGA write error", err).Send()
+				dxpsentry.CaptureError(err, tags)
+				return err
+			}
+
+			requestedNewRoles := make([]string, 0, len(change.Roles))
+			for _, r := range change.Roles {
+				requestedNewRoles = append(requestedNewRoles, fmt.Sprintf("role:%s/%s/%s", entityType, entityID, r))
+			}
+			if s.events != nil {
+				err = s.events.UserRoleChanged(ctx, tenantID, entityID, entityType, change.UserID, previousUserRolesForEntity, requestedNewRoles)
+				if err != nil {
+					logger.Error().AnErr("error calling UserRoleChanged event handler", err).Send()
+					dxpsentry.CaptureError(err, tags)
+				}
+			}
+		}
+
+		for _, r := range s.roles {
+			_, err = s.upstream.Write(ctx, &openfgav1.WriteRequest{
+				StoreId:              storeID,
+				AuthorizationModelId: modelID,
+				Writes: &openfgav1.WriteRequestWrites{
+					TupleKeys: []*openfgav1.TupleKey{
+						{
+							Object:   fmt.Sprintf("%s:%s", entityType, entityID),
+							Relation: r,
+							User:     fmt.Sprintf("role:%s/%s/%s#assignee", entityType, entityID, r),
+						},
+					},
+				},
+			})
+			if s.helper.IsDuplicateWriteError(err) {
+				err = nil
+			}
+			if err != nil {
+				logger.Error().AnErr("openFGA write error", err).Send()
+				dxpsentry.CaptureError(err, tags)
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *CompatService) RemoveFromEntity(ctx context.Context, tenantID string, entityType string, entityID string, userID string) error {
+	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, tenantID)
+	if err != nil {
+		return err
+	}
+
+	deletes := make([]*openfgav1.TupleKeyWithoutCondition, len(s.roles))
+	for i, role := range s.roles {
+		deletes[i] = &openfgav1.TupleKeyWithoutCondition{
+			Object:   fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role),
+			Relation: "assignee",
+			User:     fmt.Sprintf("user:%s", userID),
+		}
+	}
+
+	logger := dxplogger.LoadLoggerFromContext(ctx)
+	for _, d := range deletes {
+		_, err = s.upstream.Write(ctx, &openfgav1.WriteRequest{
+			StoreId: storeID,
+			Deletes: &openfgav1.WriteRequestDeletes{
+				TupleKeys: []*openfgav1.TupleKeyWithoutCondition{d},
+			},
+		})
+		if s.helper.IsDuplicateWriteError(err) {
+			err = nil
+		}
+		if err != nil {
+			logger.Error().AnErr("openFGA write error", err).Send()
+			dxpsentry.CaptureError(err, dxpsentry.Tags{"tenant": tenantID, "entityType": entityType, "entityID": entityID, "userID": userID})
+			return err
+		}
+	}
+
+	return err
+}

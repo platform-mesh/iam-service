@@ -5,4 +5,7 @@ exclude:
     - ^pkg/db/mocks/.*
     - ^pkg/resolver/*
     - server.go
+    - ^pkg/fga/mocks
+    - ^pkg/fga/middleware # nothing to test there
+    - ^pkg/fga/server.go
 
