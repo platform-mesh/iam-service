@@ -11,7 +11,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
 	github.com/openfga/api/proto v0.0.0-20240807201305-c96ec773cae9
 	github.com/openfga/openfga v1.5.9
-	github.com/openmfp/golang-commons v0.60.0
+	github.com/openmfp/golang-commons v0.62.0
 	github.com/pkg/errors v0.9.1
 	github.com/r3labs/diff/v3 v3.0.1
 	github.com/rs/zerolog v1.33.0
