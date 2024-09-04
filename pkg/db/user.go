@@ -160,7 +160,7 @@ func (d *Database) Save(user *graph.User) error {
 	return d.db.Save(user).Error
 }
 
-// GetUsers returns all existing users for a tenant without their groupAssignments
+// GetUsers returns all existing users for a tenant
 func (d *Database) GetUsers(ctx context.Context, tenantID string, limit int, page int) (*graph.UserConnection, error) {
 	var users []*graph.User
 	offset := (limit * page) - limit

@@ -521,7 +521,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputChange,
 		ec.unmarshalInputEntityInput,
 		ec.unmarshalInputInvite,
-		ec.unmarshalInputTeamInput,
 		ec.unmarshalInputUserInput,
 	)
 	first := true
@@ -620,15 +619,18 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "../../graph/openmfp.graphql", Input: `type PageInfo {
+	{Name: "../../graph/openmfp.graphql", Input: `""" Holds additional information about the retrieved data """
+type PageInfo {
 	totalCount: Int!
 }
 
+""" List of the users """
 type UserConnection {
 	user: [User!]!
 	pageInfo: PageInfo
 }
 
+""" Represents an user """
 type User {
 	userId: String!
 	email: String!
@@ -637,6 +639,7 @@ type User {
 	invitationOutstanding: Boolean!
 }
 
+""" Holds a payload to create a new user """
 input UserInput {
 	userId: String!
 	email: String!
@@ -645,48 +648,65 @@ input UserInput {
 	invitationOutstanding: Boolean
 }
 
-input TeamInput {
-	name: String!
-	adminUserID: String!
-}
-
+""" Holds a payload of any Entity (team, project etc.) - type and id """
 input EntityInput {
-	"""the type of entity e.g. team, project etc."""
+	""" The type of entity e.g. team, project etc. """
 	entityType: String!
-	"""the identifier for the entity itself e.g. name or id"""
+	""" The identifier for the entity itself e.g. name or id"""
 	entityId: ID!
 }
 
+""" Represents a tenant - a group of users """
 type TenantInfo {
+	""" An unique identifier of the tenant """
     tenantId: String!
+	""" Contains only the subdomain part, without the top level domain, e.g. 'mytenant' """
 	subdomain: String!
+	""" The fully qualified domain name, e.g. 'mytenant.sap.com' """
 	emailDomain: String!
+	""" Is the same as emailDomain, but in form of an array """
 	emailDomains: [String!]
 }
 
+""" Part of the role, holds the display name and the relation (for example 'assignee', 'member', 'member_manage', etc.) """
 type Permission {
 	displayName: String!
 	relation: String!
 }
 
+""" Represents a role that can be granted to an user or group of users """
 type Role {
+	""" Is a human readable name of the role """
 	displayName: String!
+	""" Is an identifier of the role """
 	technicalName: String!
+	""" All the permissions contained in the role """
 	permissions: [Permission!]
 }
 
+""" Contains all roles that are granted to an user """
 type GrantedUser {
 	user: User!
 	roles: [Role!]
 }
 
+""" Is a list of the users and their roles """
 type GrantedUserConnection {
 	users: [GrantedUser]
+	""" a number of granted users in the list """
 	pageInfo: PageInfo!
 }
 
 type Query {
-	"""Get all users and their roles of the entity"""
+	""" Get all users and their roles of the entity.
+		Input parameters:
+		- 'tenantId' identifies the tenant for which users and roles are returned.
+		- 'entity' is an abstraction for which the returned users and roles are assigned to
+		- 'limit' is a number of entries displayed on one page
+		- 'page' holds the current page number
+		- if 'showInvitees' is true, the list will contain also the users that are invited to the entity
+		Return value:
+		- GrantedUserConnection is a list of users and their roles which matches the input parameters"""
 	usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false): GrantedUserConnection @tenant(peers:true)
 	"""Get all roles that are granted to the user of the referenced entity"""
 	rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @tenant(peers: false)
@@ -5819,40 +5839,6 @@ func (ec *executionContext) unmarshalInputInvite(ctx context.Context, obj interf
 				return it, err
 			}
 			it.Roles = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputTeamInput(ctx context.Context, obj interface{}) (TeamInput, error) {
-	var it TeamInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"name", "adminUserID"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Name = data
-		case "adminUserID":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("adminUserID"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.AdminUserID = data
 		}
 	}
 

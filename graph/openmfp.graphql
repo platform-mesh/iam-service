@@ -1,119 +1,183 @@
+""" Holds additional information about the retrieved data """
 type PageInfo {
-	totalCount: Int!
+    totalCount: Int!
 }
 
+""" List of the users """
 type UserConnection {
-	user: [User!]!
-	pageInfo: PageInfo
+    user: [User!]!
+    pageInfo: PageInfo
 }
 
+""" Represents an user """
 type User {
-	userId: String!
-	email: String!
-	firstName: String
-	lastName: String
-	invitationOutstanding: Boolean!
+    userId: String!
+    email: String!
+    firstName: String
+    lastName: String
+    invitationOutstanding: Boolean!
 }
 
+""" Holds a payload to create a new user """
 input UserInput {
-	userId: String!
-	email: String!
-	firstName: String
-	lastName: String
-	invitationOutstanding: Boolean
+    userId: String!
+    email: String!
+    firstName: String
+    lastName: String
+    invitationOutstanding: Boolean
 }
 
-input TeamInput {
-	name: String!
-	adminUserID: String!
-}
-
+""" Holds a payload of any Entity (team, project etc.) - type and id """
 input EntityInput {
-	"""the type of entity e.g. team, project etc."""
-	entityType: String!
-	"""the identifier for the entity itself e.g. name or id"""
-	entityId: ID!
+    """ The type of entity e.g. team, project etc. """
+    entityType: String!
+    """ The identifier for the entity itself e.g. name or id"""
+    entityId: ID!
 }
 
+""" Contains a tenant information """
 type TenantInfo {
+    """ An unique identifier of the tenant """
     tenantId: String!
-	subdomain: String!
-	emailDomain: String!
-	emailDomains: [String!]
+    """ Contains only the subdomain part, without the top level domain, e.g. 'mytenant' """
+    subdomain: String!
+    """ The fully qualified domain name, e.g. 'mytenant.sap.com' """
+    emailDomain: String!
+    """ This list was introduced to support multiple email domains per tenant and keep the backward compatibility """
+    emailDomains: [String!]
 }
 
+""" Part of the role, holds the display name and the relation (for example 'assignee', 'member', 'member_manage', etc.) """
 type Permission {
-	displayName: String!
-	relation: String!
+    displayName: String!
+    relation: String!
 }
 
+""" Represents a role that can be granted to an user or group of users """
 type Role {
-	displayName: String!
-	technicalName: String!
-	permissions: [Permission!]
+    """ Is a human readable name of the role """
+    displayName: String!
+    """ Is an identifier of the role """
+    technicalName: String!
+    """ All the permissions contained in the role """
+    permissions: [Permission!]
 }
 
+""" Contains all roles that are granted to an user """
 type GrantedUser {
-	user: User!
-	roles: [Role!]
+    user: User!
+    roles: [Role!]
 }
 
+""" Is a list of the users and their roles """
 type GrantedUserConnection {
-	users: [GrantedUser]
-	pageInfo: PageInfo!
+    users: [GrantedUser]
+    """ a number of granted users in the list """
+    pageInfo: PageInfo!
 }
 
 type Query {
-	"""Get all users and their roles of the entity"""
-	usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false): GrantedUserConnection @tenant(peers:true)
-	"""Get all roles that are granted to the user of the referenced entity"""
-	rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @tenant(peers: false)
-	"""Get all roles that exist for the referenced entity type"""
-	availableRolesForEntity(tenantId: ID!, entity: EntityInput!): [Role]! @tenant(peers: false)
-	"""Get all roles that exist for the specific entity type"""
-	availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @tenant(peers: false)
+    """ Get all users and their roles of the entity.
+    Input parameters:
+    - 'tenantId' identifies the tenant for which users and roles are returned
+    - 'entity' is an abstraction for which the returned users and roles are assigned to
+    - 'limit' is a number of entries displayed on one page
+    - 'page' holds the current page number
+    - if 'showInvitees' is true, the list will contain also the users that are invited to the entity
+    Return value:
+    - GrantedUserConnection is a list of users and their roles which matches the input parameters"""
+    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false): GrantedUserConnection @tenant(peers:true)
 
-	# token must be of user requesting info
-	user(tenantId:String!, userId:String!): User  @tenant(peers: true)
-	userByEmail(tenantId:String!, email:String!): User  @tenant(peers: true)
+    """ Get all roles that are granted to the user of the referenced entity
+    Input parameters:
+    - 'tenantId' identifies the tenant for which users and roles are returned
+    - 'entity' is an abstraction for which the returned users and roles are assigned to
+    - 'userId' is an identifier of the user for which the roles are returned
+    Return value:
+    - '[Role]' is a list of assigned roles to the user """
+    rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @tenant(peers: false)
 
-	# doesnt return groupAssignment of the user / implements basic offset pagination
-	usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @tenant(peers: true)
+    """ Get all roles that exist for the referenced entity type
+    Input parameters:
+    - 'tenantId' identifies the tenant where entity belongs to.
+    - 'entity' identifies the exact entity for which defined roles are returned
+    Return value:
+    - '[Role]' is a list of roles that exist for the specific entity """
+    availableRolesForEntity(tenantId: ID!, entity: EntityInput!): [Role]! @tenant(peers: false)
 
-	# if the tenantId is not provided, the tenant will be taken from the JWT of the request
-	tenantInfo(tenantId: String): TenantInfo! 
+    """ Get all roles that exist for the specific entity type
+    Input parameters:
+    - 'tenantId' identifies the tenant where entity belongs to.
+    - 'entityType' is a type of entity for which defined roles are returned
+    Return value:
+    - '[Role]' is a list of roles that exist for the all entities of a certain type """
+    availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @tenant(peers: false)
+
+    """ Get the user by its tenantId and userId.
+    Input parameters:
+    - 'tenantId' identifies the tenant where the user belongs to
+    - 'userId' is an identifier of the user
+    Return value:
+    - 'User' is a user with the given identifiers """
+    user(tenantId:String!, userId:String!): User  @tenant(peers: true)
+
+    """ Get the user by its tenantId and email.
+    Input parameters:
+    - 'tenantId' identifies the tenant where the user belongs to
+    - 'email' is an email of the user
+    Return value:
+    - 'User' is a user with the given identifiers """
+    userByEmail(tenantId:String!, email:String!): User  @tenant(peers: true)
+
+    """ Get all users of the tenant. Supports pagination.
+    Input parameters:
+    - 'tenantId' identifies the tenant for which users are returned
+    - 'limit' is a number of entries displayed on one page
+    - 'page' holds the current page number
+    Return value:
+    - 'UserConnection' is a list of users which matches the input parameters """
+    usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @tenant(peers: true)
+
+    """ Get the tenant information by its tenantId.
+    Input parameters:
+    - 'tenantId' is an identifier of the tenant
+    Return value:
+    - 'TenantInfo' is a tenant with the given identifier """
+    tenantInfo(tenantId: String): TenantInfo!
 }
 
+""" Holds the information about a specific user and and a list of roles that should be assigned to the user """
 input Change {
-	userId: String!
-	roles: [String!]!
+    userId: String!
+    roles: [String!]!
 }
 
+""" Answer the question who is invited, to which entity and which roles should be assigned """
 input Invite {
-	email: String!
-	entity: EntityInput!
-	roles: [String!]!
+    email: String!
+    entity: EntityInput!
+    roles: [String!]!
 }
 
 type Mutation {
     inviteUser(tenantId: String!, invite: Invite!, notifyByEmail: Boolean!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
-	deleteInvite(tenantId: String!, invite: Invite!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
+    deleteInvite(tenantId: String!, invite: Invite!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
 
-	assignRoleBindings(tenantId: ID!, entityType: String!, entityId: ID!, input: [Change]!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
-	removeFromEntity(tenantId: ID!, entityType: String!, userId: ID!, entityId: ID!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
-	leaveEntity(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @tenant(peers: false)
+    assignRoleBindings(tenantId: ID!, entityType: String!, entityId: ID!, input: [Change]!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
+    removeFromEntity(tenantId: ID!, entityType: String!, userId: ID!, entityId: ID!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
+    leaveEntity(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @tenant(peers: false)
 
-	createAccount(tenantId: ID!, entityType: String!, entityId: ID!, owner: String!): Boolean! @peersOnly
-	removeAccount(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @peersOnly
+    createAccount(tenantId: ID!, entityType: String!, entityId: ID!, owner: String!): Boolean! @peersOnly
+    removeAccount(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @peersOnly
 
-	## Only for administrative use
-	createUser(tenantId: String!, input: UserInput!): User! @peersOnly
-	removeUser(tenantId:String!, userId: String, email: String): Boolean @peersOnly
+    ## Only for administrative use
+    createUser(tenantId: String!, input: UserInput!): User! @peersOnly
+    removeUser(tenantId:String!, userId: String, email: String): Boolean @peersOnly
 }
 
 schema{
-	query: Query
-	mutation: Mutation
+    query: Query
+    mutation: Mutation
 }
 
 directive @tenant(peers: Boolean!) on FIELD_DEFINITION
