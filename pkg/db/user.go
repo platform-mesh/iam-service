@@ -51,7 +51,9 @@ func (d *Database) GetUsersByUserIDs(ctx context.Context, tenantID string, userI
 }
 
 // GetUserByIDOrEmail returns a member by ID or email
-func (d *Database) getUserByIDOrEmail(ctx context.Context, tenantID string, userID string, email string) (*graph.User, error) {
+func (d *Database) getUserByIDOrEmail(
+	ctx context.Context, tenantID string, userID string, email string, // nolint: unparam
+) (*graph.User, error) {
 	if userID == "" && email == "" {
 		return nil, errors.New("at least one of userId or a valid email has to be provided")
 	}

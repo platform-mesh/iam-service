@@ -98,7 +98,8 @@ func TestWrite(t *testing.T) {
 					},
 				},
 			},
-			setupMocks: func(ctx context.Context, in *openfgav1.WriteRequest, openFGAServiceClientMock *mocks.OpenFGAServiceClient, fgaStoreHelperMock *storeMocks.FGAStoreHelper) {
+			setupMocks: func(ctx context.Context, in *openfgav1.WriteRequest,
+				openFGAServiceClientMock *mocks.OpenFGAServiceClient, fgaStoreHelperMock *storeMocks.FGAStoreHelper) {
 				openFGAServiceClientMock.EXPECT().Check(ctx, &openfgav1.CheckRequest{
 					StoreId:              in.StoreId,
 					AuthorizationModelId: in.AuthorizationModelId,
@@ -142,7 +143,8 @@ func TestWrite(t *testing.T) {
 					},
 				},
 			},
-			setupMocks: func(ctx context.Context, in *openfgav1.WriteRequest, openFGAServiceClientMock *mocks.OpenFGAServiceClient, fgaStoreHelperMock *storeMocks.FGAStoreHelper) {
+			setupMocks: func(ctx context.Context, in *openfgav1.WriteRequest,
+				openFGAServiceClientMock *mocks.OpenFGAServiceClient, fgaStoreHelperMock *storeMocks.FGAStoreHelper) {
 				openFGAServiceClientMock.EXPECT().Check(ctx, &openfgav1.CheckRequest{
 					StoreId:              in.StoreId,
 					AuthorizationModelId: in.AuthorizationModelId,
@@ -171,7 +173,8 @@ func TestWrite(t *testing.T) {
 					},
 				},
 			},
-			setupMocks: func(ctx context.Context, in *openfgav1.WriteRequest, openFGAServiceClientMock *mocks.OpenFGAServiceClient, fgaStoreHelperMock *storeMocks.FGAStoreHelper) {
+			setupMocks: func(ctx context.Context, in *openfgav1.WriteRequest,
+				openFGAServiceClientMock *mocks.OpenFGAServiceClient, fgaStoreHelperMock *storeMocks.FGAStoreHelper) {
 				openFGAServiceClientMock.EXPECT().Check(ctx, &openfgav1.CheckRequest{
 					StoreId:              in.StoreId,
 					AuthorizationModelId: in.AuthorizationModelId,
@@ -202,7 +205,8 @@ func TestWrite(t *testing.T) {
 					},
 				},
 			},
-			setupMocks: func(ctx context.Context, in *openfgav1.WriteRequest, openFGAServiceClientMock *mocks.OpenFGAServiceClient, fgaStoreHelperMock *storeMocks.FGAStoreHelper) {
+			setupMocks: func(ctx context.Context, in *openfgav1.WriteRequest,
+				openFGAServiceClientMock *mocks.OpenFGAServiceClient, fgaStoreHelperMock *storeMocks.FGAStoreHelper) {
 				openFGAServiceClientMock.EXPECT().Check(ctx, &openfgav1.CheckRequest{
 					StoreId:              in.StoreId,
 					AuthorizationModelId: in.AuthorizationModelId,

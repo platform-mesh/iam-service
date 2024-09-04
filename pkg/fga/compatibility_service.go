@@ -50,7 +50,8 @@ type CompatService struct {
 }
 
 type FgaEvents interface {
-	UserRoleChanged(ctx context.Context, tenantID string, entityID string, entityType string, userID string, oldRoles []string, newRoles []string) error
+	UserRoleChanged(ctx context.Context, tenantID string, entityID string, entityType string,
+		userID string, oldRoles []string, newRoles []string) error
 }
 
 func NewCompatClient(cl openfgav1.OpenFGAServiceClient, db db.Service, fgaEvents FgaEvents) (*CompatService, error) {
@@ -158,10 +159,13 @@ func (c *CompatService) Write(ctx context.Context, in *openfgav1.WriteRequest) (
 	return res, err
 }
 
-// TODO: to prevent mistakes, we should probably have a separate type for entityType and entityID. Or at least create a separate struct with those two fields.
+// TODO: to prevent mistakes, we should probably have a separate type for entityType and entityID.
+//  Or at least create a separate struct with those two fields.
 
 // UsersForEntity returns a map of user IDs to roles for a given entity.
-func (s *CompatService) UsersForEntity(ctx context.Context, tenantID string, entityID string, entityType string) (types.UserIDToRoles, error) {
+func (s *CompatService) UsersForEntity(
+	ctx context.Context, tenantID string, entityID string, entityType string,
+) (types.UserIDToRoles, error) {
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.GrantedUsers")
 	defer span.End()
 
@@ -245,7 +249,9 @@ func (s *CompatService) CreateAccount(ctx context.Context, tenantID string, enti
 		}
 		if err != nil {
 			logger.Error().AnErr("openFGA write error", err).Send()
-			dxpsentry.CaptureError(err, dxpsentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "ownerUserID": ownerUserID})
+			dxpsentry.CaptureError(err, dxpsentry.Tags{
+				"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "ownerUserID": ownerUserID,
+			})
 			return err
 		}
 	}
@@ -333,7 +339,7 @@ func (s *CompatService) RemoveAccount(ctx context.Context, tenantID string, enti
 	return err
 }
 
-func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graphql.Change) error {
+func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graphql.Change) error { // nolint: gocognit, cyclop,funlen,lll
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.AssignRoleBindings")
 	defer span.End()
 
@@ -428,7 +434,7 @@ func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string,
 			}
 		}
 
-		if req.Writes != nil || req.Deletes != nil {
+		if req.Writes != nil || req.Deletes != nil { // nolint: nestif
 			_, err = s.upstream.Write(ctx, req)
 			if s.helper.IsDuplicateWriteError(err) {
 				err = nil

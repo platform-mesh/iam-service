@@ -131,7 +131,9 @@ func TestRemoveRoleFromInvite_WhenRoleExists_ReturnNil(t *testing.T) {
 
 	ctx := context.Background()
 
-	errRemoveRole := database.RemoveRoleFromInvite(ctx, db.Invite{TenantID: "tenantID", Email: "email@email.test", EntityType: "entityType", EntityID: "entityID"}, "role")
+	errRemoveRole := database.RemoveRoleFromInvite(ctx, db.Invite{
+		TenantID: "tenantID", Email: "email@email.test", EntityType: "entityType", EntityID: "entityID",
+	}, "role")
 
 	assert.NoError(t, errRemoveRole)
 	assert.Nil(t, errRemoveRole)
@@ -170,12 +172,16 @@ func TestRemoveRoleFromInvite_WhenDBThrowsError_ReturnsError(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(inviteForEmail))
 
-	errRemoveRole := database.RemoveRoleFromInvite(ctx, db.Invite{TenantID: "tenantID", Email: "test@email.com", EntityType: "entityType", EntityID: "entityID"}, "role")
+	errRemoveRole := database.RemoveRoleFromInvite(ctx, db.Invite{
+		TenantID: "tenantID", Email: "test@email.com", EntityType: "entityType", EntityID: "entityID",
+	}, "role")
 
 	gormDB.Error = errors.New("error")
 
 	// Act
-	err = database.RemoveRoleFromInvite(ctx, db.Invite{TenantID: "tenantID", Email: "test@email.com", EntityType: "entityType", EntityID: "entityID"}, "role")
+	err = database.RemoveRoleFromInvite(ctx, db.Invite{
+		TenantID: "tenantID", Email: "test@email.com", EntityType: "entityType", EntityID: "entityID",
+	}, "role")
 
 	// Assert
 	assert.Error(t, err)
@@ -216,9 +222,13 @@ func TestRemoveRoleFromInvite_WhenRoleDoesNotExist_ReturnsNil(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(inviteForEmail))
 
-	errRemoveRole := database.RemoveRoleFromInvite(ctx, db.Invite{TenantID: "tenantID", Email: "email@email.test", EntityType: "entityType", EntityID: "entityID"}, "role2")
+	errRemoveRole := database.RemoveRoleFromInvite(ctx, db.Invite{
+		TenantID: "tenantID", Email: "email@email.test", EntityType: "entityType", EntityID: "entityID",
+	}, "role2")
 	// Act
-	err = database.RemoveRoleFromInvite(ctx, db.Invite{TenantID: "tenantID", Email: "email@email.test", EntityType: "entityType", EntityID: "entityID"}, "role2")
+	err = database.RemoveRoleFromInvite(ctx, db.Invite{
+		TenantID: "tenantID", Email: "email@email.test", EntityType: "entityType", EntityID: "entityID",
+	}, "role2")
 	// Assert
 	assert.NoError(t, err)
 	assert.NoError(t, errInvite)

@@ -36,7 +36,12 @@ func WithOpenFGAClient(cl openfgav1.OpenFGAServiceClient) FGAEventerOption {
 	}
 }
 
-func NewFGAEventer(client openfgav1.OpenFGAServiceClient, inviteManager InviteManger, helper openmfpFga.FGAStoreHelper, opts ...FGAEventerOption) (*FGAEventer, error) {
+func NewFGAEventer(
+	client openfgav1.OpenFGAServiceClient,
+	inviteManager InviteManger,
+	helper openmfpFga.FGAStoreHelper,
+	opts ...FGAEventerOption,
+) (*FGAEventer, error) {
 	fgaEventer := &FGAEventer{
 		upstream:     client,
 		inviteManger: inviteManager,

@@ -29,7 +29,7 @@ tasks:
     deps: [setup:golangci-lint, mockery]
     cmds:
       - task: fmt
-      - "{{.LOCAL_BIN}}/golangci-lint run --timeout 15m ./..."
+      - "{{.LOCAL_BIN}}/golangci-lint run ./..."
   build:
     cmds:
       - go build ./...

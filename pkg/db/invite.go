@@ -108,7 +108,13 @@ func (d *Database) InviteUser(ctx context.Context, tenantID string, invite graph
 		return nil
 	}
 
-	inv := Invite{TenantID: tenantID, Email: invite.Email, EntityType: invite.Entity.EntityType, EntityID: invite.Entity.EntityID, Roles: strings.Join(invite.Roles, ",")}
+	inv := Invite{
+		TenantID:   tenantID,
+		Email:      invite.Email,
+		EntityType: invite.Entity.EntityType,
+		EntityID:   invite.Entity.EntityID,
+		Roles:      strings.Join(invite.Roles, ","),
+	}
 	err = d.createInvite(ctx, inv)
 	if err != nil {
 		d.logger.Error().Err(err).Str("email", invite.Email).Msg("Could not create invite")

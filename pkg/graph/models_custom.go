@@ -17,7 +17,7 @@ type User struct {
 	Base
 	ID                    string `gorm:"type:uuid;primary_key"`
 	TenantID              string `gorm:"index:idx_user_id,unique;index:idx_email,unique;index:idx_user_id_email,unique"`
-	UserID                string `gorm:"index:idx_user_id,unique,where:user_id != '';index:idx_user_id_email,unique;check:user_id_or_email,user_id <> '' IS TRUE OR email <> '' IS TRUE"`
+	UserID                string `gorm:"index:idx_user_id,unique,where:user_id != '';index:idx_user_id_email,unique;check:user_id_or_email,user_id <> '' IS TRUE OR email <> '' IS TRUE"` // nolint: lll
 	Email                 string `gorm:"index:idx_email,unique,where:email != '';index:idx_user_id_email,unique"`
 	FirstName             *string
 	LastName              *string

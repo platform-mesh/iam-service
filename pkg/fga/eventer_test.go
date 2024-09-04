@@ -2,9 +2,9 @@ package fga
 
 import (
 	"context"
-	"github.com/openmfp/golang-commons/fga/store/mocks"
 	"testing"
 
+	"github.com/openmfp/golang-commons/fga/store/mocks"
 	"github.com/openmfp/golang-commons/logger"
 	"github.com/openmfp/iam-service/pkg/db"
 	fgaMocks "github.com/openmfp/iam-service/pkg/fga/mocks"

@@ -15,6 +15,7 @@ import (
 )
 
 func setupService(t *testing.T) (*service.Service, *mocks.DatabaseService) {
+	t.Helper()
 	mockDb := mocks.NewDatabaseService(t)
 	svc := &service.Service{
 		Db: mockDb,

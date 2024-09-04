@@ -18,7 +18,10 @@ import (
 	"github.com/openmfp/iam-service/pkg/graph"
 )
 
-const ErrConnectingDB = "Error connecting to database"
+const (
+	connectToDbError  = "Error connecting to database"
+	readDataFileError = "error occurred when reading data file"
+)
 
 type UserHooks interface {
 	UserInvited(ctx context.Context, user *graph.User, tenantID string, scope string, userInvited bool)
@@ -71,7 +74,7 @@ var _ Service = (*Database)(nil)
 func New(cfg ConfigDatabase, dbConn *gorm.DB, logger *logger.Logger, migrate bool, isLocal bool) (*Database, error) {
 	db, err := dbConn.DB()
 	if err != nil {
-		return nil, errors.Wrap(err, ErrConnectingDB)
+		return nil, errors.Wrap(err, connectToDbError)
 	}
 
 	// configure Gorm connection pool to avoid reaching PostgreSQL limits
@@ -122,7 +125,7 @@ func New(cfg ConfigDatabase, dbConn *gorm.DB, logger *logger.Logger, migrate boo
 	}
 
 	// initialize DB with bootstrap data for local mode
-	if isLocal {
+	if isLocal { // nolint: nestif
 		users, err := database.LoadUserData(cfg.LocalData.DataPathUser)
 		if err != nil {
 			logger.Error().Err(err).Msg("failed to load user data")
@@ -152,7 +155,7 @@ func (d *Database) SetUserHooks(hooks UserHooks) {
 	d.userHooks = hooks
 }
 
-func (d *Database) GetUserHooks() UserHooks {
+func (d *Database) GetUserHooks() UserHooks { // nolint: ireturn
 	return d.userHooks
 }
 
@@ -171,8 +174,7 @@ func (d *Database) Close() error {
 func (d *Database) LoadTenantConfigData(filePath string) error {
 	dat, err := os.ReadFile(filePath)
 	if err != nil {
-		errMsg := "error occurred when reading data file"
-		return errors.Wrapf(err, "%s %v", errMsg, filePath)
+		return errors.Wrapf(err, "%s %v", readDataFileError, filePath)
 	}
 	tenantConfigurations := TenantConfigurationsList{}
 	err = yaml.Unmarshal(dat, &tenantConfigurations)
@@ -181,7 +183,11 @@ func (d *Database) LoadTenantConfigData(filePath string) error {
 	}
 	for _, tc := range tenantConfigurations.Configs {
 		existingTenantConfig := &TenantConfiguration{}
-		result := d.db.Where("tenant_id = ?", tc.TenantID).Where("issuer = ?", tc.Issuer).Where("audience = ?", tc.Audience).First(existingTenantConfig)
+		result := d.db.
+			Where("tenant_id = ?", tc.TenantID).
+			Where("issuer = ?", tc.Issuer).
+			Where("audience = ?", tc.Audience).
+			First(existingTenantConfig)
 
 		if result.RowsAffected > 0 {
 			continue
@@ -205,8 +211,7 @@ func (d *Database) LoadTenantConfigData(filePath string) error {
 func (d *Database) LoadTeamData(filePath string, users []*graph.User) error {
 	dat, err := os.ReadFile(filePath)
 	if err != nil {
-		errMsg := "error occurred when reading data file"
-		return errors.Wrapf(err, "%s %v", errMsg, filePath)
+		return errors.Wrapf(err, "%s %v", readDataFileError, filePath)
 	}
 	teamList := TeamList{}
 	err = yaml.Unmarshal(dat, &teamList)
@@ -251,8 +256,7 @@ func (d *Database) LoadTeamData(filePath string, users []*graph.User) error {
 func (d *Database) LoadUserData(filePath string) ([]*graph.User, error) {
 	dat, err := os.ReadFile(filePath)
 	if err != nil {
-		errMsg := "error occurred when reading data file"
-		return nil, errors.Wrapf(err, "%s %v", errMsg, filePath)
+		return nil, errors.Wrapf(err, "%s %v", readDataFileError, filePath)
 	}
 	userList := UserList{}
 	err = yaml.Unmarshal(dat, &userList)
@@ -292,8 +296,7 @@ func (d *Database) LoadUserData(filePath string) ([]*graph.User, error) {
 func (d *Database) LoadInvitationData(filePath string) error {
 	invitationData, err := os.ReadFile(filePath)
 	if err != nil {
-		errMsg := "error occurred when reading data file"
-		return errors.Wrapf(err, "%s %v", errMsg, filePath)
+		return errors.Wrapf(err, "%s %v", readDataFileError, filePath)
 	}
 	inviteList := InviteList{}
 	err = yaml.Unmarshal(invitationData, &inviteList)

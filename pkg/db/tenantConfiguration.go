@@ -30,7 +30,9 @@ func (d *Database) GetTenantConfigurationForContext(ctx context.Context) (*Tenan
 	return d.GetTenantConfigurationByIssuerAndAudience(ctx, tokenInfo.Issuer, tokenInfo.Audiences)
 }
 
-func (d *Database) GetTenantConfigurationByIssuerAndAudience(ctx context.Context, issuer string, audiences []string) (*TenantConfiguration, error) {
+func (d *Database) GetTenantConfigurationByIssuerAndAudience(
+	ctx context.Context, issuer string, audiences []string,
+) (*TenantConfiguration, error) {
 	var item TenantConfiguration
 	res := d.db.
 		Where("issuer = ?", issuer).

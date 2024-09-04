@@ -14,7 +14,13 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-func NewFGAServer(grpcAddr string, db db.Service, fgaEvents FgaEvents, tr policy_services.TenantIdReader, isLocal bool) (*grpc.Server, *CompatService, error) {
+func NewFGAServer(
+	grpcAddr string,
+	db db.Service,
+	fgaEvents FgaEvents,
+	tr policy_services.TenantIdReader,
+	isLocal bool,
+) (*grpc.Server, *CompatService, error) {
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			requestid.NewUnaryInterceptor(),
