@@ -907,6 +907,67 @@ func (_c *DatabaseService_Save_Call) RunAndReturn(run func(*graph.User) error) *
 	return _c
 }
 
+// SearchUsers provides a mock function with given fields: ctx, tenantID, query, maxSearchUsersResults
+func (_m *DatabaseService) SearchUsers(ctx context.Context, tenantID string, query string, maxSearchUsersResults int) ([]*graph.User, error) {
+	ret := _m.Called(ctx, tenantID, query, maxSearchUsersResults)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SearchUsers")
+	}
+
+	var r0 []*graph.User
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int) ([]*graph.User, error)); ok {
+		return rf(ctx, tenantID, query, maxSearchUsersResults)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int) []*graph.User); ok {
+		r0 = rf(ctx, tenantID, query, maxSearchUsersResults)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*graph.User)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, int) error); ok {
+		r1 = rf(ctx, tenantID, query, maxSearchUsersResults)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DatabaseService_SearchUsers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SearchUsers'
+type DatabaseService_SearchUsers_Call struct {
+	*mock.Call
+}
+
+// SearchUsers is a helper method to define mock.On call
+//   - ctx context.Context
+//   - tenantID string
+//   - query string
+//   - maxSearchUsersResults int
+func (_e *DatabaseService_Expecter) SearchUsers(ctx interface{}, tenantID interface{}, query interface{}, maxSearchUsersResults interface{}) *DatabaseService_SearchUsers_Call {
+	return &DatabaseService_SearchUsers_Call{Call: _e.mock.On("SearchUsers", ctx, tenantID, query, maxSearchUsersResults)}
+}
+
+func (_c *DatabaseService_SearchUsers_Call) Run(run func(ctx context.Context, tenantID string, query string, maxSearchUsersResults int)) *DatabaseService_SearchUsers_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(int))
+	})
+	return _c
+}
+
+func (_c *DatabaseService_SearchUsers_Call) Return(_a0 []*graph.User, _a1 error) *DatabaseService_SearchUsers_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *DatabaseService_SearchUsers_Call) RunAndReturn(run func(context.Context, string, string, int) ([]*graph.User, error)) *DatabaseService_SearchUsers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SetUserHooks provides a mock function with given fields: hooks
 func (_m *DatabaseService) SetUserHooks(hooks db.UserHooks) {
 	_m.Called(hooks)

@@ -91,6 +91,11 @@ func (r *queryResolver) UsersConnection(ctx context.Context, tenantID string, li
 	return r.service.UsersConnection(ctx, tenantID, limit, page)
 }
 
+// SearchUsers is the resolver for the searchUsers field.
+func (r *queryResolver) SearchUsers(ctx context.Context, query string) ([]*graph.User, error) {
+	return r.service.SearchUsers(ctx, query)
+}
+
 // TenantInfo is the resolver for the tenantInfo field.
 func (r *queryResolver) TenantInfo(ctx context.Context, tenantID *string) (*graph.TenantInfo, error) {
 	panic(fmt.Errorf("not implemented: TenantInfo - tenantInfo"))

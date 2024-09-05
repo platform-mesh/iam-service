@@ -5,13 +5,16 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
+
+	openmfpCtx "github.com/openmfp/golang-commons/context"
+
 	"github.com/openmfp/iam-service/pkg/db"
 	"github.com/openmfp/iam-service/pkg/db/mocks"
 	"github.com/openmfp/iam-service/pkg/graph"
 	"github.com/openmfp/iam-service/pkg/service"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"gorm.io/gorm"
 )
 
 func setupService(t *testing.T) (*service.Service, *mocks.DatabaseService) {
@@ -458,9 +461,77 @@ func Test_GetZone_Error(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, zone)
 }
+
 func TestNew(t *testing.T) {
 	db := &mocks.DatabaseService{}
 	svc := service.New(db)
 	assert.NotNil(t, svc)
 	assert.Equal(t, db, svc.Db)
+}
+
+func TestSearchUsers(t *testing.T) {
+	svc, mockDb := setupService(t)
+
+	mockUsers := []*graph.User{{ID: "userID123"}}
+	tests := []struct {
+		name       string
+		ctx        context.Context
+		query      string
+		setupMocks func(ctx context.Context, databaseService *mocks.DatabaseService)
+		result     []*graph.User
+		errString  string
+	}{
+		{
+			name:  "Success",
+			ctx:   openmfpCtx.AddTenantToContext(context.TODO(), "tenant1"),
+			query: "jo",
+			setupMocks: func(ctx context.Context, db *mocks.DatabaseService) {
+				mockDb.EXPECT().SearchUsers(ctx, "tenant1", "jo", service.MaxSearchUsersResults).Return(mockUsers, nil).Once()
+			},
+			result:    mockUsers,
+			errString: "",
+		},
+		{
+			name:      "NoTenantIdInContextError",
+			ctx:       context.TODO(),
+			result:    nil,
+			errString: "someone stored a wrong value in the [tenantId] key with type [<nil>], expected [string]",
+		},
+		{
+			name:      "EmptyTenantIdError",
+			ctx:       openmfpCtx.AddTenantToContext(context.TODO(), ""),
+			result:    nil,
+			errString: "tenantID must not be empty",
+		},
+		{
+			name:      "EmptyQueryError",
+			ctx:       openmfpCtx.AddTenantToContext(context.TODO(), "tenant1"),
+			result:    nil,
+			errString: "query must not be empty",
+		},
+		{
+			name:  "DbError",
+			ctx:   openmfpCtx.AddTenantToContext(context.TODO(), "tenant1"),
+			query: "jo",
+			setupMocks: func(ctx context.Context, db *mocks.DatabaseService) {
+				mockDb.EXPECT().SearchUsers(ctx, "tenant1", "jo", service.MaxSearchUsersResults).
+					Return(nil, assert.AnError).Once()
+			},
+			result:    nil,
+			errString: assert.AnError.Error(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setupMocks != nil {
+				tt.setupMocks(tt.ctx, mockDb)
+			}
+			users, err := svc.SearchUsers(tt.ctx, tt.query)
+			assert.Equal(t, tt.result, users)
+			if tt.errString != "" {
+				assert.Equal(t, tt.errString, err.Error())
+			}
+		})
+	}
 }

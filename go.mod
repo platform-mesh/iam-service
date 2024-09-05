@@ -22,6 +22,7 @@ require (
 	google.golang.org/grpc v1.66.0
 	gorm.io/driver/sqlite v1.5.6
 	gorm.io/gorm v1.25.11
+	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -69,7 +70,6 @@ require (
 	k8s.io/api v0.30.3 // indirect
 	k8s.io/apimachinery v0.30.3 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
-	k8s.io/utils v0.0.0-20240102154912-e7106e64919e // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )

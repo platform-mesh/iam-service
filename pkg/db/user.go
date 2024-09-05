@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -11,6 +12,10 @@ import (
 	"github.com/openmfp/golang-commons/sentry"
 
 	"github.com/openmfp/iam-service/pkg/graph"
+)
+
+const (
+	maxSearchTimeout = 5 * time.Second
 )
 
 // GetUserByID  returns a member by ID
@@ -180,4 +185,26 @@ func (d *Database) GetUsers(ctx context.Context, tenantID string, limit int, pag
 	}
 
 	return &userConnection, err
+}
+
+func (d *Database) SearchUsers(ctx context.Context, tenantId, query string, maxSearchUsersResults int) ([]*graph.User, error) {
+	ctx, cancel := context.WithTimeout(ctx, maxSearchTimeout)
+	defer cancel()
+
+	// An index won't help text matching with a leading wildcard, that is why we use query + "%" pattern.
+	fuzzedQuery := strings.ToLower(query) + "%"
+
+	var users []*graph.User
+	err := d.db.WithContext(ctx).
+		Where("tenant_id = ?", tenantId).
+		Where(
+			d.db.Where("LOWER(user_id) LIKE ?", fuzzedQuery).
+				Or("LOWER(email) LIKE ?", fuzzedQuery).
+				Or("first_name IS NOT NULL AND LOWER(first_name) LIKE ?", fuzzedQuery).
+				Or("last_name IS NOT NULL AND LOWER(last_name) LIKE ?", fuzzedQuery),
+		).
+		Limit(maxSearchUsersResults).
+		Find(&users).Error
+
+	return users, err
 }

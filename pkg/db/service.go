@@ -54,6 +54,7 @@ type UserService interface {
 	RemoveRoleFromInvite(ctx context.Context, criteria Invite, roleToDelete string) error
 	DeleteInvite(ctx context.Context, criteria Invite) error
 	InviteUser(ctx context.Context, tenantID string, invite graph.Invite, notifyByEmail bool) error
+	SearchUsers(ctx context.Context, tenantID, query string, maxSearchUsersResults int) ([]*graph.User, error)
 
 	// hooks
 	SetUserHooks(hooks UserHooks)

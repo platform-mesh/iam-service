@@ -3,11 +3,19 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"gorm.io/gorm"
+
+	openmfpCtx "github.com/openmfp/golang-commons/context"
 	"github.com/openmfp/golang-commons/sentry"
+
 	"github.com/openmfp/iam-service/pkg/db"
 	"github.com/openmfp/iam-service/pkg/graph"
-	"gorm.io/gorm"
+)
+
+const (
+	MaxSearchUsersResults = 5
 )
 
 type ServiceInterface interface {
@@ -19,6 +27,7 @@ type ServiceInterface interface {
 	UserByEmail(ctx context.Context, tenantID string, email string) (*graph.User, error)
 	UsersConnection(ctx context.Context, tenantID string, limit *int, page *int) (*graph.UserConnection, error)
 	GetZone(ctx context.Context) (*graph.Zone, error)
+	SearchUsers(ctx context.Context, query string) ([]*graph.User, error)
 }
 
 type Service struct {
@@ -143,4 +152,29 @@ func (s *Service) GetZone(ctx context.Context) (*graph.Zone, error) {
 		}, nil
 	}
 	return nil, nil
+}
+
+func (s *Service) SearchUsers(ctx context.Context, query string) ([]*graph.User, error) {
+	logger := setupLogger(ctx)
+
+	tenantID, err := openmfpCtx.GetTenantFromContext(ctx)
+	if err != nil {
+		logger.Error().Err(err).Msg("no tenantID found in context")
+		return nil, sentry.SentryError(err)
+	}
+
+	if tenantID == "" {
+		return nil, fmt.Errorf("tenantID must not be empty")
+	}
+	if query == "" {
+		return nil, fmt.Errorf("query must not be empty")
+	}
+
+	users, err := s.Db.SearchUsers(ctx, tenantID, query, MaxSearchUsersResults)
+	if err != nil {
+		logger.Error().Err(err).Msg("SearchUsers failed")
+		return nil, sentry.SentryError(err)
+	}
+
+	return users, nil
 }

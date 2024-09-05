@@ -84,6 +84,7 @@ type ComplexityRoot struct {
 		AvailableRolesForEntity     func(childComplexity int, tenantID string, entity EntityInput) int
 		AvailableRolesForEntityType func(childComplexity int, tenantID string, entityType string) int
 		RolesForUserOfEntity        func(childComplexity int, tenantID string, entity EntityInput, userID string) int
+		SearchUsers                 func(childComplexity int, query string) int
 		TenantInfo                  func(childComplexity int, tenantID *string) int
 		User                        func(childComplexity int, tenantID string, userID string) int
 		UserByEmail                 func(childComplexity int, tenantID string, email string) int
@@ -137,6 +138,7 @@ type QueryResolver interface {
 	User(ctx context.Context, tenantID string, userID string) (*User, error)
 	UserByEmail(ctx context.Context, tenantID string, email string) (*User, error)
 	UsersConnection(ctx context.Context, tenantID string, limit *int, page *int) (*UserConnection, error)
+	SearchUsers(ctx context.Context, query string) ([]*User, error)
 	TenantInfo(ctx context.Context, tenantID *string) (*TenantInfo, error)
 }
 
@@ -351,6 +353,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.RolesForUserOfEntity(childComplexity, args["tenantId"].(string), args["entity"].(EntityInput), args["userId"].(string)), true
+
+	case "Query.searchUsers":
+		if e.complexity.Query.SearchUsers == nil {
+			break
+		}
+
+		args, err := ec.field_Query_searchUsers_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SearchUsers(childComplexity, args["query"].(string)), true
 
 	case "Query.tenantInfo":
 		if e.complexity.Query.TenantInfo == nil {
@@ -621,141 +635,189 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 var sources = []*ast.Source{
 	{Name: "../../graph/openmfp.graphql", Input: `""" Holds additional information about the retrieved data """
 type PageInfo {
-	totalCount: Int!
+    totalCount: Int!
 }
 
 """ List of the users """
 type UserConnection {
-	user: [User!]!
-	pageInfo: PageInfo
+    user: [User!]!
+    pageInfo: PageInfo
 }
 
 """ Represents an user """
 type User {
-	userId: String!
-	email: String!
-	firstName: String
-	lastName: String
-	invitationOutstanding: Boolean!
+    userId: String!
+    email: String!
+    firstName: String
+    lastName: String
+    invitationOutstanding: Boolean!
 }
 
 """ Holds a payload to create a new user """
 input UserInput {
-	userId: String!
-	email: String!
-	firstName: String
-	lastName: String
-	invitationOutstanding: Boolean
+    userId: String!
+    email: String!
+    firstName: String
+    lastName: String
+    invitationOutstanding: Boolean
 }
 
 """ Holds a payload of any Entity (team, project etc.) - type and id """
 input EntityInput {
-	""" The type of entity e.g. team, project etc. """
-	entityType: String!
-	""" The identifier for the entity itself e.g. name or id"""
-	entityId: ID!
+    """ The type of entity e.g. team, project etc. """
+    entityType: String!
+    """ The identifier for the entity itself e.g. name or id"""
+    entityId: ID!
 }
 
-""" Represents a tenant - a group of users """
+""" Contains a tenant information """
 type TenantInfo {
-	""" An unique identifier of the tenant """
+    """ An unique identifier of the tenant """
     tenantId: String!
-	""" Contains only the subdomain part, without the top level domain, e.g. 'mytenant' """
-	subdomain: String!
-	""" The fully qualified domain name, e.g. 'mytenant.sap.com' """
-	emailDomain: String!
-	""" Is the same as emailDomain, but in form of an array """
-	emailDomains: [String!]
+    """ Contains only the subdomain part, without the top level domain, e.g. 'mytenant' """
+    subdomain: String!
+    """ The fully qualified domain name, e.g. 'mytenant.sap.com' """
+    emailDomain: String!
+    """ This list was introduced to support multiple email domains per tenant and keep the backward compatibility """
+    emailDomains: [String!]
 }
 
 """ Part of the role, holds the display name and the relation (for example 'assignee', 'member', 'member_manage', etc.) """
 type Permission {
-	displayName: String!
-	relation: String!
+    displayName: String!
+    relation: String!
 }
 
 """ Represents a role that can be granted to an user or group of users """
 type Role {
-	""" Is a human readable name of the role """
-	displayName: String!
-	""" Is an identifier of the role """
-	technicalName: String!
-	""" All the permissions contained in the role """
-	permissions: [Permission!]
+    """ Is a human readable name of the role """
+    displayName: String!
+    """ Is an identifier of the role """
+    technicalName: String!
+    """ All the permissions contained in the role """
+    permissions: [Permission!]
 }
 
 """ Contains all roles that are granted to an user """
 type GrantedUser {
-	user: User!
-	roles: [Role!]
+    user: User!
+    roles: [Role!]
 }
 
 """ Is a list of the users and their roles """
 type GrantedUserConnection {
-	users: [GrantedUser]
-	""" a number of granted users in the list """
-	pageInfo: PageInfo!
+    users: [GrantedUser]
+    """ a number of granted users in the list """
+    pageInfo: PageInfo!
 }
 
 type Query {
-	""" Get all users and their roles of the entity.
-		Input parameters:
-		- 'tenantId' identifies the tenant for which users and roles are returned.
-		- 'entity' is an abstraction for which the returned users and roles are assigned to
-		- 'limit' is a number of entries displayed on one page
-		- 'page' holds the current page number
-		- if 'showInvitees' is true, the list will contain also the users that are invited to the entity
-		Return value:
-		- GrantedUserConnection is a list of users and their roles which matches the input parameters"""
-	usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false): GrantedUserConnection @tenant(peers:true)
-	"""Get all roles that are granted to the user of the referenced entity"""
-	rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @tenant(peers: false)
-	"""Get all roles that exist for the referenced entity type"""
-	availableRolesForEntity(tenantId: ID!, entity: EntityInput!): [Role]! @tenant(peers: false)
-	"""Get all roles that exist for the specific entity type"""
-	availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @tenant(peers: false)
+    """ Get all users and their roles of the entity.
+    Input parameters:
+    - 'tenantId' identifies the tenant for which users and roles are returned
+    - 'entity' is an abstraction for which the returned users and roles are assigned to
+    - 'limit' is a number of entries displayed on one page
+    - 'page' holds the current page number
+    - if 'showInvitees' is true, the list will contain also the users that are invited to the entity
+    Return value:
+    - GrantedUserConnection is a list of users and their roles which matches the input parameters"""
+    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false): GrantedUserConnection @tenant(peers:true)
 
-	# token must be of user requesting info
-	user(tenantId:String!, userId:String!): User  @tenant(peers: true)
-	userByEmail(tenantId:String!, email:String!): User  @tenant(peers: true)
+    """ Get all roles that are granted to the user of the referenced entity
+    Input parameters:
+    - 'tenantId' identifies the tenant for which users and roles are returned
+    - 'entity' is an abstraction for which the returned users and roles are assigned to
+    - 'userId' is an identifier of the user for which the roles are returned
+    Return value:
+    - '[Role]' is a list of assigned roles to the user """
+    rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @tenant(peers: false)
 
-	# doesnt return groupAssignment of the user / implements basic offset pagination
-	usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @tenant(peers: true)
+    """ Get all roles that exist for the referenced entity type
+    Input parameters:
+    - 'tenantId' identifies the tenant where entity belongs to.
+    - 'entity' identifies the exact entity for which defined roles are returned
+    Return value:
+    - '[Role]' is a list of roles that exist for the specific entity """
+    availableRolesForEntity(tenantId: ID!, entity: EntityInput!): [Role]! @tenant(peers: false)
 
-	# if the tenantId is not provided, the tenant will be taken from the JWT of the request
-	tenantInfo(tenantId: String): TenantInfo! 
+    """ Get all roles that exist for the specific entity type
+    Input parameters:
+    - 'tenantId' identifies the tenant where entity belongs to.
+    - 'entityType' is a type of entity for which defined roles are returned
+    Return value:
+    - '[Role]' is a list of roles that exist for the all entities of a certain type """
+    availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @tenant(peers: false)
+
+    """ Get the user by its tenantId and userId.
+    Input parameters:
+    - 'tenantId' identifies the tenant where the user belongs to
+    - 'userId' is an identifier of the user
+    Return value:
+    - 'User' is a user with the given identifiers """
+    user(tenantId:String!, userId:String!): User  @tenant(peers: true)
+
+    """ Get the user by its tenantId and email.
+    Input parameters:
+    - 'tenantId' identifies the tenant where the user belongs to
+    - 'email' is an email of the user
+    Return value:
+    - 'User' is a user with the given identifiers """
+    userByEmail(tenantId:String!, email:String!): User  @tenant(peers: true)
+
+    """ Get all users of the tenant. Supports pagination.
+    Input parameters:
+    - 'tenantId' identifies the tenant for which users are returned
+    - 'limit' is a number of entries displayed on one page
+    - 'page' holds the current page number
+    Return value:
+    - 'UserConnection' is a list of users which matches the input parameters """
+    usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @tenant(peers: true)
+
+    """ Get all users that match the query. Searchable fields are userId, email, firstName and lastName.
+    Result contain only the users from the tenant the requester belongs to.
+    Returns limited user list without pagination. Supports fuzzy search. """
+    searchUsers(query: String!) : [User]!
+
+    """ Get the tenant information by its tenantId.
+    Input parameters:
+    - 'tenantId' is an identifier of the tenant
+    Return value:
+    - 'TenantInfo' is a tenant with the given identifier """
+    tenantInfo(tenantId: String): TenantInfo!
 }
 
+""" Holds the information about a specific user and and a list of roles that should be assigned to the user """
 input Change {
-	userId: String!
-	roles: [String!]!
+    userId: String!
+    roles: [String!]!
 }
 
+""" Answer the question who is invited, to which entity and which roles should be assigned """
 input Invite {
-	email: String!
-	entity: EntityInput!
-	roles: [String!]!
+    email: String!
+    entity: EntityInput!
+    roles: [String!]!
 }
 
 type Mutation {
     inviteUser(tenantId: String!, invite: Invite!, notifyByEmail: Boolean!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
-	deleteInvite(tenantId: String!, invite: Invite!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
+    deleteInvite(tenantId: String!, invite: Invite!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
 
-	assignRoleBindings(tenantId: ID!, entityType: String!, entityId: ID!, input: [Change]!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
-	removeFromEntity(tenantId: ID!, entityType: String!, userId: ID!, entityId: ID!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
-	leaveEntity(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @tenant(peers: false)
+    assignRoleBindings(tenantId: ID!, entityType: String!, entityId: ID!, input: [Change]!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
+    removeFromEntity(tenantId: ID!, entityType: String!, userId: ID!, entityId: ID!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
+    leaveEntity(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @tenant(peers: false)
 
-	createAccount(tenantId: ID!, entityType: String!, entityId: ID!, owner: String!): Boolean! @peersOnly
-	removeAccount(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @peersOnly
+    createAccount(tenantId: ID!, entityType: String!, entityId: ID!, owner: String!): Boolean! @peersOnly
+    removeAccount(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @peersOnly
 
-	## Only for administrative use
-	createUser(tenantId: String!, input: UserInput!): User! @peersOnly
-	removeUser(tenantId:String!, userId: String, email: String): Boolean @peersOnly
+    ## Only for administrative use
+    createUser(tenantId: String!, input: UserInput!): User! @peersOnly
+    removeUser(tenantId:String!, userId: String, email: String): Boolean @peersOnly
 }
 
 schema{
-	query: Query
-	mutation: Mutation
+    query: Query
+    mutation: Mutation
 }
 
 directive @tenant(peers: Boolean!) on FIELD_DEFINITION
@@ -1246,6 +1308,21 @@ func (ec *executionContext) field_Query_rolesForUserOfEntity_args(ctx context.Co
 		}
 	}
 	args["userId"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_searchUsers_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["query"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("query"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["query"] = arg0
 	return args, nil
 }
 
@@ -3140,6 +3217,73 @@ func (ec *executionContext) fieldContext_Query_usersConnection(ctx context.Conte
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_usersConnection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_searchUsers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_searchUsers(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().SearchUsers(rctx, fc.Args["query"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*User)
+	fc.Result = res
+	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_searchUsers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "userId":
+				return ec.fieldContext_User_userId(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "firstName":
+				return ec.fieldContext_User_firstName(ctx, field)
+			case "lastName":
+				return ec.fieldContext_User_lastName(ctx, field)
+			case "invitationOutstanding":
+				return ec.fieldContext_User_invitationOutstanding(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_searchUsers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -6339,6 +6483,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "searchUsers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_searchUsers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "tenantInfo":
 			field := field
 
@@ -7117,6 +7283,44 @@ func (ec *executionContext) marshalNTenantInfo2ᚖgithubᚗcomᚋopenmfpᚋiam�
 
 func (ec *executionContext) marshalNUser2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx context.Context, sel ast.SelectionSet, v User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx context.Context, sel ast.SelectionSet, v []*User) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOUser2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
 }
 
 func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*User) graphql.Marshaler {

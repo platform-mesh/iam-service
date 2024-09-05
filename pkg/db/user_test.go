@@ -2,6 +2,8 @@ package db_test
 
 import (
 	"context"
+	"github.com/stretchr/testify/require"
+	"k8s.io/utils/ptr"
 	"reflect"
 	"testing"
 
@@ -18,19 +20,21 @@ import (
 	"github.com/openmfp/iam-service/pkg/graph"
 )
 
-func TestUser_GetUserByID(t *testing.T) {
-	gormDB := setupSQLiteDB(t)
-
-	cfg := db.ConfigDatabase{
+func getDbCfg() db.ConfigDatabase {
+	return db.ConfigDatabase{
 		MaxOpenConns:    10,
 		MaxIdleConns:    5,
 		MaxConnLifetime: "1h",
 	}
+}
+
+func TestUser_GetUserByID(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
 	ctx := context.TODO()
@@ -54,16 +58,10 @@ func TestUser_GetUserByID(t *testing.T) {
 func TestUser_GetUsersByUserIDs(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
 	ctx := context.TODO()
@@ -89,16 +87,10 @@ func TestUser_GetUsersByUserIDs(t *testing.T) {
 func TestUser_GetUserByEmail(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
 	ctx := context.TODO()
@@ -122,16 +114,10 @@ func TestUser_GetUserByEmail(t *testing.T) {
 func TestUser_GetOrCreateUser(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
 	firstName := "Test"
@@ -162,16 +148,10 @@ func TestUser_GetOrCreateUser(t *testing.T) {
 func TestUser_GetOrCreateUser_CreateError(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
 	firstName := "Test"
@@ -203,16 +183,10 @@ func TestUser_GetOrCreateUser_CreateError(t *testing.T) {
 func TestUser_GetOrCreateUser_Userhooks_Nil_Error(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
 	firstName := "Test"
@@ -241,16 +215,10 @@ func TestUser_GetOrCreateUser_Userhooks_Nil_Error(t *testing.T) {
 func TestUser_RemoveUser(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
 	userHook := mocks.NewUserHooks(t)
@@ -283,16 +251,10 @@ func TestUser_RemoveUser(t *testing.T) {
 func TestUser_RemoveUserEmptyUserIDAndEmail(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
 	ctx := context.TODO()
@@ -348,16 +310,10 @@ func TestUser_RemoveUserDBDeleteError(t *testing.T) {
 func TestUser_RemoveUser_getUserByIDOrEmail_ErrRecordNotFound(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
 	ctx := context.TODO()
@@ -373,16 +329,10 @@ func TestUser_RemoveUser_getUserByIDOrEmail_ErrRecordNotFound(t *testing.T) {
 func TestUser_GetUsers(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
 	ctx := context.TODO()
@@ -407,16 +357,10 @@ func TestUser_GetUsers(t *testing.T) {
 func TestUser_GetUserByIdDBReturnsError(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
 	ctx := context.TODO()
@@ -440,16 +384,10 @@ func TestUser_GetUserByIdDBReturnsError(t *testing.T) {
 func TestUser_GetOrCreateUserEmptyUserIdAndEmail(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
 	firstName := "Test"
@@ -472,16 +410,10 @@ func TestUser_GetOrCreateUserEmptyUserIdAndEmail(t *testing.T) {
 func TestUser_GetUserByEmailEmptyEmail(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
 	ctx := context.TODO()
@@ -497,16 +429,10 @@ func TestUser_GetUserByEmailEmptyEmail(t *testing.T) {
 func TestUser_Save(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
 	firstName, lastName := "John", "Doe"
@@ -519,4 +445,55 @@ func TestUser_Save(t *testing.T) {
 		LastName:  &lastName,
 	})
 	assert.NoError(t, err)
+}
+
+func Test_SearchUsers(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	seedUsers := []graph.User{
+		// users that must appear in the result
+		{TenantID: "tenant1", UserID: "JOHN"},          // capital letters should match
+		{TenantID: "tenant1", Email: "john@gmail.com"}, // lower letters should match
+		{TenantID: "tenant1", UserID: "userID1", FirstName: ptr.To("JOhn")},
+		{TenantID: "tenant1", UserID: "userID2", LastName: ptr.To("jonson")},
+		// users that must not appear in the result
+		{TenantID: "tenant1", UserID: "Jann"},                                 // mistake in name should not match
+		{TenantID: "tenant2", UserID: "John2"},                                // another tenantID should not match
+		{TenantID: "tenant2", Email: "John2@gmail.com"},                       // another tenantID should not match
+		{TenantID: "tenant2", UserID: "userID10", FirstName: ptr.To("John")},  // another tenantID should not match
+		{TenantID: "tenant2", UserID: "userID20", LastName: ptr.To("Jonson")}, // another tenantID should not match
+		{UserID: "John3"}, // if no tenantID, should not match
+	}
+
+	// Insert test data
+	for _, user := range seedUsers {
+		err = gormDB.Create(&user).Error
+		require.NoError(t, err)
+	}
+
+	tests := []struct {
+		name                 string
+		limit                int
+		expectedResultLength int
+	}{
+		{name: "check_all_possible_results", limit: 100, expectedResultLength: 4},
+		{name: "check_if_limit_works", limit: 1, expectedResultLength: 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := database.SearchUsers(context.TODO(), "tenant1", "Jo", tt.limit)
+			assert.NoError(t, err)
+			require.Len(t, result, tt.expectedResultLength) // 4 users must be found
+			for _, user := range result {                   // check that all users are from tenant1
+				require.Equal(t, "tenant1", user.TenantID)
+			}
+		})
+	}
 }

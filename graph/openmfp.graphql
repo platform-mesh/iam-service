@@ -138,6 +138,13 @@ type Query {
     - 'UserConnection' is a list of users which matches the input parameters """
     usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @tenant(peers: true)
 
+    """ Get all users that match the query.
+    Searchable fields are userID, email, firstName, and lastName.
+    Supports only prefix search ('^query').
+    The result contains only users from the tenant that the requester belongs to.
+    Returns a limited user list without pagination.  """
+    searchUsers(query: String!) : [User]!
+
     """ Get the tenant information by its tenantId.
     Input parameters:
     - 'tenantId' is an identifier of the tenant
