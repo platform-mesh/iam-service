@@ -6,7 +6,6 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/openmfp/iam-service/pkg/graph"
 )
@@ -23,27 +22,27 @@ func (r *mutationResolver) DeleteInvite(ctx context.Context, tenantID string, in
 
 // AssignRoleBindings is the resolver for the assignRoleBindings field.
 func (r *mutationResolver) AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graph.Change) (bool, error) {
-	panic(fmt.Errorf("not implemented: AssignRoleBindings - assignRoleBindings"))
+	return r.service.AssignRoleBindings(ctx, tenantID, entityType, entityID, input)
 }
 
 // RemoveFromEntity is the resolver for the removeFromEntity field.
 func (r *mutationResolver) RemoveFromEntity(ctx context.Context, tenantID string, entityType string, userID string, entityID string) (bool, error) {
-	panic(fmt.Errorf("not implemented: RemoveFromEntity - removeFromEntity"))
+	return r.service.RemoveFromEntity(ctx, tenantID, entityType, userID, entityID)
 }
 
 // LeaveEntity is the resolver for the leaveEntity field.
 func (r *mutationResolver) LeaveEntity(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error) {
-	panic(fmt.Errorf("not implemented: LeaveEntity - leaveEntity"))
+	return r.service.LeaveEntity(ctx, tenantID, entityType, entityID)
 }
 
 // CreateAccount is the resolver for the createAccount field.
 func (r *mutationResolver) CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, owner string) (bool, error) {
-	panic(fmt.Errorf("not implemented: CreateAccount - createAccount"))
+	return r.service.CreateAccount(ctx, tenantID, entityType, entityID, owner)
 }
 
 // RemoveAccount is the resolver for the removeAccount field.
 func (r *mutationResolver) RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error) {
-	panic(fmt.Errorf("not implemented: RemoveAccount - removeAccount"))
+	return r.service.RemoveAccount(ctx, tenantID, entityType, entityID)
 }
 
 // CreateUser is the resolver for the createUser field.
@@ -58,22 +57,22 @@ func (r *mutationResolver) RemoveUser(ctx context.Context, tenantID string, user
 
 // UsersOfEntity is the resolver for the usersOfEntity field.
 func (r *queryResolver) UsersOfEntity(ctx context.Context, tenantID string, entity graph.EntityInput, limit *int, page *int, showInvitees *bool) (*graph.GrantedUserConnection, error) {
-	panic(fmt.Errorf("not implemented: UsersOfEntity - usersOfEntity"))
+	return r.service.UsersOfEntity(ctx, tenantID, entity, limit, page, showInvitees)
 }
 
 // RolesForUserOfEntity is the resolver for the rolesForUserOfEntity field.
 func (r *queryResolver) RolesForUserOfEntity(ctx context.Context, tenantID string, entity graph.EntityInput, userID string) ([]*graph.Role, error) {
-	panic(fmt.Errorf("not implemented: RolesForUserOfEntity - rolesForUserOfEntity"))
+	return r.service.RolesForUserOfEntity(ctx, tenantID, entity, userID)
 }
 
 // AvailableRolesForEntity is the resolver for the availableRolesForEntity field.
 func (r *queryResolver) AvailableRolesForEntity(ctx context.Context, tenantID string, entity graph.EntityInput) ([]*graph.Role, error) {
-	panic(fmt.Errorf("not implemented: AvailableRolesForEntity - availableRolesForEntity"))
+	return r.service.AvailableRolesForEntity(ctx, tenantID, entity)
 }
 
 // AvailableRolesForEntityType is the resolver for the availableRolesForEntityType field.
 func (r *queryResolver) AvailableRolesForEntityType(ctx context.Context, tenantID string, entityType string) ([]*graph.Role, error) {
-	panic(fmt.Errorf("not implemented: AvailableRolesForEntityType - availableRolesForEntityType"))
+	return r.service.AvailableRolesForEntityType(ctx, tenantID, entityType)
 }
 
 // User is the resolver for the user field.
@@ -98,7 +97,7 @@ func (r *queryResolver) SearchUsers(ctx context.Context, query string) ([]*graph
 
 // TenantInfo is the resolver for the tenantInfo field.
 func (r *queryResolver) TenantInfo(ctx context.Context, tenantID *string) (*graph.TenantInfo, error) {
-	panic(fmt.Errorf("not implemented: TenantInfo - tenantInfo"))
+	return r.service.TenantInfo(ctx, tenantID)
 }
 
 // Mutation returns graph.MutationResolver implementation.

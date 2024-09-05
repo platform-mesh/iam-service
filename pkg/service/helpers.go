@@ -51,3 +51,32 @@ func VerifyLimitsWithOverride(limit *int, page *int) error {
 	}
 	return nil
 }
+
+func GeneratePaginationLimits(limit int, userIdToRolesLength int, page int, invitesLength int) (int, int) {
+	memberPages := int(math.Ceil(float64(userIdToRolesLength) / float64(limit)))
+	freeSlots := limit*(memberPages) - userIdToRolesLength
+
+	sliceStart := limit*(page-memberPages) - (limit - freeSlots)
+	sliceStart = maxInt(0, sliceStart)
+	sliceEnd := limit*(page-memberPages) + freeSlots
+	sliceEnd = minInt(sliceEnd, invitesLength)
+
+	sliceEnd = maxInt(sliceEnd, 0)
+	sliceStart = minInt(sliceStart, sliceEnd)
+
+	return sliceStart, sliceEnd
+}
+
+func minInt(a int, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func maxInt(a int, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}

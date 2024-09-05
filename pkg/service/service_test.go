@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/go-jose/go-jose/v4"
+	mfpcontext "github.com/openmfp/golang-commons/context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
@@ -13,21 +15,27 @@ import (
 
 	"github.com/openmfp/iam-service/pkg/db"
 	"github.com/openmfp/iam-service/pkg/db/mocks"
+	fgamock "github.com/openmfp/iam-service/pkg/fga/mocks"
+	"github.com/openmfp/iam-service/pkg/fga/types"
 	"github.com/openmfp/iam-service/pkg/graph"
 	"github.com/openmfp/iam-service/pkg/service"
+	"google.golang.org/grpc/status"
 )
 
-func setupService(t *testing.T) (*service.Service, *mocks.DatabaseService) {
+var (
+	validToken = "eyJqa3UiOiJodHRwczovL2FlMmdjbGNlbC5hY2NvdW50czQwMC5vbmRlbWFuZC5jb20vb2F1dGgyL2NlcnRzIiwia2lkIjoick9VdUo0aWxjYWEyLU9xemMtWWVxY2h1aDRRIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJjOGMzMjBjZC1lYzA3LTQ4MzUtOGFhMi04NzgwNTkwNjQ4MTQiLCJhdWQiOiJjOGMzMjBjZC1lYzA3LTQ4MzUtOGFhMi04NzgwNTkwNjQ4MTQiLCJhcHBfdGlkIjoiOGVmNzQ5ZmItZjM1OC00ZDYyLWI5OWQtMTgwZDg1NzkwNzM0IiwiaXNzIjoiaHR0cHM6Ly9hZTJnY2xjZWwuYWNjb3VudHM0MDAub25kZW1hbmQuY29tIiwiem9uZV91dWlkIjoiOGVmNzQ5ZmItZjM1OC00ZDYyLWI5OWQtMTgwZDg1NzkwNzM0IiwiY25mIjp7Ing1dCNTMjU2IjoidjF3SXl5cEJEaldNQ3phd3owazRxeEhhekVJSXdJLW5pZlRHSUw4c21GdyJ9LCJleHAiOjE2ODcxNzkxNTEsImlhdCI6MTY4NzE3NTU1MSwianRpIjoiZGRmMThhYjItZDM3MS00ZGU5LWJjZjMtZTc4ZDJiY2I2NzEyIn0.ZGirtxmcJU6RgB4GqfOWqCinya3t4-GD5jbFeGN75gvakSWXh57UedyChWpnxMqKlvb_QnQYCX-FGoOTgesx4FRSE3-GwB9uuNftjVvCNcLer5v23hCq84_RgDfN_7zo5Tm71YQxX250nA1HZ3DzPn984FiOuyDAu-iHAvQwBEE4pOqWbx40zbI63l6ttAIwclLoYvUXk5eOaD6jn5FQlwyvjB3nvmD5KDmuJQ-NsKVMdLnVyeXx9jRo_guMloCiUGZZ19h7MR-xhx-YnW408S3ELHpD90VA1E8fcyhhKUWd45RGvjTt-yqSk6ER1qRGaAyWoDC5iR0XkvxytpnD5A" // nolint: gosec, gochecknoglobals, lll
+)
+
+func setupService(t *testing.T) (*service.Service, *mocks.DatabaseService, *fgamock.Service) {
 	t.Helper()
 	mockDb := mocks.NewDatabaseService(t)
-	svc := &service.Service{
-		Db: mockDb,
-	}
-	return svc, mockDb
+	mockFga := fgamock.NewService(t)
+	svc := service.New(mockDb, mockFga)
+	return svc, mockDb, mockFga
 }
 
 func Test_InviteUser_Success(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	email := "user@foo.com"
@@ -63,7 +71,7 @@ func Test_InviteUser_Success(t *testing.T) {
 }
 
 func Test_InviteUser_Error(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	email := "user@foo.com"
@@ -109,7 +117,7 @@ func Test_InviteUser_Error(t *testing.T) {
 }
 
 func Test_DeleteInvite_Success(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	email := "user@foo.com"
@@ -141,7 +149,7 @@ func Test_DeleteInvite_Success(t *testing.T) {
 }
 
 func Test_DeleteInvite_Error(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	email := "user@foo.com"
@@ -172,7 +180,7 @@ func Test_DeleteInvite_Error(t *testing.T) {
 	assert.False(t, success)
 }
 func Test_CreateUser_Success(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	tenantID := "tenantID123"
@@ -192,7 +200,7 @@ func Test_CreateUser_Success(t *testing.T) {
 }
 
 func Test_CreateUser_Error(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	tenantID := "tenantID123"
@@ -211,7 +219,7 @@ func Test_CreateUser_Error(t *testing.T) {
 	assert.Nil(t, user)
 }
 func Test_RemoveUser_Success(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	tenantID := "tenantID123"
@@ -243,7 +251,7 @@ func Test_RemoveUser_Success(t *testing.T) {
 }
 
 func Test_RemoveUser_Error(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	tenantID := "tenantID123"
@@ -260,7 +268,7 @@ func Test_RemoveUser_Error(t *testing.T) {
 	assert.Error(t, err)
 }
 func Test_User_Success(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	tenantID := "tenantID123"
@@ -280,7 +288,7 @@ func Test_User_Success(t *testing.T) {
 }
 
 func Test_User_NotFound(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	tenantID := "tenantID123"
@@ -298,7 +306,7 @@ func Test_User_NotFound(t *testing.T) {
 }
 
 func Test_User_Error(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	tenantID := "tenantID123"
@@ -315,7 +323,7 @@ func Test_User_Error(t *testing.T) {
 	assert.Nil(t, user)
 }
 func Test_UserByEmail_Success(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	tenantID := "tenantID123"
@@ -335,7 +343,7 @@ func Test_UserByEmail_Success(t *testing.T) {
 }
 
 func Test_UserByEmail_NotFound(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	tenantID := "tenantID123"
@@ -353,7 +361,7 @@ func Test_UserByEmail_NotFound(t *testing.T) {
 }
 
 func Test_UserByEmail_Error(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	tenantID := "tenantID123"
@@ -370,7 +378,7 @@ func Test_UserByEmail_Error(t *testing.T) {
 	assert.Nil(t, user)
 }
 func Test_UsersConnection_Success(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	tenantID := "tenantID123"
@@ -391,7 +399,7 @@ func Test_UsersConnection_Success(t *testing.T) {
 }
 
 func Test_UsersConnection_Error(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	tenantID := "tenantID123"
@@ -407,9 +415,18 @@ func Test_UsersConnection_Error(t *testing.T) {
 	// asserts
 	assert.Error(t, err)
 	assert.Nil(t, userConnection)
+
+	// Act
+	limit = 100000
+	userConnection, err = service.UsersConnection(ctx, tenantID, &limit, &page)
+
+	// asserts
+	assert.Error(t, err)
+	assert.Nil(t, userConnection)
+
 }
 func Test_GetZone_Success(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	// mock
@@ -421,7 +438,7 @@ func Test_GetZone_Success(t *testing.T) {
 		TenantID: zone.TenantID,
 		ZoneId:   zone.ZoneID,
 	}
-	mockDb.EXPECT().GetTenantConfigurationForContext(ctx).Return(&tcReturn, nil).Once()
+	mockDb.EXPECT().GetTenantConfigurationForContext(mock.Anything).Return(&tcReturn, nil).Once()
 
 	// Act
 	tc, err := service.GetZone(ctx)
@@ -433,11 +450,11 @@ func Test_GetZone_Success(t *testing.T) {
 }
 
 func Test_GetZone_NoTenantConfiguration(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	// mock
-	mockDb.EXPECT().GetTenantConfigurationForContext(ctx).Return(nil, nil).Once()
+	mockDb.EXPECT().GetTenantConfigurationForContext(mock.Anything).Return(nil, nil).Once()
 
 	// Act
 	zone, err := service.GetZone(ctx)
@@ -448,11 +465,11 @@ func Test_GetZone_NoTenantConfiguration(t *testing.T) {
 }
 
 func Test_GetZone_Error(t *testing.T) {
-	service, mockDb := setupService(t)
+	service, mockDb, _ := setupService(t)
 	ctx := context.Background()
 
 	// mock
-	mockDb.EXPECT().GetTenantConfigurationForContext(ctx).Return(nil, errors.New("mock error")).Once()
+	mockDb.EXPECT().GetTenantConfigurationForContext(mock.Anything).Return(nil, errors.New("mock error")).Once()
 
 	// Act
 	zone, err := service.GetZone(ctx)
@@ -464,13 +481,544 @@ func Test_GetZone_Error(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	db := &mocks.DatabaseService{}
-	svc := service.New(db)
+	svc := service.New(db, nil)
 	assert.NotNil(t, svc)
 	assert.Equal(t, db, svc.Db)
 }
 
+func Test_AssignRoleBindings(t *testing.T) {
+	service, _, mockFga := setupService(t)
+	ctx := context.Background()
+
+	// set parameters
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityId := "entityId"
+	input := []*graph.Change{
+		{
+			UserID: "userID123",
+			Roles:  []string{"admin"},
+		},
+	}
+
+	// mock
+	mockFga.EXPECT().AssignRoleBindings(mock.Anything, tenantID, entityType, entityId, input).Return(nil).Once()
+
+	// Act
+	success, err := service.AssignRoleBindings(ctx, tenantID, entityType, entityId, input)
+	assert.NoError(t, err)
+	assert.True(t, success)
+}
+
+func Test_AssignRoleBindings_EmptyRolesError(t *testing.T) {
+	service, _, _ := setupService(t)
+	ctx := context.Background()
+
+	// set parameters
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityId := "entityId"
+	input := []*graph.Change{
+		{
+			UserID: "userID123",
+			Roles:  []string{},
+		},
+	}
+
+	// Act
+	success, err := service.AssignRoleBindings(ctx, tenantID, entityType, entityId, input)
+	assert.Error(t, err)
+	assert.False(t, success)
+
+}
+
+func Test_UsersOfEntity(t *testing.T) {
+	service, mockDb, mockFga := setupService(t)
+	ctx := context.Background()
+
+	// set parameters
+	tenantID := "tenantID123"
+	entity := graph.EntityInput{
+		EntityType: "project",
+		EntityID:   "entityId",
+	}
+	var page int = 1
+	var limit int = 10
+	var showInvitees bool = true
+
+	userIDToRoles := types.UserIDToRoles{
+		"userID123": []string{"admin"},
+	}
+	users := []*graph.User{
+		{
+			TenantID: tenantID,
+			UserID:   "userID123",
+			Email:    "user@sap.com",
+		},
+	}
+	groups := []*db.Role{
+		{
+			ID:            "roleID123",
+			DisplayName:   "admin",
+			TechnicalName: "admin",
+			EntityType:    "project",
+			EntityID:      "entityId",
+		},
+	}
+	invites := []db.Invite{
+		{
+			TenantID:   tenantID,
+			Email:      "",
+			EntityType: "project",
+			EntityID:   "entityId",
+		},
+	}
+
+	// mock
+	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(userIDToRoles, nil).Once()
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything).Return(users, nil).Once()
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).Return(groups, nil).Twice()
+	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(invites, nil).Once()
+
+	// Act
+	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.NotNil(t, uc)
+}
+
+func Test_UsersOfEntity_Errors(t *testing.T) {
+	service, mockDb, mockFga := setupService(t)
+	ctx := context.Background()
+
+	// set parameters
+	tenantID := "tenantID123"
+	entity := graph.EntityInput{
+		EntityType: "project",
+		EntityID:   "entityId",
+	}
+	var page int = 1
+	var limit int = 100000
+	var showInvitees bool = true
+
+	userIDToRoles := types.UserIDToRoles{
+		"userID123": []string{"admin"},
+	}
+
+	// Act
+	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees)
+
+	// asserts
+	assert.Error(t, err)
+	assert.Nil(t, uc)
+
+	// mock
+	limit = 100
+	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(nil, errors.New("")).Once()
+
+	// Act
+	uc, err = service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees)
+
+	// asserts
+	assert.Error(t, err)
+	assert.Nil(t, uc)
+
+	// mock
+	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(userIDToRoles, nil).Once()
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("")).Once()
+
+	// Act
+	uc, err = service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees)
+
+	// asserts
+	assert.Error(t, err)
+	assert.Nil(t, uc)
+}
+
+func Test_RemoveFromEntity(t *testing.T) {
+	service, _, mockFga := setupService(t)
+	ctx := context.Background()
+
+	// set parameters
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityId := "entityId"
+	userId := "userID123"
+
+	// mock
+	mockFga.EXPECT().RemoveFromEntity(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+
+	// Act
+	success, err := service.RemoveFromEntity(ctx, tenantID, entityType, userId, entityId)
+	assert.NoError(t, err)
+	assert.True(t, success)
+}
+
+func Test_LeaveEntity_Success(t *testing.T) {
+	service, _, mockFga := setupService(t)
+	ctx := context.Background()
+
+	ctx = mfpcontext.AddWebTokenToContext(ctx, validToken, []jose.SignatureAlgorithm{jose.RS256})
+	ctx = mfpcontext.AddAuthHeaderToContext(ctx, "Bearer token")
+
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityID := "entityId"
+
+	// mock
+	mockFga.EXPECT().
+		RemoveFromEntity(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).Once()
+
+	// Act
+	success, err := service.LeaveEntity(ctx, tenantID, entityType, entityID)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.True(t, success)
+}
+
+func Test_LeaveEntity_Error(t *testing.T) {
+	service, _, _ := setupService(t)
+	ctx := context.Background()
+
+	invalidToken := "invalid"
+	ctx = mfpcontext.AddWebTokenToContext(ctx, invalidToken, []jose.SignatureAlgorithm{jose.RS256})
+	ctx = mfpcontext.AddAuthHeaderToContext(ctx, "Bearer token")
+
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityID := "entityId"
+
+	// Act
+	success, err := service.LeaveEntity(ctx, tenantID, entityType, entityID)
+
+	// asserts
+	assert.Error(t, err)
+	assert.False(t, success)
+}
+func Test_RolesForUserOfEntity_Success(t *testing.T) {
+	service, mockDb, mockFga := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityID := "entityID"
+	userID := "userID123"
+
+	// mock
+	userIDToRoles := types.UserIDToRoles{
+		userID: []string{"admin"},
+	}
+	mockFga.EXPECT().UsersForEntity(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(userIDToRoles, nil).Once()
+	role := &db.Role{
+		DisplayName:   "admin",
+		TechnicalName: "admin",
+	}
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).Return([]*db.Role{role}, nil).Once()
+
+	// Act
+	roles, err := service.RolesForUserOfEntity(ctx, tenantID, graph.EntityInput{
+		EntityType: entityType,
+		EntityID:   entityID,
+	}, userID)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.NotNil(t, roles)
+	assert.Len(t, roles, 1)
+	assert.Equal(t, "admin", roles[0].DisplayName)
+	assert.Equal(t, "admin", roles[0].TechnicalName)
+}
+
+func Test_RolesForUserOfEntity_UserNotFound(t *testing.T) {
+	service, _, mockFga := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityID := "entityID"
+	userID := "userID123"
+
+	// mock
+	userIDToRoles := types.UserIDToRoles{}
+	mockFga.EXPECT().UsersForEntity(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(userIDToRoles, nil).Once()
+
+	// Act
+	roles, err := service.RolesForUserOfEntity(ctx, tenantID, graph.EntityInput{
+		EntityType: entityType,
+		EntityID:   entityID,
+	}, userID)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.Nil(t, roles)
+}
+
+func Test_RolesForUserOfEntity_Error(t *testing.T) {
+	service, _, mockFga := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityID := "entityID"
+	userID := "userID123"
+
+	// mock
+	mockFga.EXPECT().UsersForEntity(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("mock error")).Once()
+
+	// Act
+	roles, err := service.RolesForUserOfEntity(ctx, tenantID, graph.EntityInput{
+		EntityType: entityType,
+		EntityID:   entityID,
+	}, userID)
+
+	// asserts
+	assert.Error(t, err)
+	assert.Nil(t, roles)
+}
+
+func Test_RolesForUserOfEntity_UnableToGetTechnicalRoleNames(t *testing.T) {
+	service, mockDb, mockFga := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityID := "entityID"
+	userID := "userID123"
+
+	// mock
+	userIDToRoles := types.UserIDToRoles{
+		"userID123": []string{"admin"},
+	}
+
+	mockFga.EXPECT().UsersForEntity(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(userIDToRoles, nil).Once()
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("mock error")).Once()
+
+	// Act
+	roles, err := service.RolesForUserOfEntity(ctx, tenantID, graph.EntityInput{
+		EntityType: entityType,
+		EntityID:   entityID,
+	}, userID)
+
+	// asserts
+	assert.Error(t, err)
+	assert.Nil(t, roles)
+}
+
+func Test_AvailableRolesForEntity_Success(t *testing.T) {
+	service, mockDb, _ := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entity := graph.EntityInput{
+		EntityType: "project",
+		EntityID:   "entityId",
+	}
+
+	// mock
+	mockRoles := []db.Role{
+		{
+			DisplayName:   "admin",
+			TechnicalName: "admin",
+		},
+		{
+			DisplayName:   "user",
+			TechnicalName: "user",
+		},
+	}
+	mockDb.EXPECT().GetRolesForEntity(mock.Anything, mock.Anything, mock.Anything).Return(mockRoles, nil).Once()
+
+	// Act
+	roles, err := service.AvailableRolesForEntity(ctx, tenantID, entity)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.NotNil(t, roles)
+}
+
+func Test_AvailableRolesForEntity_Error(t *testing.T) {
+	service, mockDb, _ := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entity := graph.EntityInput{
+		EntityType: "project",
+		EntityID:   "entityId",
+	}
+
+	// mock
+	mockDb.EXPECT().GetRolesForEntity(mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("mock error")).Once()
+
+	// Act
+	roles, err := service.AvailableRolesForEntity(ctx, tenantID, entity)
+
+	// asserts
+	assert.Error(t, err)
+	assert.Nil(t, roles)
+}
+func Test_Service_AvailableRolesForEntityType(t *testing.T) {
+	service, mockDb, _ := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entityType := "project"
+
+	// mock
+	mockRoles := []db.Role{
+		{
+			DisplayName:   "admin",
+			TechnicalName: "admin",
+		},
+		{
+			DisplayName:   "user",
+			TechnicalName: "user",
+		},
+	}
+	mockDb.EXPECT().GetRolesForEntity(mock.Anything, mock.Anything, mock.Anything).Return(mockRoles, nil).Once()
+
+	// Act
+	roles, err := service.AvailableRolesForEntityType(ctx, tenantID, entityType)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.NotNil(t, roles)
+	assert.Equal(t, len(mockRoles), len(roles))
+	for i, role := range roles {
+		assert.Equal(t, mockRoles[i].DisplayName, role.DisplayName)
+		assert.Equal(t, mockRoles[i].TechnicalName, role.TechnicalName)
+	}
+}
+func Test_CreateAccount_Success(t *testing.T) {
+	service, _, mockFga := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityID := "entityID123"
+	owner := "ownerID123"
+
+	// mock
+	mockFga.EXPECT().CreateAccount(mock.Anything, tenantID, entityType, entityID, owner).Return(nil).Once()
+
+	// Act
+	success, err := service.CreateAccount(ctx, tenantID, entityType, entityID, owner)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.True(t, success)
+}
+
+func Test_CreateAccount_DuplicateWriteError(t *testing.T) {
+	service, _, mockFga := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityID := "entityID123"
+	owner := "ownerID123"
+	errDuplicate := status.Error(2017, "Duplicate error")
+
+	// mock
+	mockFga.EXPECT().CreateAccount(mock.Anything, tenantID, entityType, entityID, owner).Return(errDuplicate).Once()
+
+	// Act
+	success, err := service.CreateAccount(ctx, tenantID, entityType, entityID, owner)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.True(t, success)
+}
+
+func Test_RemoveAccount_Success(t *testing.T) {
+	service, _, mockFga := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityID := "entityId"
+
+	// mock
+	mockFga.EXPECT().RemoveAccount(mock.Anything, tenantID, entityType, entityID).Return(nil).Once()
+
+	// Act
+	success, err := service.RemoveAccount(ctx, tenantID, entityType, entityID)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.True(t, success)
+}
+
+func Test_RemoveAccount_DuplicateWriteError(t *testing.T) {
+	service, _, mockFga := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityID := "entityId"
+	errDuplicate := status.Error(2017, "Duplicate error")
+
+	// mock
+	mockFga.EXPECT().RemoveAccount(mock.Anything, tenantID, entityType, entityID).Return(errDuplicate).Once()
+
+	// Act
+	success, err := service.RemoveAccount(ctx, tenantID, entityType, entityID)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.True(t, success)
+}
+func Test_TenantInfo_Success(t *testing.T) {
+	service, mockDb, _ := setupService(t)
+	ctx := context.Background()
+
+	// mock
+	mockDb.EXPECT().GetTenantConfigurationForContext(mock.Anything).Return(&db.TenantConfiguration{
+		TenantID: "tenantID123",
+	}, nil).Once()
+
+	// Act
+	tenantInfo, err := service.TenantInfo(ctx, nil)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.NotNil(t, tenantInfo)
+	assert.Equal(t, "tenantID123", tenantInfo.TenantID)
+}
+
+func Test_TenantInfo_NoTenantConfiguration(t *testing.T) {
+	service, mockDb, _ := setupService(t)
+	ctx := context.Background()
+
+	// mock
+	mockDb.EXPECT().GetTenantConfigurationForContext(mock.Anything).Return(nil, nil).Once()
+
+	// Act
+	tenantInfo, err := service.TenantInfo(ctx, nil)
+
+	// asserts
+	assert.Error(t, err)
+	assert.Nil(t, tenantInfo)
+}
+
+func Test_TenantInfo_Error(t *testing.T) {
+	service, mockDb, _ := setupService(t)
+	ctx := context.Background()
+
+	// mock
+	mockDb.EXPECT().GetTenantConfigurationForContext(mock.Anything).Return(nil, errors.New("mock error")).Once()
+
+	// Act
+	tenantInfo, err := service.TenantInfo(ctx, nil)
+
+	// asserts
+	assert.Error(t, err)
+	assert.Nil(t, tenantInfo)
+}
+
 func TestSearchUsers(t *testing.T) {
-	svc, mockDb := setupService(t)
+	svc, mockDb, _ := setupService(t)
 
 	mockUsers := []*graph.User{{ID: "userID123"}}
 	tests := []struct {

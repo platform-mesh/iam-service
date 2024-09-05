@@ -3,7 +3,13 @@ package service
 import (
 	"context"
 	"errors"
+	"slices"
+	"strings"
+
 	"fmt"
+
+	mfpcontext "github.com/openmfp/golang-commons/context"
+	fgastore "github.com/openmfp/golang-commons/fga/store"
 
 	"gorm.io/gorm"
 
@@ -11,7 +17,10 @@ import (
 	"github.com/openmfp/golang-commons/sentry"
 
 	"github.com/openmfp/iam-service/pkg/db"
+	"github.com/openmfp/iam-service/pkg/fga"
 	"github.com/openmfp/iam-service/pkg/graph"
+	"github.com/vektah/gqlparser/v2/gqlerror"
+	"go.opentelemetry.io/otel"
 )
 
 const (
@@ -19,6 +28,14 @@ const (
 )
 
 type ServiceInterface interface {
+	AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graph.Change) (bool, error)
+	UsersOfEntity(ctx context.Context, tenantID string, entity graph.EntityInput, limit *int,
+		page *int, showInvitees *bool) (*graph.GrantedUserConnection, error)
+	RemoveFromEntity(ctx context.Context, tenantID string, entityType string, userID string, entityID string) (bool, error)
+	LeaveEntity(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error)
+	RolesForUserOfEntity(ctx context.Context, tenantID string, entity graph.EntityInput, userID string) ([]*graph.Role, error)
+	AvailableRolesForEntity(ctx context.Context, tenantID string, entity graph.EntityInput) ([]*graph.Role, error)
+	AvailableRolesForEntityType(ctx context.Context, tenantID string, entityType string) ([]*graph.Role, error)
 	InviteUser(ctx context.Context, tenantID string, invite graph.Invite, notifyByEmail bool) (bool, error)
 	DeleteInvite(ctx context.Context, tenantID string, invite graph.Invite) (bool, error)
 	CreateUser(ctx context.Context, tenantID string, input graph.UserInput) (*graph.User, error)
@@ -27,15 +44,27 @@ type ServiceInterface interface {
 	UserByEmail(ctx context.Context, tenantID string, email string) (*graph.User, error)
 	UsersConnection(ctx context.Context, tenantID string, limit *int, page *int) (*graph.UserConnection, error)
 	GetZone(ctx context.Context) (*graph.Zone, error)
+	CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, owner string) (bool, error)
+	RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error)
+	TenantInfo(ctx context.Context, tenantIdInput *string) (*graph.TenantInfo, error)
 	SearchUsers(ctx context.Context, query string) ([]*graph.User, error)
 }
 
 type Service struct {
-	Db db.Service
+	Db  db.Service
+	Fga fga.Service
 }
 
-func New(db db.Service) *Service {
-	return &Service{Db: db}
+var (
+	minusOne = -1 // nolint: gochecknoglobals
+	one      = 1  // nolint: gochecknoglobals
+)
+
+func New(db db.Service, fga fga.Service) *Service {
+	return &Service{
+		Db:  db,
+		Fga: fga,
+	}
 }
 
 func (s *Service) InviteUser(ctx context.Context, tenantID string, invite graph.Invite, notifyByEmail bool) (bool, error) {
@@ -152,6 +181,287 @@ func (s *Service) GetZone(ctx context.Context) (*graph.Zone, error) {
 		}, nil
 	}
 	return nil, nil
+}
+
+func (s *Service) AssignRoleBindings(ctx context.Context, tenantID string, entityType string,
+	entityID string, input []*graph.Change) (bool, error) {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.AssignRoleBindings")
+	defer span.End()
+
+	for _, in := range input {
+		if len(in.Roles) == 0 {
+			return false, gqlerror.Errorf("invalid input combination - please make sure to provide at least one element for input[*].roles")
+		}
+	}
+
+	err := s.Fga.AssignRoleBindings(ctx, tenantID, entityType, entityID, input)
+
+	return err == nil, err
+}
+
+func (s *Service) UsersOfEntity( // nolint: funlen, cyclop
+	ctx context.Context,
+	tenantID string,
+	entity graph.EntityInput,
+	limit *int,
+	page *int,
+	showInvitees *bool,
+) (*graph.GrantedUserConnection, error) {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.UsersOfEntity")
+	defer span.End()
+
+	if err := VerifyLimitsWithOverride(limit, page); err != nil {
+		return nil, err
+	}
+	logger := setupLogger(ctx)
+
+	userIDToRoles, err := s.Fga.UsersForEntity(ctx, tenantID, entity.EntityID, entity.EntityType)
+	if err != nil {
+		return nil, err
+	}
+
+	userIDs := make([]string, 0, len(userIDToRoles))
+	for userID := range userIDToRoles {
+		userIDs = append(userIDs, userID)
+	}
+
+	if limit == nil {
+		limit = &minusOne
+	}
+
+	if page == nil {
+		page = &one
+	}
+
+	users, err := s.Db.GetUsersByUserIDs(ctx, tenantID, userIDs, *limit, *page)
+	if err != nil {
+		logger.Error().Err(err).Msg("unable to get users by id")
+		return nil, err
+	}
+
+	out := graph.GrantedUserConnection{
+		Users: make([]*graph.GrantedUser, 0, len(users)),
+		PageInfo: &graph.PageInfo{
+			TotalCount: len(userIDToRoles),
+		},
+	}
+
+	showUsers := true
+	if *limit != minusOne {
+		showUsers = out.PageInfo.TotalCount > ((*page - 1) * (*limit))
+	}
+
+	if showUsers {
+		for _, user := range users {
+			roles := userIDToRoles[user.UserID]
+
+			resolvedRoles, err := s.getResolvedRoles(ctx, entity.EntityType, roles)
+			if err != nil {
+				return nil, err
+			}
+
+			out.Users = append(out.Users, &graph.GrantedUser{
+				User:  user,
+				Roles: resolvedRoles,
+			})
+		}
+	}
+
+	showInvitations := false
+	if showInvitees != nil {
+		showInvitations = *showInvitees
+	}
+
+	if showInvitations && *limit != minusOne {
+		showInvitations = out.PageInfo.TotalCount < ((*page) * (*limit))
+	}
+
+	invites, err := s.Db.GetInvitesForEntity(ctx, tenantID, entity.EntityType, entity.EntityID)
+	if err != nil {
+		logger.Error().Err(err).Str("EntityType", entity.EntityType).
+			Str("EntityID", entity.EntityID).
+			Msg("unable to get invitations users for scope")
+		return nil, err
+	}
+	invitesLength := len(invites)
+
+	if showInvitations {
+		if *limit != minusOne {
+			sliceStart, sliceEnd := GeneratePaginationLimits(*limit, len(userIDToRoles), *page, len(invites))
+			invites = invites[sliceStart:sliceEnd]
+		}
+
+		out.Users = slices.Grow(out.Users, len(invites))
+
+		for _, invite := range invites {
+			roles := strings.Split(invite.Roles, ",")
+			resolvedRoles, err := s.getResolvedRoles(ctx, entity.EntityType, roles)
+			if err != nil {
+				return nil, err
+			}
+
+			out.Users = append(out.Users, &graph.GrantedUser{
+				User: &graph.User{
+					Email: invite.Email,
+				},
+				Roles: resolvedRoles,
+			})
+		}
+	}
+	out.PageInfo.TotalCount += invitesLength
+
+	return &out, nil
+}
+
+func (s *Service) getResolvedRoles(ctx context.Context, entityType string, roles []string) ([]*graph.Role, error) {
+	groups, err := s.Db.GetRolesByTechnicalNames(ctx, entityType, roles)
+	if err != nil {
+		return nil, err
+	}
+
+	resolvedRoles := make([]*graph.Role, 0, len(groups))
+	for _, group := range groups {
+		resolvedRoles = append(resolvedRoles, &graph.Role{
+			DisplayName:   group.DisplayName,
+			TechnicalName: group.TechnicalName,
+		})
+	}
+
+	return resolvedRoles, nil
+}
+
+func (s *Service) RemoveFromEntity(ctx context.Context, tenantID string, entityType string, userID string, entityID string) (bool, error) {
+	err := s.Fga.RemoveFromEntity(ctx, tenantID, entityType, entityID, userID)
+
+	return err == nil, err
+}
+
+func (s *Service) LeaveEntity(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error) {
+
+	token, err := mfpcontext.GetWebTokenFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	err = s.Fga.RemoveFromEntity(ctx, tenantID, entityType, entityID, token.Subject)
+
+	return err == nil, err
+}
+
+func (s *Service) RolesForUserOfEntity(ctx context.Context, tenantID string,
+	entity graph.EntityInput, userID string) ([]*graph.Role, error) {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.RolesForUserOfEntity")
+	defer span.End()
+
+	logger := setupLogger(ctx)
+
+	userIDToRoles, err := s.Fga.UsersForEntity(ctx, tenantID, entity.EntityID, entity.EntityType)
+	if err != nil {
+		return nil, err
+	}
+
+	for grantedUserID, grantedUserRoles := range userIDToRoles {
+		if grantedUserID == userID {
+			roles, err := s.Db.GetRolesByTechnicalNames(ctx, entity.EntityType, grantedUserRoles)
+			if err != nil {
+				logger.Error().Err(err).Msg("unable to get roles by technical names")
+				return nil, err
+			}
+
+			var grantedRolesForUser []*graph.Role
+			for _, role := range roles {
+				grantedRolesForUser = append(grantedRolesForUser, &graph.Role{
+					DisplayName:   role.DisplayName,
+					TechnicalName: role.TechnicalName,
+				})
+			}
+
+			return grantedRolesForUser, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func (s *Service) AvailableRolesForEntity(ctx context.Context, tenantID string, entity graph.EntityInput) ([]*graph.Role, error) {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.AvailableRolesForEntity")
+	defer span.End()
+	return s.getRolesForEntity(ctx, entity.EntityType, entity.EntityID)
+}
+
+func (s *Service) AvailableRolesForEntityType(ctx context.Context, tenantID string, entityType string) ([]*graph.Role, error) {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.AvailableRolesForEntityType")
+	defer span.End()
+	return s.getRolesForEntity(ctx, entityType, "")
+}
+
+func (s *Service) getRolesForEntity(ctx context.Context, entityType string, entityID string) ([]*graph.Role, error) {
+	roles, err := s.Db.GetRolesForEntity(ctx, entityType, entityID)
+	if err != nil {
+		return nil, err
+	}
+
+	returnRoles := make([]*graph.Role, len(roles))
+	for i, role := range roles {
+		returnRoles[i] = &graph.Role{
+			DisplayName:   role.DisplayName,
+			TechnicalName: role.TechnicalName,
+		}
+	}
+
+	return returnRoles, nil
+}
+
+func (s *Service) CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, owner string) (bool, error) {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.CreateAccount")
+	defer span.End()
+
+	err := s.Fga.CreateAccount(ctx, tenantID, entityType, entityID, owner)
+
+	fgaStore := fgastore.New()
+
+	if fgaStore.IsDuplicateWriteError(err) { // do not send out events if the account already exists
+		return true, nil
+	}
+
+	return err == nil, err
+}
+
+func (s *Service) RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error) {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.RemoveAccount")
+	defer span.End()
+
+	err := s.Fga.RemoveAccount(ctx, tenantID, entityType, entityID)
+	fgaStore := fgastore.New()
+
+	if fgaStore.IsDuplicateWriteError(err) { // this error happens when the user does not exists and should be ignored
+		return true, nil
+	}
+
+	return err == nil, err
+}
+
+func (s *Service) TenantInfo(ctx context.Context, tenantIdInput *string) (*graph.TenantInfo, error) {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.TenantInfo")
+	defer span.End()
+
+	var tenantID string
+	if tenantIdInput == nil {
+		tc, err := s.Db.GetTenantConfigurationForContext(ctx)
+		if err != nil {
+			return nil, sentry.SentryError(err)
+		}
+		if tc == nil {
+			return nil, sentry.SentryError(errors.New("tenant not found from JWT"))
+		}
+		tenantID = tc.TenantID
+	} else {
+		tenantID = *tenantIdInput
+	}
+
+	return &graph.TenantInfo{
+		TenantID: tenantID,
+	}, nil
 }
 
 func (s *Service) SearchUsers(ctx context.Context, query string) ([]*graph.User, error) {

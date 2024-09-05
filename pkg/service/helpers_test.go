@@ -68,3 +68,28 @@ func Test_verifyLimitsWithOverride(t *testing.T) {
 	})
 
 }
+
+func Test_GeneratePaginationLimits(t *testing.T) {
+	t.Run("Pagination limits OK", func(t *testing.T) {
+		var limit int = 10
+		var userIdToRolesLength int = 10
+		var page int = 3
+		var invitesLength int = 100
+
+		start, end := service.GeneratePaginationLimits(limit, userIdToRolesLength, page, invitesLength)
+		assert.Equal(t, 10, start)
+		assert.Equal(t, 20, end)
+	})
+
+	t.Run("Pagination limits OK 2", func(t *testing.T) {
+		var limit int = 10
+		var userIdToRolesLength int = 10
+		var page int = 30
+		var invitesLength int = 100
+
+		start, end := service.GeneratePaginationLimits(limit, userIdToRolesLength, page, invitesLength)
+		assert.Equal(t, 100, start)
+		assert.Equal(t, 100, end)
+	})
+
+}
