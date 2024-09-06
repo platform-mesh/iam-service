@@ -140,7 +140,7 @@ type Query {
 
     """ Get all users that match the query.
     Searchable fields are userID, email, firstName, and lastName.
-    Supports only prefix search ('^query').
+    Supports substring search.
     The result contains only users from the tenant that the requester belongs to.
     Returns a limited user list without pagination.  """
     searchUsers(query: String!) : [User]!

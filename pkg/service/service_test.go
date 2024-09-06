@@ -1034,7 +1034,7 @@ func TestSearchUsers(t *testing.T) {
 			ctx:   openmfpCtx.AddTenantToContext(context.TODO(), "tenant1"),
 			query: "jo",
 			setupMocks: func(ctx context.Context, db *mocks.DatabaseService) {
-				mockDb.EXPECT().SearchUsers(ctx, "tenant1", "jo", service.MaxSearchUsersResults).Return(mockUsers, nil).Once()
+				mockDb.EXPECT().SearchUsers(ctx, "tenant1", "jo").Return(mockUsers, nil).Once()
 			},
 			result:    mockUsers,
 			errString: "",
@@ -1062,7 +1062,7 @@ func TestSearchUsers(t *testing.T) {
 			ctx:   openmfpCtx.AddTenantToContext(context.TODO(), "tenant1"),
 			query: "jo",
 			setupMocks: func(ctx context.Context, db *mocks.DatabaseService) {
-				mockDb.EXPECT().SearchUsers(ctx, "tenant1", "jo", service.MaxSearchUsersResults).
+				mockDb.EXPECT().SearchUsers(ctx, "tenant1", "jo").
 					Return(nil, assert.AnError).Once()
 			},
 			result:    nil,

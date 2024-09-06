@@ -14,10 +14,6 @@ import (
 	"github.com/openmfp/iam-service/pkg/graph"
 )
 
-const (
-	maxSearchTimeout = 5 * time.Second
-)
-
 // GetUserByID  returns a member by ID
 func (d *Database) GetUserByID(ctx context.Context, tenantID string, userID string) (*graph.User, error) {
 	var existingUser graph.User
@@ -187,14 +183,16 @@ func (d *Database) GetUsers(ctx context.Context, tenantID string, limit int, pag
 	return &userConnection, err
 }
 
-func (d *Database) SearchUsers(ctx context.Context, tenantId, query string, maxSearchUsersResults int) ([]*graph.User, error) {
-	ctx, cancel := context.WithTimeout(ctx, maxSearchTimeout)
+func (d *Database) SearchUsers(ctx context.Context, tenantId, query string) ([]*graph.User, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(d.cfg.MaxSearchUsersTimeout)*time.Second)
 	defer cancel()
 
-	// An index won't help text matching with a leading wildcard, that is why we use query + "%" pattern.
-	fuzzedQuery := strings.ToLower(query) + "%"
+	fuzzedQuery := "%" + strings.ToLower(query) + "%"
 
 	var users []*graph.User
+	// don't use ILIKE, it is 2-3 times slower than combination of LOWER and LIKE
+	// If this query becomes slow, consider using fuzzy search.
+	// For this you need to enable pg_trgm extension and add GIN index on the columns you want to search.
 	err := d.db.WithContext(ctx).
 		Where("tenant_id = ?", tenantId).
 		Where(
@@ -203,7 +201,7 @@ func (d *Database) SearchUsers(ctx context.Context, tenantId, query string, maxS
 				Or("first_name IS NOT NULL AND LOWER(first_name) LIKE ?", fuzzedQuery).
 				Or("last_name IS NOT NULL AND LOWER(last_name) LIKE ?", fuzzedQuery),
 		).
-		Limit(maxSearchUsersResults).
+		Limit(d.cfg.MaxSearchUsersLimit).
 		Find(&users).Error
 
 	return users, err

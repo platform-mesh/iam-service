@@ -23,10 +23,6 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-const (
-	MaxSearchUsersResults = 5
-)
-
 type ServiceInterface interface {
 	AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graph.Change) (bool, error)
 	UsersOfEntity(ctx context.Context, tenantID string, entity graph.EntityInput, limit *int,
@@ -480,7 +476,7 @@ func (s *Service) SearchUsers(ctx context.Context, query string) ([]*graph.User,
 		return nil, fmt.Errorf("query must not be empty")
 	}
 
-	users, err := s.Db.SearchUsers(ctx, tenantID, query, MaxSearchUsersResults)
+	users, err := s.Db.SearchUsers(ctx, tenantID, query)
 	if err != nil {
 		logger.Error().Err(err).Msg("SearchUsers failed")
 		return nil, sentry.SentryError(err)

@@ -488,7 +488,8 @@ func Test_SearchUsers(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := database.SearchUsers(context.TODO(), "tenant1", "Jo", tt.limit)
+			database.SetConfig(db.ConfigDatabase{MaxSearchUsersLimit: tt.limit, MaxSearchUsersTimeout: 5000})
+			result, err := database.SearchUsers(context.TODO(), "tenant1", "Jo")
 			assert.NoError(t, err)
 			require.Len(t, result, tt.expectedResultLength) // 4 users must be found
 			for _, user := range result {                   // check that all users are from tenant1
