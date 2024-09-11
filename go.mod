@@ -19,7 +19,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.16
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.54.0
 	go.opentelemetry.io/otel v1.29.0
-	google.golang.org/grpc v1.66.0
+	google.golang.org/grpc v1.66.1
 	gorm.io/driver/sqlite v1.5.6
 	gorm.io/gorm v1.25.12
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
