@@ -12,10 +12,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	dxpcontext "github.com/openmfp/golang-commons/context"
+	commonsCtx "github.com/openmfp/golang-commons/context"
 	openmfpFga "github.com/openmfp/golang-commons/fga/store"
-	dxplogger "github.com/openmfp/golang-commons/logger"
-	dxpsentry "github.com/openmfp/golang-commons/sentry"
+	commonsLogger "github.com/openmfp/golang-commons/logger"
+	commonsSentry "github.com/openmfp/golang-commons/sentry"
 
 	"github.com/openmfp/iam-service/pkg/db"
 	"github.com/openmfp/iam-service/pkg/fga/middleware/principal"
@@ -72,7 +72,7 @@ func userIDFromContext(ctx context.Context) (string, error) {
 		return "", principalErr
 	}
 
-	token, err := dxpcontext.GetWebTokenFromContext(ctx)
+	token, err := commonsCtx.GetWebTokenFromContext(ctx)
 	if err != nil && principalID == "" {
 		return "", status.Error(codes.Unauthenticated, "unauthorized")
 	}
@@ -117,15 +117,15 @@ func (c *CompatService) Write(ctx context.Context, in *openfgav1.WriteRequest) (
 		}
 	}
 
-	logger := dxplogger.LoadLoggerFromContext(ctx)
-	tags := dxpsentry.Tags{}
+	logger := commonsLogger.LoadLoggerFromContext(ctx)
+	tags := commonsSentry.Tags{}
 	for _, write := range tuples { // of course we can parallize this loop, but lets see if it works first 😅
 		writeToEntityType := strings.Split(write.GetUser(), ":")[0]
 		writeToEntityID := strings.Split(write.GetUser(), ":")[1]
 
 		writeFromEntityType := strings.Split(write.GetObject(), ":")[0]
 
-		tags = dxpsentry.Tags{"entityType": writeToEntityID, "entityID": writeToEntityID, "userID": userID}
+		tags = commonsSentry.Tags{"entityType": writeToEntityID, "entityID": writeToEntityID, "userID": userID}
 		res, err := c.upstream.Check(ctx, &openfgav1.CheckRequest{
 			StoreId:              in.StoreId,
 			AuthorizationModelId: in.AuthorizationModelId,
@@ -137,12 +137,12 @@ func (c *CompatService) Write(ctx context.Context, in *openfgav1.WriteRequest) (
 		})
 		if err != nil {
 			logger.Error().AnErr("openFGA check error", err).Send()
-			dxpsentry.CaptureError(err, tags)
+			commonsSentry.CaptureError(err, tags)
 			return nil, err
 		}
 		if !res.Allowed {
 			logger.Debug().AnErr("openFGA unauthorized error", err).Send()
-			dxpsentry.CaptureError(err, tags)
+			commonsSentry.CaptureError(err, tags)
 			return nil, status.Error(codes.Unauthenticated, "not authorized to perform this write operation")
 		}
 	}
@@ -153,7 +153,7 @@ func (c *CompatService) Write(ctx context.Context, in *openfgav1.WriteRequest) (
 	}
 	if err != nil {
 		logger.Error().AnErr("openFGA write error", err).Send()
-		dxpsentry.CaptureError(err, tags)
+		commonsSentry.CaptureError(err, tags)
 	}
 
 	return res, err
@@ -174,7 +174,7 @@ func (s *CompatService) UsersForEntity(
 		return nil, err
 	}
 
-	logger := dxplogger.LoadLoggerFromContext(ctx)
+	logger := commonsLogger.LoadLoggerFromContext(ctx)
 	userIDToRoles := types.UserIDToRoles{}
 	for _, role := range s.roles {
 		roleMembers, err := s.upstream.Read(ctx, &openfgav1.ReadRequest{
@@ -186,7 +186,7 @@ func (s *CompatService) UsersForEntity(
 		})
 		if err != nil {
 			logger.Error().AnErr("openFGA read error", err).Send()
-			dxpsentry.CaptureError(err, dxpsentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "role": role})
+			commonsSentry.CaptureError(err, commonsSentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "role": role})
 			return nil, err
 		}
 
@@ -197,7 +197,7 @@ func (s *CompatService) UsersForEntity(
 			roleIdRaw := strings.Split(tuple.Key.Object, "/")
 			if len(roleIdRaw) < 3 {
 				logger.Error().Str("role", tuple.Key.Object).Msg("role ID is not in expected format")
-				dxpsentry.CaptureError(errors.New("role ID not in expected format"), dxpsentry.Tags{"role": tuple.Key.Object})
+				commonsSentry.CaptureError(errors.New("role ID not in expected format"), commonsSentry.Tags{"role": tuple.Key.Object})
 				continue
 			}
 			roleID := roleIdRaw[2]
@@ -235,7 +235,7 @@ func (s *CompatService) CreateAccount(ctx context.Context, tenantID string, enti
 		return err
 	}
 
-	logger := dxplogger.LoadLoggerFromContext(ctx)
+	logger := commonsLogger.LoadLoggerFromContext(ctx)
 	for _, write := range writes {
 		_, err = s.upstream.Write(ctx, &openfgav1.WriteRequest{
 			StoreId:              storeID,
@@ -249,7 +249,7 @@ func (s *CompatService) CreateAccount(ctx context.Context, tenantID string, enti
 		}
 		if err != nil {
 			logger.Error().AnErr("openFGA write error", err).Send()
-			dxpsentry.CaptureError(err, dxpsentry.Tags{
+			commonsSentry.CaptureError(err, commonsSentry.Tags{
 				"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "ownerUserID": ownerUserID,
 			})
 			return err
@@ -271,8 +271,8 @@ func (s *CompatService) RemoveAccount(ctx context.Context, tenantID string, enti
 
 	entityType = strings.ToLower(entityType)
 
-	logger := dxplogger.LoadLoggerFromContext(ctx)
-	tags := dxpsentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID}
+	logger := commonsLogger.LoadLoggerFromContext(ctx)
+	tags := commonsSentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID}
 	var deletes []*openfgav1.TupleKeyWithoutCondition
 	for _, role := range s.roles {
 		assignees, err := s.upstream.Read(ctx, &openfgav1.ReadRequest{
@@ -284,7 +284,7 @@ func (s *CompatService) RemoveAccount(ctx context.Context, tenantID string, enti
 		})
 		if err != nil {
 			logger.Error().AnErr("openFGA read error", err).Send()
-			dxpsentry.CaptureError(err, tags)
+			commonsSentry.CaptureError(err, tags)
 			return err
 		}
 
@@ -307,7 +307,7 @@ func (s *CompatService) RemoveAccount(ctx context.Context, tenantID string, enti
 		})
 		if err != nil {
 			logger.Error().AnErr("openFGA write error", err).Send()
-			dxpsentry.CaptureError(err, tags)
+			commonsSentry.CaptureError(err, tags)
 			return err
 		}
 	}
@@ -331,7 +331,7 @@ func (s *CompatService) RemoveAccount(ctx context.Context, tenantID string, enti
 		}
 		if err != nil {
 			logger.Error().AnErr("openFGA write error", err).Send()
-			dxpsentry.CaptureError(err, dxpsentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "role": role})
+			commonsSentry.CaptureError(err, commonsSentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "role": role})
 			return err
 		}
 	}
@@ -343,7 +343,7 @@ func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string,
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.AssignRoleBindings")
 	defer span.End()
 
-	logger := dxplogger.LoadLoggerFromContext(ctx)
+	logger := commonsLogger.LoadLoggerFromContext(ctx)
 
 	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, tenantID)
 	if err != nil {
@@ -356,7 +356,7 @@ func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string,
 	}
 
 	for _, change := range input {
-		tags := dxpsentry.Tags{"tenant": tenantID, "entityType": entityType, "entityID": entityID, "change.userID": change.UserID}
+		tags := commonsSentry.Tags{"tenant": tenantID, "entityType": entityType, "entityID": entityID, "change.userID": change.UserID}
 
 		previousUserRoles, err := s.upstream.ListObjects(ctx, &openfgav1.ListObjectsRequest{
 			StoreId:              storeID,
@@ -367,7 +367,7 @@ func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string,
 		})
 		if err != nil {
 			logger.Error().AnErr("openFGA read error", err).Send()
-			dxpsentry.CaptureError(err, tags)
+			commonsSentry.CaptureError(err, tags)
 			return err
 		}
 
@@ -441,7 +441,7 @@ func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string,
 			}
 			if err != nil {
 				logger.Error().AnErr("openFGA write error", err).Send()
-				dxpsentry.CaptureError(err, tags)
+				commonsSentry.CaptureError(err, tags)
 				return err
 			}
 
@@ -453,7 +453,7 @@ func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string,
 				err = s.events.UserRoleChanged(ctx, tenantID, entityID, entityType, change.UserID, previousUserRolesForEntity, requestedNewRoles)
 				if err != nil {
 					logger.Error().AnErr("error calling UserRoleChanged event handler", err).Send()
-					dxpsentry.CaptureError(err, tags)
+					commonsSentry.CaptureError(err, tags)
 				}
 			}
 		}
@@ -477,7 +477,7 @@ func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string,
 			}
 			if err != nil {
 				logger.Error().AnErr("openFGA write error", err).Send()
-				dxpsentry.CaptureError(err, tags)
+				commonsSentry.CaptureError(err, tags)
 				return err
 			}
 		}
@@ -501,7 +501,7 @@ func (s *CompatService) RemoveFromEntity(ctx context.Context, tenantID string, e
 		}
 	}
 
-	logger := dxplogger.LoadLoggerFromContext(ctx)
+	logger := commonsLogger.LoadLoggerFromContext(ctx)
 	for _, d := range deletes {
 		_, err = s.upstream.Write(ctx, &openfgav1.WriteRequest{
 			StoreId: storeID,
@@ -514,7 +514,7 @@ func (s *CompatService) RemoveFromEntity(ctx context.Context, tenantID string, e
 		}
 		if err != nil {
 			logger.Error().AnErr("openFGA write error", err).Send()
-			dxpsentry.CaptureError(err, dxpsentry.Tags{"tenant": tenantID, "entityType": entityType, "entityID": entityID, "userID": userID})
+			commonsSentry.CaptureError(err, commonsSentry.Tags{"tenant": tenantID, "entityType": entityType, "entityID": entityID, "userID": userID})
 			return err
 		}
 	}

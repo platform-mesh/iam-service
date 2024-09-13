@@ -1,0 +1,60 @@
+# Roles
+# => write as a role eg. viewer, member, admin, owner, maintainer etc
+
+# Permissions
+# => write with as a verb or as a verb postfix
+# _manage: ability to create, update, or delete an entity
+# _write: ability to create or update an entity
+# _create: ability to create an entity
+# _delete: ability to delete an entity
+# _view: ability to view an entity
+
+model
+  schema 1.1
+
+type user
+
+type role
+  relations
+    define assignee: [user]
+
+type tenant
+  relations
+    # Model Permissions
+    define project_owner_role: [user, role#assignee]
+    define team_owner_role: [user, role#assignee]
+    define project_member_role: [user, role#assignee]
+    define team_member_role: [user, role#assignee]
+    # Roles
+    define member: [role#assignee]
+    define external_member: [role#assignee]
+    
+    # Permissions
+    define project_create: member or external_member
+    define team_create: member or external_member
+
+type project
+  relations
+    # Relations
+    define parent: [tenant]
+
+    # Roles
+    define owner: [role#assignee]
+    define member: [role#assignee] or owner
+    define vault_maintainer: [role#assignee] or owner
+
+    
+    define member_manage: owner or project_owner_role from parent or project_member_role from parent
+
+type team
+  relations
+    # Relations
+    define parent: [tenant]
+    
+    # Roles
+    define owner: [role#assignee]
+    define member: [role#assignee] or owner
+    define vault_maintainer: [role#assignee] or owner
+
+   
+    define member_manage: owner or team_owner_role from parent or team_member_role from parent

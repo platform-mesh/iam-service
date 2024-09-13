@@ -1,0 +1,6 @@
+
+configs:
+  - tenantId: example-tenant
+    issuer: https://issuer.my.corp
+    audience: a2b50a84-f380-4c88-84d4-424059236cb3
+    zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58

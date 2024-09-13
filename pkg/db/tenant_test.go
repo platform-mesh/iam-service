@@ -7,7 +7,7 @@ import (
 
 	"github.com/agiledragon/gomonkey/v2"
 	"github.com/google/uuid"
-	dxpCtx "github.com/openmfp/golang-commons/context"
+	commonsCtx "github.com/openmfp/golang-commons/context"
 	"github.com/openmfp/golang-commons/jwt"
 	"github.com/openmfp/golang-commons/logger"
 	"github.com/openmfp/iam-service/pkg/db"
@@ -45,8 +45,8 @@ func TestDatabase_GetTenantConfigurationForContext(t *testing.T) {
 		},
 	}
 
-	// patch dxpCtx.GetWebTokenFromContext(ctx) to return tokenInfo
-	patch := gomonkey.ApplyFunc(dxpCtx.GetWebTokenFromContext, func(ctx context.Context) (jwt.WebToken, error) {
+	// patch commonsCtx.GetWebTokenFromContext(ctx) to return tokenInfo
+	patch := gomonkey.ApplyFunc(commonsCtx.GetWebTokenFromContext, func(ctx context.Context) (jwt.WebToken, error) {
 		return *tokenInfo, nil
 	})
 
@@ -85,8 +85,8 @@ func TestDatabase_GetTenantConfigurationForContextGetWebTokenFromContextReturnsE
 
 	ctx := context.Background()
 
-	// patch dxpCtx.GetWebTokenFromContext(ctx) to return error
-	patch := gomonkey.ApplyFunc(dxpCtx.GetWebTokenFromContext, func(ctx context.Context) (jwt.WebToken, error) {
+	// patch commonsCtx.GetWebTokenFromContext(ctx) to return error
+	patch := gomonkey.ApplyFunc(commonsCtx.GetWebTokenFromContext, func(ctx context.Context) (jwt.WebToken, error) {
 		return jwt.WebToken{}, assert.AnError
 	})
 

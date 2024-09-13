@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  {{- include "deploymentBasics" . | indent 2 }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+      annotations:
+        traffic.sidecar.istio.io/excludeInboundPorts: "2112"
+        traffic.sidecar.istio.io/excludeOutboundPorts: "5432"
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ .Release.Name }}-deployment-cm
+      containers:
+      - name: {{ .Release.Name }}
+        image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
+        ports:
+        {{- include "port.fga" . | indent 10 }}
+        args: [ "serve" ]
+        volumeMounts:
+        - name: config
+          mountPath: /var/data
+        env: 
+        - name: LOG_LEVEL
+          value: {{ (.Values.log).level | default "info" }}
+        - name: REGION
+          value: {{ .Values.region }}
+        - name: ENVIRONMENT
+          value: {{ .Values.environment }}
+        - name: IMAGE_TAG
+          value: "{{ .Values.image.tag }}"
+        - name: IMAGE_NAME
+          value: "{{ .Values.image.name }}"        

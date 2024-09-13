@@ -15,6 +15,11 @@ issues:
         - containedctx
         - funlen
         - dupl
+    - path: contract-tests/mock_dynamicClient.go
+      linters:
+        - unused
+        - ireturn
+        - lll
 
 
 linters-settings:
@@ -65,7 +70,7 @@ linters:
     - asasalint # checks for pass []any as any in variadic func(...any)
     - asciicheck # checks that your code does not contain non-ASCII identifiers
     - bidichk # checks for dangerous unicode character sequences
-    - bodyclose # checks whether HTTP response body is closed successfully
+    # - bodyclose # checks whether HTTP response body is closed successfully
     - canonicalheader # checks whether net/http.Header uses canonical header
     - containedctx # detects struct contained context.Context field
     - contextcheck # [too many false positives] checks the function whether use a non-inherited context

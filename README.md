@@ -5,6 +5,13 @@
 # openMFP - iam-service
 ![Build Status](https://github.com/openmfp/iam-service/actions/workflows/pipeline.yml/badge.svg)
 
+## Local dev
+
+To run the application locally, create `.env` config file from `.env.sample` and run:
+```shell
+go run ./main.go serve
+```
+
 ## Description
 
 The openMFP iam-service exposes a graphql and a grpc API. The Graphql API is primarily used by user management UIs, while the GRPC API is used to authorize write calls into openfga.

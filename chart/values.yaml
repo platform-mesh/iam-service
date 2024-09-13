@@ -1,11 +1,10 @@
+databaseName: iam-service
+
 image:
   name: ghcr.io/openmfp/iam-service
   tag: latest
 
 imagePullSecrets: "github"
-
-crds:
-  enabled: true
 
 health:
   port: 8081
@@ -22,3 +21,55 @@ deployment:
     requests:
       cpu: 150m
       memory: 128Mi
+
+openfga:
+  disableLegacyQueries: false
+  eventing:
+    enabled: false
+  grpcAddr: openfga:8081
+  eventingEnabled: true
+  port: 8081
+
+domain:
+  path: /iam
+  prefix: iam
+
+gateway:
+  name: dxp-gateway
+
+## --- Istio and Shared Configuration
+port: 8080
+
+istio:
+  enabled: true
+
+## --- OpenFga Configuration
+redirectToOpenFGA:
+  expand:
+    path: openfga.v1.OpenFGAService/Expand
+  check:
+    path: openfga.v1.OpenFGAService/Check
+  read:
+    path: openfga.v1.OpenFGAService/Read
+  get:
+    path: openfga.v1.OpenFGAService/Get
+  streamed:
+    path: openfga.v1.OpenFGAService/Streamed
+  list:
+    path: openfga.v1.OpenFGAService/List
+  reflect:
+    path: grpc.reflection.v1.ServerReflection
+  reflect-alpha:
+    path: grpc.reflection.v1alpha.ServerReflection
+
+fga:
+  grpc:
+    fullAccessServiceAccounts:
+      - cluster.local/ns/dxp-system/sa/account-operator-sa
+      - cluster.local/ns/dxp-system/sa/accountextension-operator-sa
+      - cluster.local/ns/dxp-system/sa/organizations-service
+      - cluster.local/ns/dxp-system/sa/extension-manager-service
+    accessRequestPrincipals: []
+
+features:
+  open-fga-enabled: true

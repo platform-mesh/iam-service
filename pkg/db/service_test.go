@@ -175,22 +175,10 @@ func TestLoadTenantConfigData_WhenSuccessful_ReturnsTenantConfigData(t *testing.
 	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
 		loadTenantConfigDataCalls++
 		return []byte(`configs:
-- tenantId: sap-btp
-  issuer: https://accounts.sap.com
-  audience: e3284ced-3a27-476b-9ae6-d5ad1ba05266
-  zoneId: 123123-123123
 - tenantId: example-tenant
-  issuer: https://ametqb0em.accounts400.ondemand.com
-  audience: 1fd3f7a6-d506-4289-9fcf-fed52eeb4c16
-  zoneId: dfbeb04e-18a5-45a3-8ecc-1074d688a07a
-- tenantId: hyperspacedev
-  issuer: https://hyperspacedev.accounts.ondemand.com
-  audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
-  zoneId: dfbeb04e-18a5-45a3-8ecc-1074d688a07a
-- tenantId: 01emp2m3v3batersxj73qhm5zq
-  issuer: https://hyperspacedev.accounts.ondemand.com
-  audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
-  zoneId: dfbeb04e-18a5-45a3-8ecc-1074d688a07a
+  issuer: https://issuer.my.corp
+  audience: a2b50a84-f380-4c88-84d4-424059236cb3
+  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
 `), nil
 	})
 
@@ -233,17 +221,17 @@ func TestLoadTenantConfigData_Error(t *testing.T) {
   audience: e3284ced-3a27-476b-9ae6-d5ad1ba05266
   zoneId: 123123-123123
 - tenantId: example-tenant
-  issuer: https://ametqb0em.accounts400.ondemand.com
-  audience: 1fd3f7a6-d506-4289-9fcf-fed52eeb4c16
-  zoneId: dfbeb04e-18a5-45a3-8ecc-1074d688a07a
+  issuer: https://issuer.my.corp
+  audience: a2b50a84-f380-4c88-84d4-424059236cb3
+  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
 - tenantId: hyperspacedev
   issuer: https://hyperspacedev.accounts.ondemand.com
   audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
-  zoneId: dfbeb04e-18a5-45a3-8ecc-1074d688a07a
-- tenantId: 01emp2m3v3batersxj73qhm5zq
+  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
+- tenantId: eCh0yae7ooWaek2iejo8geiqua
   issuer: https://hyperspacedev.accounts.ondemand.com
   audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
-  zoneId: dfbeb04e-18a5-45a3-8ecc-1074d688a07a
+  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
 `), nil
 	})
 
@@ -295,17 +283,17 @@ func TestLoadTenantConfigData_FirstRowsAffected(t *testing.T) {
   audience: e3284ced-3a27-476b-9ae6-d5ad1ba05266
   zoneId: 123123-123123
 - tenantId: example-tenant
-  issuer: https://ametqb0em.accounts400.ondemand.com
-  audience: 1fd3f7a6-d506-4289-9fcf-fed52eeb4c16
-  zoneId: dfbeb04e-18a5-45a3-8ecc-1074d688a07a
+  issuer: https://issuer.my.corp
+  audience: a2b50a84-f380-4c88-84d4-424059236cb3
+  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
 - tenantId: hyperspacedev
   issuer: https://hyperspacedev.accounts.ondemand.com
   audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
-  zoneId: dfbeb04e-18a5-45a3-8ecc-1074d688a07a
-- tenantId: 01emp2m3v3batersxj73qhm5zq
+  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
+- tenantId: eCh0yae7ooWaek2iejo8geiqua
   issuer: https://hyperspacedev.accounts.ondemand.com
   audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
-  zoneId: dfbeb04e-18a5-45a3-8ecc-1074d688a07a
+  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
 `), nil
 	})
 
@@ -417,8 +405,8 @@ func TestLoadTeamData_WhenSuccessful_ReturnsTeamData(t *testing.T) {
 			loadUserDataCalls++
 			return []byte(`user:
   - tenant_id: abc123456
-    user_id: ID896464
-    email: ID896464@sap.com
+    user_id: OOS6VEIL5I
+    email: OOS6VEIL5I@sap.com
     first_name: zNameStartingWithZ
     groupsAssignments:
       - group: projectAdmins
@@ -427,7 +415,7 @@ func TestLoadTeamData_WhenSuccessful_ReturnsTeamData(t *testing.T) {
 		} else if filename == "input/team.yaml" {
 			loadTeamDataCalls++
 			return []byte(`team:
-  - tenantId: 01emp2m3v3batersxj73qhm5zq
+  - tenantId: eCh0yae7ooWaek2iejo8geiqua
     name: exampleTeam1`), nil
 		}
 
@@ -492,7 +480,7 @@ func TestLoadTeamData_ZeroUser_Error(t *testing.T) {
 		} else if filename == "input/team.yaml" {
 			loadTeamDataCalls++
 			return []byte(`team:
-  - tenantId: 01emp2m3v3batersxj73qhm5zq
+  - tenantId: eCh0yae7ooWaek2iejo8geiqua
     name: exampleTeam1`), nil
 		}
 
@@ -540,8 +528,8 @@ func TestLoadTeamData_ZeroTeams(t *testing.T) {
 			loadUserDataCalls++
 			return []byte(`user:
   - tenant_id: abc123456
-    user_id: ID896464
-    email: ID896464@sap.com
+    user_id: OOS6VEIL5I
+    email: OOS6VEIL5I@sap.com
     first_name: zNameStartingWithZ
     groupsAssignments:
       - group: projectAdmins
@@ -595,8 +583,8 @@ func TestLoadTeamData_CreateError(t *testing.T) {
 			loadUserDataCalls++
 			return []byte(`user:
   - tenant_id: abc123456
-    user_id: ID896464
-    email: ID896464@sap.com
+    user_id: OOS6VEIL5I
+    email: OOS6VEIL5I@sap.com
     first_name: zNameStartingWithZ
     groupsAssignments:
       - group: projectAdmins
@@ -605,7 +593,7 @@ func TestLoadTeamData_CreateError(t *testing.T) {
 		} else if filename == "input/team.yaml" {
 			loadTeamDataCalls++
 			return []byte(`team:
-  - tenantId: 01emp2m3v3batersxj73qhm5zq
+  - tenantId: eCh0yae7ooWaek2iejo8geiqua
     name: exampleTeam1`), nil
 		}
 
@@ -718,8 +706,8 @@ func TestLoadInvitationData_WhenSuccessful_ReturnsInvitationData(t *testing.T) {
 	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
 		loadInvitationDataCalls++
 		return []byte(`invitations:
-  - tenantId: 01emp2m3v3batersxj73qhm5zq
-    email: invited-admin-member@sap.com
+  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+    email: invited-admin-member@it.corp
     roles: owner,member
     entityType: project
     entityId: test`), nil
@@ -1173,8 +1161,8 @@ func TestLoadUserData_DBFirstReturnsNil_ReturnsError(t *testing.T) {
 			loadUserDataCalls++
 			return []byte(`user:
   - tenant_id: abc123456
-    user_id: ID896464
-    email: ID896464@sap.com
+    user_id: OOS6VEIL5I
+    email: OOS6VEIL5I@sap.com
     first_name: zNameStartingWithZ
     groupsAssignments:
       - group: projectAdmins
@@ -1183,7 +1171,7 @@ func TestLoadUserData_DBFirstReturnsNil_ReturnsError(t *testing.T) {
 		} else if filename == "input/team.yaml" {
 			loadTeamDataCalls++
 			return []byte(`team:
-  - tenantId: 01emp2m3v3batersxj73qhm5zq
+  - tenantId: eCh0yae7ooWaek2iejo8geiqua
     name: exampleTeam1`), nil
 		}
 

@@ -1,0 +1,16 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    dxp.sap.com/metrics: enabled
+spec:
+  selector:
+    app: {{ .Release.Name }}
+  ports:
+    - name: http
+      protocol: TCP
+      port: {{ .Values.port }}
+    {{- include "port.fga.service" . | indent 4 }}
+  type: ClusterIP

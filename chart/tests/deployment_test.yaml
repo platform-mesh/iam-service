@@ -1,0 +1,18 @@
+suite: deployment testcases
+templates:
+  - deploy.yaml
+values:
+  - ../test-values.yaml
+tests:
+  - it: deploy match the snapshot
+    template: deploy.yaml
+    asserts:
+      - matchSnapshot: {}
+  - it: deploy match the snapshot with openfga
+    template: deploy.yaml
+    set:
+      openfga:
+        enabled: true
+        grpcAddr: openfga:8081
+    asserts:
+      - matchSnapshot: {}

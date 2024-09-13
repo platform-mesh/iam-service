@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
-	dxpCtx "github.com/openmfp/golang-commons/context"
+	commonsCtx "github.com/openmfp/golang-commons/context"
 )
 
 type TenantConfiguration struct {
@@ -23,7 +23,7 @@ type TenantConfiguration struct {
 
 func (d *Database) GetTenantConfigurationForContext(ctx context.Context) (*TenantConfiguration, error) {
 	// retrieve jwt from context
-	tokenInfo, err := dxpCtx.GetWebTokenFromContext(ctx)
+	tokenInfo, err := commonsCtx.GetWebTokenFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	dxpjwt "github.com/openmfp/golang-commons/jwt"
+	"github.com/openmfp/golang-commons/jwt"
 )
 
 type principalCtxKey struct{}
@@ -24,12 +24,12 @@ func NewUnaryInterceptor() grpc.UnaryServerInterceptor {
 			return nil, errors.New("could not extract metadata from context")
 		}
 
-		certHeader := md.Get(strings.ToLower(dxpjwt.HeaderSpiffeValue))
+		certHeader := md.Get(strings.ToLower(jwt.HeaderSpiffeValue))
 		if len(certHeader) == 0 {
 			return handler(ctx, req)
 		}
 
-		val := dxpjwt.GetURIValue(certHeader[0])
+		val := jwt.GetURIValue(certHeader[0])
 		val = strings.TrimPrefix(val, "spiffe://")
 		if val == "" {
 			return handler(ctx, req)

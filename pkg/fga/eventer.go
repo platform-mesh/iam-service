@@ -7,7 +7,7 @@ import (
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	openmfpFga "github.com/openmfp/golang-commons/fga/store"
-	dxplogger "github.com/openmfp/golang-commons/logger"
+	commonsLogger "github.com/openmfp/golang-commons/logger"
 	"github.com/openmfp/iam-service/pkg/db"
 	"go.opentelemetry.io/otel"
 )
@@ -18,7 +18,7 @@ type InviteManger interface {
 }
 
 type FGALoginHandler interface {
-	HandleLogin(ctx context.Context, logger *dxplogger.Logger, tenantID string, userId string, userEmail string) error
+	HandleLogin(ctx context.Context, logger *commonsLogger.Logger, tenantID string, userId string, userEmail string) error
 }
 
 type FGAEventer struct {
@@ -56,7 +56,8 @@ func NewFGAEventer(
 }
 
 // HandleLogin Handles the login event whenever a user logs into the portal. This makes sure that the user gets the appropriate tenant role
-func (s *FGAEventer) HandleLogin(ctx context.Context, logger *dxplogger.Logger, tenantID string, userId string, userEmail string) error {
+func (s *FGAEventer) HandleLogin(ctx context.Context, logger *commonsLogger.Logger,
+	tenantID string, userId string, userEmail string) error {
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.handleLogin")
 	defer span.End()
 

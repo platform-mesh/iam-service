@@ -1,5 +1,14 @@
-# Use the official BusyBox image from Docker Hub
-FROM busybox
+FROM golang:1.22.6-bullseye as builder
 
-# Run a command when the container starts
-CMD ["echo", "Hello from BusyBox!"]
+WORKDIR /workspace
+COPY ./ ./
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags '-w -s' -o service main.go
+
+FROM gcr.io/distroless/static:nonroot
+WORKDIR /
+COPY --from=builder /workspace/service .
+
+USER 1001:1001
+
+CMD ["/service"]

@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	dxplogger "github.com/openmfp/golang-commons/logger"
+	commonsLogger "github.com/openmfp/golang-commons/logger"
 )
 
 const (
@@ -21,7 +21,7 @@ func NewUnaryInterceptor() grpc.UnaryServerInterceptor {
 
 func reportable() interceptors.CommonReportableFunc {
 	return func(ctx context.Context, c interceptors.CallMeta) (interceptors.Reporter, context.Context) {
-		logger := dxplogger.LoadLoggerFromContext(ctx)
+		logger := commonsLogger.LoadLoggerFromContext(ctx)
 
 		md, exists := metadata.FromOutgoingContext(ctx)
 		if exists {
@@ -30,7 +30,7 @@ func reportable() interceptors.CommonReportableFunc {
 				logger = logger.ChildLogger(requestIDLoggerKey, requestIds[0])
 			}
 		}
-		ctx = dxplogger.SetLoggerInContext(ctx, logger)
+		ctx = commonsLogger.SetLoggerInContext(ctx, logger)
 		return interceptors.NoopReporter{}, ctx
 	}
 }

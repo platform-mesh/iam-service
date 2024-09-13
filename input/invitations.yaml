@@ -1,0 +1,6 @@
+invitations:
+  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+    email: invited-admin-member@it.corp
+    roles: owner,member
+    entityType: project
+    entityId: test

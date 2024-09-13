@@ -1,0 +1,74 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  action: ALLOW
+  rules:
+  - to:
+    - operation:
+        paths: ["/healthz"]
+  - from:
+    - source:
+        principals:
+          {{- range $key, $sa := .Values.fga.grpc.fullAccessServiceAccounts }}
+          - {{ $sa }}
+          {{ end }}
+    to:
+      - operation:
+          methods: ["POST"]
+          paths: ["openfga.v1.OpenFGAService/*"]
+  - from:
+    - source:
+        requestPrincipals:
+          - /*
+    to:
+      - operation:
+          methods: ["POST"]
+          paths: [
+            "/openfga.v1.OpenFGAService/Read*",
+            "/openfga.v1.OpenFGAService/Check*",
+            "/openfga.v1.OpenFGAService/Expand*",
+            "/openfga.v1.OpenFGAService/List*",
+            "/openfga.v1.OpenFGAService/StreamedList*"
+          ]
+  - from:
+      - source:
+          requestPrincipals:
+            - /*
+    to:
+      - operation:
+          methods: ["POST"]
+          paths: ["/query"]
+  - from:
+    - source:
+        principals: []
+    to:
+    - operation:
+        methods: ["POST"]
+{{ if gt (len .Values.fga.grpc.accessRequestPrincipals) 0 }}
+  - from:
+    - source:
+        requestPrincipals:
+        {{- range $sa := .Values.fga.grpc.accessRequestPrincipals }}
+        - {{ $sa }}
+        {{ end }}
+    to:
+      # rest api
+      - operation:
+          methods: ["OPTIONS"]
+      - operation:
+          methods: ["GET"]
+          paths: ["/stores*"]
+      - operation:
+          methods: ["POST"]
+          paths: [
+            "/stores*",
+            "/openfga.v1.OpenFGAService*",
+          ]
+
+{{ end }}

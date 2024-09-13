@@ -1,0 +1,126 @@
+{{- $serviceAddress := print .Release.Name "." .Release.Namespace ".svc.cluster.local"}}
+{{- $servicePort := .Values.port }}
+{{ $servicePath := .Values.domain.path }}
+{{ $releaseNamespace := .Release.Namespace }}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: iam-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  gateways:
+  - {{ .Release.Namespace }}/{{ .Values.gateway.name }}
+  hosts:
+  - {{ .Values.hostname }}
+  http:
+  {{- range $id, $req := .Values.redirectToOpenFGA }}
+  - match:
+    - uri:
+        prefix: /{{ $req.path }}
+    name: redirect-{{ $id }}
+    corsPolicy:
+      allowHeaders:
+      - '*'
+      allowMethods:
+      - POST
+      allowOrigins:
+      - regex: .*
+    route:
+    - destination:
+        host: openfga.{{ $releaseNamespace }}.svc.cluster.local
+        port:
+          number: 8081
+  {{ end -}}
+  - match:
+    - uri:
+        prefix: /iam/stores
+    rewrite:
+      uri: /stores
+    name: redirect-openfga-rest
+    route:
+    - destination:
+        host: openfga.{{ $releaseNamespace }}.svc.cluster.local
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: /openfga.v1.OpenFGAService
+    name: to-iam
+    route:
+    - destination:
+        host: {{ $serviceAddress }}
+        port:
+          number: {{ .Values.openfga.port }}
+  - corsPolicy:
+      allowHeaders:
+      - Authorization
+      - Content-Type
+      - '*'
+      allowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      allowOrigins:
+      - regex: .*
+    match:
+    - uri:
+        exact: {{ $servicePath }}
+    - uri:
+        prefix: {{ $servicePath }}/
+    name: default
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: {{ $serviceAddress }}
+        port:
+          number: {{ $servicePort }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: iam-service-internal
+  namespace: {{ .Release.Namespace }}
+spec:
+  hosts:
+  - iam-service.{{ .Release.Namespace }}.svc.cluster.local
+  http:
+  {{- range $id, $req := .Values.redirectToOpenFGA }}
+  - match:
+    - uri:
+        prefix: /{{ $req.path }}
+    name: redirect-{{ $id }}
+    route:
+    - destination:
+        host: openfga.{{ $releaseNamespace }}.svc.cluster.local
+        port:
+          number: 8081
+  {{ end -}}
+  - match:
+    - uri:
+        prefix: /stores
+    name: redirect-openfga-rest
+    route:
+    - destination:
+        host: openfga.{{ .Release.Namespace }}.svc.cluster.local
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: /openfga.v1.OpenFGAService
+    name: to-iam
+    route:
+    - destination:
+        host: {{ $serviceAddress }}
+        port:
+          number: {{ .Values.openfga.port }}
+  - match:
+    - uri:
+        prefix: /
+    name: default
+    route:
+    - destination:
+        host: {{ $serviceAddress }}
+        port:
+          number: {{ $servicePort }}

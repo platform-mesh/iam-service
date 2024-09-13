@@ -12,7 +12,7 @@ import (
 
 	"github.com/go-http-utils/headers"
 	"github.com/go-jose/go-jose/v4"
-	dxpcontext "github.com/openmfp/golang-commons/context"
+	commonsCtx "github.com/openmfp/golang-commons/context"
 	"github.com/openmfp/golang-commons/policy_services"
 )
 
@@ -35,10 +35,10 @@ func NewUnaryInterceptor(tenentIdReader policy_services.TenantIdReader) grpc.Una
 		}
 
 		header := strings.TrimPrefix(authHeader[0], "Bearer")
-		ctx = dxpcontext.AddWebTokenToContext(ctx, header, []jose.SignatureAlgorithm{jose.RS256})
-		ctx = dxpcontext.AddAuthHeaderToContext(ctx, authHeader[0])
+		ctx = commonsCtx.AddWebTokenToContext(ctx, header, []jose.SignatureAlgorithm{jose.RS256})
+		ctx = commonsCtx.AddAuthHeaderToContext(ctx, authHeader[0])
 
-		token, err := dxpcontext.GetWebTokenFromContext(ctx)
+		token, err := commonsCtx.GetWebTokenFromContext(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -50,7 +50,7 @@ func NewUnaryInterceptor(tenentIdReader policy_services.TenantIdReader) grpc.Una
 			return nil, err
 		}
 
-		ctx = dxpcontext.AddTenantToContext(ctx, tenantID)
+		ctx = commonsCtx.AddTenantToContext(ctx, tenantID)
 
 		return handler(ctx, req)
 	}

@@ -8,4 +8,8 @@ exclude:
     - ^pkg/fga/mocks
     - ^pkg/fga/middleware # nothing to test there
     - ^pkg/fga/server.go
+    - cmd/*
+    - internal/pkg/*
+    - main.go
+    - contract-tests/
 

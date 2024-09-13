@@ -1,0 +1,15 @@
+tuples:
+  # assign role to project
+  - object: project:test
+    relation: owner
+    user: role:project/test/owner#assignee
+  - object: project:test
+    relation: vault_maintainer
+    user: role:project/test/vault_maintainer#assignee
+  
+  - object: role:project/test/owner
+    relation: assignee
+    user: user:AHCAE4EIVI
+  - object: role:project/test/vault_maintainer
+    relation: assignee
+    user: user:AHCAE4EIVI
