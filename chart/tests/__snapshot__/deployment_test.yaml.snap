@@ -49,10 +49,6 @@ deploy match the snapshot:
                 - mountPath: /var/data
                   name: config
           serviceAccountName: RELEASE-NAME
-          volumes:
-            - configMap:
-                name: RELEASE-NAME-deployment-cm
-              name: config
 deploy match the snapshot with openfga:
   1: |
     apiVersion: apps/v1
@@ -104,7 +100,3 @@ deploy match the snapshot with openfga:
                 - mountPath: /var/data
                   name: config
           serviceAccountName: RELEASE-NAME
-          volumes:
-            - configMap:
-                name: RELEASE-NAME-deployment-cm
-              name: config

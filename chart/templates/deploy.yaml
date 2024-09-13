@@ -16,10 +16,6 @@ spec:
         traffic.sidecar.istio.io/excludeOutboundPorts: "5432"
     spec:
       serviceAccountName: {{ .Release.Name }}
-      volumes:
-      - name: config
-        configMap:
-          name: {{ .Release.Name }}-deployment-cm
       containers:
       - name: {{ .Release.Name }}
         image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
