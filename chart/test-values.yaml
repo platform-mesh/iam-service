@@ -2,7 +2,7 @@
 image:
   tag: 12345
 
-hostname: iam-service.d1.openmfp.dxp.k8s.ondemand.com
+hostname: api.d1.openmfp.dxp.k8s.ondemand.com
 
 region: test-region
 environment: test-environment

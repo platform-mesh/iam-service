@@ -4,6 +4,8 @@ image:
   name: ghcr.io/openmfp/iam-service
   tag: latest
 
+hostname: api.d1.openmfp.dxp.k8s.ondemand.com
+
 imagePullSecrets: "github"
 
 health:
