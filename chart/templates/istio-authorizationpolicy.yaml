@@ -44,12 +44,6 @@ spec:
       - operation:
           methods: ["POST"]
           paths: ["/query"]
-  - from:
-    - source:
-        principals: []
-    to:
-    - operation:
-        methods: ["POST"]
 {{ if gt (len .Values.fga.grpc.accessRequestPrincipals) 0 }}
   - from:
     - source:
