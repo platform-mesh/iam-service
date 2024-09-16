@@ -45,9 +45,8 @@ deploy match the snapshot:
                 - containerPort: 8081
                   name: grpc
                   protocol: TCP
-              volumeMounts:
-                - mountPath: /var/data
-                  name: config
+          imagePullSecrets:
+            - name: github
           serviceAccountName: RELEASE-NAME
 deploy match the snapshot with openfga:
   1: |
@@ -96,7 +95,6 @@ deploy match the snapshot with openfga:
                 - containerPort: 8081
                   name: grpc
                   protocol: TCP
-              volumeMounts:
-                - mountPath: /var/data
-                  name: config
+          imagePullSecrets:
+            - name: github
           serviceAccountName: RELEASE-NAME

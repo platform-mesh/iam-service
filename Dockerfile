@@ -11,4 +11,4 @@ COPY --from=builder /workspace/service .
 
 USER 1001:1001
 
-CMD ["/service"]
+ENTRYPOINT ["/service"]
