@@ -10,6 +10,8 @@ import (
 	"github.com/openmfp/golang-commons/logger"
 )
 
+const MAX_INT = math.MaxInt
+
 func setupLogger(ctx context.Context) *logger.Logger {
 	log := logger.LoadLoggerFromContext(ctx)
 
@@ -40,7 +42,7 @@ func VerifyLimitsWithOverride(limit *int, page *int) error {
 
 	if *limit == -1 {
 		*page = 0
-		*limit = math.MaxInt
+		*limit = MAX_INT
 		return nil
 	}
 	if *page < 0 {

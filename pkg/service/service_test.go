@@ -588,6 +588,63 @@ func Test_UsersOfEntity(t *testing.T) {
 	assert.NotNil(t, uc)
 }
 
+func Test_UsersOfEntity_With_Invitations(t *testing.T) {
+	service, mockDb, mockFga := setupService(t)
+	ctx := context.Background()
+
+	// set parameters
+	tenantID := "tenantID123"
+	entity := graph.EntityInput{
+		EntityType: "project",
+		EntityID:   "entityId",
+	}
+	var page int = 0
+	var limit int = -1
+	var showInvitees bool = true
+
+	userIDToRoles := types.UserIDToRoles{
+		"userID123": []string{"admin"},
+	}
+	users := []*graph.User{
+		{
+			TenantID: tenantID,
+			UserID:   "userID123",
+			Email:    "user@sap.com",
+		},
+	}
+	groups := []*db.Role{
+		{
+			ID:            "roleID123",
+			DisplayName:   "admin",
+			TechnicalName: "admin",
+			EntityType:    "project",
+			EntityID:      "entityId",
+		},
+	}
+	invites := []db.Invite{
+		{
+			TenantID:   tenantID,
+			Email:      "invited-user@sap.com",
+			EntityType: "project",
+			EntityID:   "entityId",
+		},
+	}
+
+	// mock
+	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(userIDToRoles, nil).Once()
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything).Return(users, nil).Once()
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).Return(groups, nil).Twice()
+	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(invites, nil).Once()
+
+	// Act
+	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.NotNil(t, uc)
+	assert.Equal(t, uc.Users[1].User.Email,  "invited-user@sap.com")
+}
+
 func Test_UsersOfEntity_Errors(t *testing.T) {
 	service, mockDb, mockFga := setupService(t)
 	ctx := context.Background()

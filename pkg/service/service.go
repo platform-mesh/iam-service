@@ -3,12 +3,12 @@ package service
 import (
 	"context"
 	"errors"
+
 	"slices"
 	"strings"
 
 	"fmt"
 
-	mfpcontext "github.com/openmfp/golang-commons/context"
 	fgastore "github.com/openmfp/golang-commons/fga/store"
 
 	"gorm.io/gorm"
@@ -268,7 +268,7 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop
 		showInvitations = *showInvitees
 	}
 
-	if showInvitations && *limit != minusOne {
+	if showInvitations && *limit != MAX_INT {
 		showInvitations = out.PageInfo.TotalCount < ((*page) * (*limit))
 	}
 
@@ -282,7 +282,7 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop
 	invitesLength := len(invites)
 
 	if showInvitations {
-		if *limit != minusOne {
+		if *limit != MAX_INT {
 			sliceStart, sliceEnd := GeneratePaginationLimits(*limit, len(userIDToRoles), *page, len(invites))
 			invites = invites[sliceStart:sliceEnd]
 		}
@@ -334,7 +334,7 @@ func (s *Service) RemoveFromEntity(ctx context.Context, tenantID string, entityT
 
 func (s *Service) LeaveEntity(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error) {
 
-	token, err := mfpcontext.GetWebTokenFromContext(ctx)
+	token, err := openmfpCtx.GetWebTokenFromContext(ctx)
 	if err != nil {
 		return false, err
 	}
