@@ -3,7 +3,7 @@ module github.com/openmfp/iam-service
 go 1.22.6
 
 require (
-	github.com/99designs/gqlgen v0.17.49
+	github.com/99designs/gqlgen v0.17.52
 	github.com/agiledragon/gomonkey/v2 v2.12.0
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a
 	github.com/go-jose/go-jose/v4 v4.0.4
@@ -20,11 +20,10 @@ require (
 	github.com/steinfletcher/apitest-jsonpath v1.7.2
 	github.com/stretchr/testify v1.9.0
 	github.com/vektah/gqlparser/v2 v2.5.16
-	gorm.io/driver/postgres v1.5.9
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.55.0
-	google.golang.org/grpc v1.66.2
 	go.opentelemetry.io/otel v1.30.0
 	google.golang.org/grpc v1.66.2
+	gorm.io/driver/postgres v1.5.9
 	gorm.io/driver/sqlite v1.5.6
 	gorm.io/gorm v1.25.12
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
