@@ -1,8 +1,7 @@
-databaseName: iam-service
-
 image:
   name: ghcr.io/openmfp/iam-service
   tag: latest
+  pullPolicy: IfNotPresent
 
 hostname: api.d1.openmfp.dxp.k8s.ondemand.com
 
@@ -75,3 +74,21 @@ fga:
 
 features:
   open-fga-enabled: true
+
+
+db:
+  inMemory: false # if false, a PostgreSQL connection will be established
+  postgresNeedsProvision: true   # if true a PostgreSQL instance will be created
+  deployExternalSecret: false    # if true, an external secret will be created
+
+# Bitnami PostgreSQL Helm chart values
+# https://github.com/bitnami/charts/blob/main/bitnami/postgresql/values.yaml
+global:
+  postgresql:
+    auth:
+      existingSecret: ""   # leave it empty to let bitnami/postgresql create a secret
+      secretKeys:
+        adminPasswordKey: "postgres-password" # Only used when `global.postgresql.auth.existingSecret` is set.
+        userPasswordKey: "password"           # Only used when `global.postgresql.auth.existingSecret` is set.
+      username: "iam-service"
+      database: "iam-service"

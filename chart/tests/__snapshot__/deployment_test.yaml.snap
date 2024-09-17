@@ -39,7 +39,17 @@ deploy match the snapshot:
                   value: "12345"
                 - name: IMAGE_NAME
                   value: ghcr.io/openmfp/iam-service
+                - name: DATABASE_INMEMORY
+                  value: "false"
+                - name: DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      key: password
+                      name: RELEASE-NAME-postgresql
+                - name: DATABASE_DSN
+                  value: postgresql://iam-service:$(DATABASE_PASSWORD)@RELEASE-NAME-postgresql:5432/iam-service?sslmode=disable
               image: ghcr.io/openmfp/iam-service:12345
+              imagePullPolicy: IfNotPresent
               name: RELEASE-NAME
               ports:
                 - containerPort: 8081
@@ -47,6 +57,19 @@ deploy match the snapshot:
                   protocol: TCP
           imagePullSecrets:
             - name: github
+          initContainers:
+            - command:
+                - sh
+                - -c
+                - |
+                  echo "Checking PostgreSQL connection..."
+                  until nc -z -v -w30 RELEASE-NAME-postgresql 5432
+                  do
+                    echo "Waiting for PostgreSQL connection..." && sleep 5
+                  done
+                  echo "PostgreSQL is up and running."
+              image: busybox
+              name: check-postgres-connection
           serviceAccountName: RELEASE-NAME
 deploy match the snapshot with openfga:
   1: |
@@ -89,7 +112,17 @@ deploy match the snapshot with openfga:
                   value: "12345"
                 - name: IMAGE_NAME
                   value: ghcr.io/openmfp/iam-service
+                - name: DATABASE_INMEMORY
+                  value: "false"
+                - name: DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      key: password
+                      name: RELEASE-NAME-postgresql
+                - name: DATABASE_DSN
+                  value: postgresql://iam-service:$(DATABASE_PASSWORD)@RELEASE-NAME-postgresql:5432/iam-service?sslmode=disable
               image: ghcr.io/openmfp/iam-service:12345
+              imagePullPolicy: IfNotPresent
               name: RELEASE-NAME
               ports:
                 - containerPort: 8081
@@ -97,4 +130,17 @@ deploy match the snapshot with openfga:
                   protocol: TCP
           imagePullSecrets:
             - name: github
+          initContainers:
+            - command:
+                - sh
+                - -c
+                - |
+                  echo "Checking PostgreSQL connection..."
+                  until nc -z -v -w30 RELEASE-NAME-postgresql 5432
+                  do
+                    echo "Waiting for PostgreSQL connection..." && sleep 5
+                  done
+                  echo "PostgreSQL is up and running."
+              image: busybox
+              name: check-postgres-connection
           serviceAccountName: RELEASE-NAME

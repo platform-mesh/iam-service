@@ -9,6 +9,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/resolver"
+	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
@@ -45,19 +46,19 @@ func InitServeCmd(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(getServeCmd())
 }
 
-func openDbConn(log *logger.Logger) (*gorm.DB, error) {
-	// local sqlite db
-	dsn := "file::memory:?cache=shared"
-	dbDialect := sqlite.Open(dsn)
-	dbConn, err := gorm.Open(dbDialect, &gorm.Config{
+func getGormConn(log *logger.Logger, cfg db.ConfigDatabase) (*gorm.DB, error) {
+	var dbDialect gorm.Dialector
+	if cfg.InMemory { // local sqlite db
+		dsn := "file::memory:?cache=shared"
+		log.Debug().Msg(dsn)
+		dbDialect = sqlite.Open(dsn)
+	} else {
+		dbDialect = postgres.Open(cfg.DSN)
+	}
+
+	return gorm.Open(dbDialect, &gorm.Config{
 		Logger: gormlogger.NewFromLogger(log.ComponentLogger("gorm")),
 	})
-	if err != nil {
-		log.Panic().Err(err).Msg("Failed to open gorm connection")
-		return nil, err
-	}
-	log.Debug().Msg(dsn)
-	return dbConn, nil
 }
 
 func serveFunc() { // nolint: funlen,cyclop,gocognit
@@ -66,7 +67,7 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 	defer shutdown()
 
 	// open db connection
-	dbConn, err := openDbConn(log)
+	dbConn, err := getGormConn(log, appConfig.Database)
 	if err != nil {
 		log.Panic().Err(err).Msg("Failed to open db connection")
 	}

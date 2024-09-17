@@ -20,19 +20,30 @@
 {{ .Release.Name }}-subscriber
 {{- end }}
 
+{{/*postgres*/}}
+{{- define "postgresql.host" -}}
+  {{ .Release.Name }}-postgresql
+{{- end }}
+{{- define "postgresql.secretName" -}}
+    {{- if .Values.global.postgresql.auth.existingSecret -}}
+      {{ .Values.global.postgresql.auth.existingSecret }}
+    {{- else -}}
+      {{ .Release.Name }}-postgresql
+    {{- end -}}
+{{- end }}
+
+
+
 {{- define "env.database" }}
 - name: DATABASE_USER
-  valueFrom:
-    secretKeyRef:
-      name: {{ .Values.databaseSecretName }}
-      key: user
+  value: {{ .Values.global.postgresql.auth.username }}
 - name: DATABASE_PASSWORD
   valueFrom:
     secretKeyRef:
-      name: {{ .Values.databaseSecretName }}
-      key: password
+      name: {{ "postgresql.secretName" }}
+      key: postgres-password
 - name: DATABASE_NAME
-  value: {{ .Values.databaseName }}
+  value: {{ .Values.global.postgresql.auth.database }}
 - name: DATABASE_INSTANCE_NAMESPACE
   value: {{ .Values.databaseInstanceNamespace | default "dxp-system" }}
 - name: DATABASE_TMP_DIR

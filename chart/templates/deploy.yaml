@@ -16,22 +16,35 @@ spec:
         traffic.sidecar.istio.io/excludeOutboundPorts: "5432"
     spec:
       serviceAccountName: {{ .Release.Name }}
-      imagePullSecrets: 
-      - name: {{ .Values.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+      {{- include "deploymentInitContainers" . | indent 6 }}
       containers:
-      - name: {{ .Release.Name }}
-        image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
-        ports:
-        {{- include "port.fga" . | indent 10 }}
-        args: [ "serve" ]
-        env: 
-        - name: LOG_LEVEL
-          value: {{ (.Values.log).level | default "info" }}
-        - name: REGION
-          value: {{ .Values.region }}
-        - name: ENVIRONMENT
-          value: {{ .Values.environment }}
-        - name: IMAGE_TAG
-          value: "{{ .Values.image.tag }}"
-        - name: IMAGE_NAME
-          value: "{{ .Values.image.name }}"        
+        - name: {{ .Release.Name }}
+          image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            {{- include "port.fga" . | indent 10 }}
+          args: [ "serve" ]
+          env:
+            - name: LOG_LEVEL
+              value: {{ (.Values.log).level | default "info" }}
+            - name: REGION
+              value: {{ .Values.region }}
+            - name: ENVIRONMENT
+              value: {{ .Values.environment }}
+            - name: IMAGE_TAG
+              value: "{{ .Values.image.tag }}"
+            - name: IMAGE_NAME
+              value: "{{ .Values.image.name }}"
+            - name: DATABASE_INMEMORY
+              value: "{{ .Values.db.inMemory }}"
+            {{- if not (.Values.db.inMemory) }}
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "postgresql.secretName" . }}
+                  key: {{ .Values.global.postgresql.auth.secretKeys.userPasswordKey }}
+            - name: DATABASE_DSN
+              value: postgresql://{{ .Values.global.postgresql.auth.username }}:$(DATABASE_PASSWORD)@{{ include "postgresql.host" . }}:5432/{{ .Values.global.postgresql.auth.database }}?sslmode=disable
+            {{- end }}

@@ -3,3 +3,8 @@ name: iam-service
 description: A Helm chart for Kubernetes
 version: 0.0.1
 
+dependencies:
+  - name: postgresql
+    version: "15.5.29" # version of the postgres chart
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: db.postgresNeedsProvision
