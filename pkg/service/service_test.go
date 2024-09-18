@@ -642,7 +642,7 @@ func Test_UsersOfEntity_With_Invitations(t *testing.T) {
 	// asserts
 	assert.NoError(t, err)
 	assert.NotNil(t, uc)
-	assert.Equal(t, uc.Users[1].User.Email,  "invited-user@sap.com")
+	assert.Equal(t, uc.Users[1].User.Email, "invited-user@sap.com")
 }
 
 func Test_UsersOfEntity_Errors(t *testing.T) {

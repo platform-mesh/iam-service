@@ -3,6 +3,10 @@ package db
 type ConfigDatabase struct {
 	InMemory              bool   `envconfig:"default=true"`
 	DSN                   string `envconfig:"optional"`
+	User                  string `envconfig:"default=admin"`
+	Name                  string `envconfig:"default=aname"`
+	SSLMode               string `envconfig:"default=disable"`
+	Password              string `envconfig:"default=apassword"`
 	IP                    string `envconfig:"optional"`
 	Instance              string `envconfig:"default=iam-service"`
 	InstanceNamespace     string `envconfig:"default=dxp-system"`
