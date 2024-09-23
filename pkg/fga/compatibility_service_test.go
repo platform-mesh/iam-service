@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	storeMocks "github.com/openmfp/golang-commons/fga/store/mocks"
 
@@ -277,6 +278,7 @@ func TestUsersForEntity(t *testing.T) {
 						Relation: "assignee",
 						Object:   "role:entityType/entityId/member",
 					},
+					PageSize: wrapperspb.Int32(100),
 				}).Return(&openfgav1.ReadResponse{
 					Tuples: []*openfgav1.Tuple{
 						{
@@ -300,6 +302,7 @@ func TestUsersForEntity(t *testing.T) {
 						Relation: "assignee",
 						Object:   "role:entityType/entityId/owner",
 					},
+					PageSize: wrapperspb.Int32(100),
 				}).Return(&openfgav1.ReadResponse{
 					Tuples: []*openfgav1.Tuple{
 						{
@@ -317,6 +320,7 @@ func TestUsersForEntity(t *testing.T) {
 						Relation: "assignee",
 						Object:   "role:entityType/entityId/vault_maintainer",
 					},
+					PageSize: wrapperspb.Int32(100),
 				}).Return(&openfgav1.ReadResponse{
 					Tuples: []*openfgav1.Tuple{
 						{
@@ -350,6 +354,7 @@ func TestUsersForEntity(t *testing.T) {
 						Relation: "assignee",
 						Object:   "role:entityType/entityId/owner",
 					},
+					PageSize: wrapperspb.Int32(100),
 				}).Return(nil, assert.AnError).Once()
 			},
 		},
@@ -550,6 +555,7 @@ func TestRemoveAccount(t *testing.T) {
 						Relation: "assignee",
 						Object:   "role:entitytype/entityID/owner",
 					},
+					PageSize: wrapperspb.Int32(100),
 				}).Return(&openfgav1.ReadResponse{
 					Tuples: []*openfgav1.Tuple{{
 						Key: &openfgav1.TupleKey{
@@ -580,6 +586,7 @@ func TestRemoveAccount(t *testing.T) {
 						Relation: "assignee",
 						Object:   "role:entitytype/entityID/member",
 					},
+					PageSize: wrapperspb.Int32(100),
 				}).Return(&openfgav1.ReadResponse{}, nil).Once()
 
 				client.EXPECT().Read(ctx, &openfgav1.ReadRequest{
@@ -588,6 +595,7 @@ func TestRemoveAccount(t *testing.T) {
 						Relation: "assignee",
 						Object:   "role:entitytype/entityID/vault_maintainer",
 					},
+					PageSize: wrapperspb.Int32(100),
 				}).Return(&openfgav1.ReadResponse{}, nil).Once()
 
 				client.EXPECT().Write(ctx, &openfgav1.WriteRequest{

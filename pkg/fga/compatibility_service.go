@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	commonsCtx "github.com/openmfp/golang-commons/context"
 	openmfpFga "github.com/openmfp/golang-commons/fga/store"
@@ -183,6 +184,7 @@ func (s *CompatService) UsersForEntity(
 				Object:   fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role),
 				Relation: "assignee",
 			},
+			PageSize: wrapperspb.Int32(100),
 		})
 		if err != nil {
 			logger.Error().AnErr("openFGA read error", err).Send()
@@ -281,6 +283,7 @@ func (s *CompatService) RemoveAccount(ctx context.Context, tenantID string, enti
 				Object:   fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role),
 				Relation: "assignee",
 			},
+			PageSize: wrapperspb.Int32(100),
 		})
 		if err != nil {
 			logger.Error().AnErr("openFGA read error", err).Send()
