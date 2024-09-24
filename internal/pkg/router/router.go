@@ -49,6 +49,9 @@ func CreateRouter(
 	gql := graph.Config{
 		Resolvers: resolver.New(svc, logResolver),
 		Directives: graph.DirectiveRoot{
+			Tenant: func(ctx context.Context, obj interface{}, next gqlgen.Resolver, peers bool) (res interface{}, err error) {
+				return next(ctx)
+			},
 			PeersOnly: func(ctx context.Context, obj interface{}, next gqlgen.Resolver) (res interface{}, err error) {
 				return next(ctx)
 			},
