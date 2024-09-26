@@ -216,10 +216,7 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop
 		return nil, err
 	}
 
-	userIDs := make([]string, 0, len(userIDToRoles))
-	for userID := range userIDToRoles {
-		userIDs = append(userIDs, userID)
-	}
+	userIDs, ownerCount := s.getUserIDsAndOwnerCount(userIDToRoles)
 
 	if limit == nil {
 		limit = &minusOne
@@ -238,6 +235,7 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop
 	out := graph.GrantedUserConnection{
 		Users: make([]*graph.GrantedUser, 0, len(users)),
 		PageInfo: &graph.PageInfo{
+			OwnerCount: ownerCount,
 			TotalCount: len(userIDToRoles),
 		},
 	}
@@ -307,6 +305,20 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop
 	out.PageInfo.TotalCount += invitesLength
 
 	return &out, nil
+}
+
+func (s *Service) getUserIDsAndOwnerCount(userIDToRoles map[string][]string) ([]string, int) {
+	ownerCount := 0
+	userIDs := make([]string, 0, len(userIDToRoles))
+	for userID, UserRoles := range userIDToRoles {
+		userIDs = append(userIDs, userID)
+
+		if slices.Contains(UserRoles, "owner") {
+			ownerCount++
+		}
+	}
+
+	return userIDs, ownerCount
 }
 
 func (s *Service) getResolvedRoles(ctx context.Context, entityType string, roles []string) ([]*graph.Role, error) {

@@ -72,6 +72,7 @@ type ComplexityRoot struct {
 	}
 
 	PageInfo struct {
+		OwnerCount func(childComplexity int) int
 		TotalCount func(childComplexity int) int
 	}
 
@@ -296,6 +297,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.RemoveUser(childComplexity, args["tenantId"].(string), args["userId"].(*string), args["email"].(*string)), true
+
+	case "PageInfo.ownerCount":
+		if e.complexity.PageInfo.OwnerCount == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.OwnerCount(childComplexity), true
 
 	case "PageInfo.totalCount":
 		if e.complexity.PageInfo.TotalCount == nil {
@@ -635,6 +643,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 var sources = []*ast.Source{
 	{Name: "../../graph/openmfp.graphql", Input: `""" Holds additional information about the retrieved data """
 type PageInfo {
+    ownerCount: Int!
     totalCount: Int!
 }
 
@@ -773,9 +782,11 @@ type Query {
     - 'UserConnection' is a list of users which matches the input parameters """
     usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @tenant(peers: true)
 
-    """ Get all users that match the query. Searchable fields are userId, email, firstName and lastName.
-    Result contain only the users from the tenant the requester belongs to.
-    Returns limited user list without pagination. Supports fuzzy search. """
+    """ Get all users that match the query.
+    Searchable fields are userID, email, firstName, and lastName.
+    Supports substring search.
+    The result contains only users from the tenant that the requester belongs to.
+    Returns a limited user list without pagination.  """
     searchUsers(query: String!) : [User]!
 
     """ Get the tenant information by its tenantId.
@@ -1702,6 +1713,8 @@ func (ec *executionContext) fieldContext_GrantedUserConnection_pageInfo(_ contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "ownerCount":
+				return ec.fieldContext_PageInfo_ownerCount(ctx, field)
 			case "totalCount":
 				return ec.fieldContext_PageInfo_totalCount(ctx, field)
 			}
@@ -2483,6 +2496,50 @@ func (ec *executionContext) fieldContext_Mutation_removeUser(ctx context.Context
 	if fc.Args, err = ec.field_Mutation_removeUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PageInfo_ownerCount(ctx context.Context, field graphql.CollectedField, obj *PageInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PageInfo_ownerCount(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OwnerCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PageInfo_ownerCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -4098,6 +4155,8 @@ func (ec *executionContext) fieldContext_UserConnection_pageInfo(_ context.Conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "ownerCount":
+				return ec.fieldContext_PageInfo_ownerCount(ctx, field)
 			case "totalCount":
 				return ec.fieldContext_PageInfo_totalCount(ctx, field)
 			}
@@ -6247,6 +6306,11 @@ func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet,
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("PageInfo")
+		case "ownerCount":
+			out.Values[i] = ec._PageInfo_ownerCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "totalCount":
 			out.Values[i] = ec._PageInfo_totalCount(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

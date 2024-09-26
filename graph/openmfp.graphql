@@ -1,5 +1,6 @@
 """ Holds additional information about the retrieved data """
 type PageInfo {
+    ownerCount: Int!
     totalCount: Int!
 }
 

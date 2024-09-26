@@ -60,6 +60,7 @@ type UserConnection struct {
 }
 
 type PageInfo struct {
+	OwnerCount int `json:"ownerCount"`
 	TotalCount int `json:"totalCount"`
 }
 
