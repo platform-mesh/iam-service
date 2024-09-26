@@ -36,14 +36,14 @@
 
 {{- define "env.database" }}
 - name: DATABASE_USER
-  value: {{ .Values.global.postgresql.auth.username }}
+  value: {{ ((((.Values).global).postgresql).auth).username }}
 - name: DATABASE_PASSWORD
   valueFrom:
     secretKeyRef:
-      name: {{ "postgresql.secretName" }}
-      key: postgres-password
+      name: {{ include "postgresql.secretName" . }}
+      key: {{ (((((.Values).global).postgresql).auth).secretKeys).adminPasswordKey }}
 - name: DATABASE_NAME
-  value: {{ .Values.global.postgresql.auth.database }}
+  value: {{ ((((.Values).global).postgresql).auth).database }}
 - name: DATABASE_INSTANCE_NAMESPACE
   value: {{ .Values.databaseInstanceNamespace | default "dxp-system" }}
 - name: DATABASE_TMP_DIR
@@ -95,3 +95,5 @@
   protocol: TCP
 {{- end }}
 {{- end }}
+
+

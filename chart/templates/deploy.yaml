@@ -44,7 +44,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ include "postgresql.secretName" . }}
-                  key: {{ .Values.global.postgresql.auth.secretKeys.userPasswordKey }}
+                  key: {{ (((((.Values).global).postgresql).auth).secretKeys).userPasswordKey }}
             - name: DATABASE_DSN
-              value: postgresql://{{ .Values.global.postgresql.auth.username }}:$(DATABASE_PASSWORD)@{{ include "postgresql.host" . }}:5432/{{ .Values.global.postgresql.auth.database }}?sslmode=disable
+              value: postgresql://{{ ((((.Values).global).postgresql).auth).username }}:$(DATABASE_PASSWORD)@{{ include "postgresql.host" . }}:5432/{{ ((((.Values).global).postgresql).auth).database }}?sslmode=disable
             {{- end }}

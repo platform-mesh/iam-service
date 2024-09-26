@@ -61,6 +61,13 @@ type UserService interface {
 	GetUserHooks() UserHooks
 }
 
+type DataLoader interface {
+	LoadTenantConfigData(filePath string) error
+	LoadRoleData(filePath string) error
+	Close() error
+	GetGormDB() *gorm.DB
+}
+
 // Database defines a connection to a DB
 type Database struct {
 	cfg       ConfigDatabase
@@ -162,6 +169,10 @@ func (d *Database) GetUserHooks() UserHooks { // nolint: ireturn
 
 func (d *Database) SetConfig(cfg ConfigDatabase) {
 	d.cfg = cfg
+}
+
+func (d *Database) GetGormDB() *gorm.DB {
+	return d.db
 }
 
 // Close closes the database connection

@@ -45,7 +45,7 @@ func TestNew_WhenSuccessful_CreatesDatabaseInstance(t *testing.T) {
 
 	// Assert
 	assert.NoError(t, err, "New should not return an error")
-	assert.NotNil(t, database, "Database instance should not be nil")
+	assert.NotNil(t, database, "database instance should not be nil")
 }
 
 func TestNew_WhenMigrateEnabled_AutoMigrateIsCalled(t *testing.T) {
@@ -75,7 +75,7 @@ func TestNew_WhenMigrateEnabled_AutoMigrateIsCalled(t *testing.T) {
 
 	// Assert
 	assert.NoError(t, err, "New should not return an error")
-	assert.NotNil(t, database, "Database instance should not be nil")
+	assert.NotNil(t, database, "database instance should not be nil")
 	assert.True(t, autoMigrateCalled, "AutoMigrate should have been called")
 }
 
@@ -105,7 +105,7 @@ func TestNew_WhenDBIsCalled_ReturnsError(t *testing.T) {
 
 	// Assert
 	assert.Error(t, err, "New should return an error")
-	assert.Nil(t, database, "Database instance should be nil")
+	assert.Nil(t, database, "database instance should be nil")
 	assert.True(t, dbCalled, "DB should have been called")
 }
 
@@ -125,7 +125,7 @@ func TestNew_CfgDSNotEmpty_ReturnsDBandNil(t *testing.T) {
 
 	// Assert
 	assert.NoError(t, err, "New should not return an error")
-	assert.NotNil(t, database, "Database instance should not be nil")
+	assert.NotNil(t, database, "database instance should not be nil")
 }
 
 func TestNew_AutoMigrateReturnsError_ReturnsError(t *testing.T) {
@@ -151,7 +151,7 @@ func TestNew_AutoMigrateReturnsError_ReturnsError(t *testing.T) {
 
 	// Assert
 	assert.Error(t, err, "New should return an error")
-	assert.Nil(t, database, "Database instance should be nil")
+	assert.Nil(t, database, "database instance should be nil")
 }
 
 func TestLoadTenantConfigData_WhenSuccessful_ReturnsTenantConfigData(t *testing.T) {

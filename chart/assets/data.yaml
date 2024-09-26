@@ -1,14 +1,14 @@
 tuples:
-  - object: tenant:01ezesr3cgghmhgpbny04hv8qn
+  - object: tenant:tenant1
     relation: member
-    user: role:tenant/01ezesr3cgghmhgpbny04hv8qn/viewer#assignee
-  - object: tenant:01ezesr3cgghmhgpbny04hv8qn
+    user: role:tenant/tenant1/viewer#assignee
+  - object: tenant:tenant1
     relation: external_member
-    user: role:tenant/01ezesr3cgghmhgpbny04hv8qn/external_viewer#assignee
+    user: role:tenant/tenant1/external_viewer#assignee
 
-  - object: tenant:eCh0yae7ooWaek2iejo8geiqua
+  - object: tenant:tenant2
     relation: member
-    user: role:tenant/eCh0yae7ooWaek2iejo8geiqua/viewer#assignee
-  - object: tenant:eCh0yae7ooWaek2iejo8geiqua
+    user: role:tenant/tenant2/viewer#assignee
+  - object: tenant:tenant2
     relation: external_member
-    user: role:tenant/eCh0yae7ooWaek2iejo8geiqua/external_viewer#assignee
+    user: role:tenant/tenant2/external_viewer#assignee

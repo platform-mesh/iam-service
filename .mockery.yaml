@@ -9,6 +9,14 @@ packages:
       OpenFGAServiceClient:
         config:
           mockname: OpenFGAServiceClient
+  github.com/openmfp/golang-commons/fga/store:
+    config:
+      dir: pkg/fga/mocks
+      outpkg: mocks
+    interfaces:
+      FGAStoreHelper:
+        config:
+          mockname: FGAStoreHelper
 
   # internal
   github.com/openmfp/iam-service/pkg/db:

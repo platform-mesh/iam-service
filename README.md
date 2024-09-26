@@ -39,6 +39,10 @@ This package contains the GraphQL models and resolvers as reusable code. The `gr
 
 TBD
 
+### Dataloader
+
+To seed Postgresql and FGA store with the initial data, you can use [DataLoader job](./chart/README.md#dataloader).
+
 ## Releasing
 
 The release is performed automatically through a GitHub Actions Workflow.

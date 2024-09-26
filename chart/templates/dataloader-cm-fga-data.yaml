@@ -1,0 +1,14 @@
+{{- if ((.Values).dataloader).enabled -}}
+{{- $files := .Files }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-fga-data-import
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+data:
+  data.yaml: |
+{{ $files.Get "assets/data.yaml" | indent 4}}
+{{- end }}

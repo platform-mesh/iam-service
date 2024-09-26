@@ -1,0 +1,62 @@
+{{- if ((.Values).dataloader).enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-dataloader
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  activeDeadlineSeconds: 1800
+  template:
+    spec:
+      serviceAccountName: {{ .Release.Name }}-dataloader-sa
+      volumes:
+      - name: config
+        configMap:
+          name: {{ .Release.Name }}-dataloader-groups
+      - name: schema
+        configMap:
+          name: {{ .Release.Name }}-fga-schema
+      - name: fga-data
+        configMap:
+          name: {{ .Release.Name }}-fga-data-import
+      {{- include "deploymentInitContainers" . | indent 6 }}
+      containers:
+      - name: dataloader
+        image: {{ .Values.image.name }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args:
+        - "dataload"
+        - "--schema=/var/schema/schema.fga"
+        - "--file=/var/fga-data/data.yaml"
+        - "--tenants={{ join ","  .Values.dataloader.data.tenants }}"
+        volumeMounts:
+        - name: config
+          mountPath: /var/data
+        - name: schema
+          mountPath: /var/schema
+        - name: fga-data
+          mountPath: /var/fga-data
+        env:
+        {{- include "env.database" . | indent 8 }}
+        {{- include "env.openfga" . | indent 8  }}
+        - name: DATA_PATH_GROUPS
+          value: /var/data/groups.yaml
+        {{ if eq (index .Values.features "open-fga-enabled") true }}
+        - name: DATABASE_LOCAL_DATA_DATA_PATH_ROLES
+          value: /var/data/roles.yaml
+        {{- end }}
+        - name: DATABASE_LOCAL_DATA_DATA_PATH_TENANT_CONFIGURATION
+          value: /var/data/tenantConfigurations.yaml
+        - name: MIGRATION_DUMP_IAM_DATA_TO_FGA
+          value: "{{ .Values.dataloader.migration.dumpIamDataToFga }}"
+        - name: DATABASE_INMEMORY
+          value: "{{ .Values.db.inMemory }}"
+        {{- if not (.Values.db.inMemory) }}
+        - name: DATABASE_DSN
+          value: postgresql://{{ ((((.Values).global).postgresql).auth).username }}:$(DATABASE_PASSWORD)@{{ include "postgresql.host" . }}:5432/{{ ((((.Values).global).postgresql).auth).database }}?sslmode=disable
+        {{- end }}
+      restartPolicy: Never
+  backoffLimit: 1
+{{- end }}

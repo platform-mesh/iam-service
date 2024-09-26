@@ -66,13 +66,7 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 	ctx, _, shutdown := openmfpcontext.StartContext(log, nil, appConfig.ShutdownTimeout)
 	defer shutdown()
 
-	// open db connection
-	dbConn, err := getGormConn(log, appConfig.Database)
-	if err != nil {
-		log.Panic().Err(err).Msg("Failed to open db connection")
-	}
-
-	database, err := db.New(appConfig.Database, dbConn, log, appConfig.IsLocal, appConfig.IsLocal)
+	database, err := initDB(appConfig, log)
 	if err != nil {
 		log.Panic().Err(err).Msg("Failed to init database")
 	}

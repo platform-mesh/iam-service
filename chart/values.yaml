@@ -74,12 +74,15 @@ fga:
 
 features:
   open-fga-enabled: true
-
+  useDataLoader: true
 
 db:
   inMemory: false # if false, a PostgreSQL connection will be established
   postgresNeedsProvision: true   # if true a PostgreSQL instance will be created
   deployExternalSecret: false    # if true, an external secret will be created
+databaseInstanceName: iam-service-dev
+databaseRegion: europe-west3
+
 
 # Bitnami PostgreSQL Helm chart values
 # https://github.com/bitnami/charts/blob/main/bitnami/postgresql/values.yaml

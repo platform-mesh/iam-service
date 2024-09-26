@@ -18,6 +18,7 @@ var rootCmd = &cobra.Command{ // nolint: gochecknoglobals
 
 func init() { // nolint: gochecknoinits
 	InitServeCmd(rootCmd)
+	InitDataLoader(rootCmd)
 }
 
 func Execute() {
