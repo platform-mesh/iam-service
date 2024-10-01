@@ -730,7 +730,7 @@ type Query {
     - if 'showInvitees' is true, the list will contain also the users that are invited to the entity
     Return value:
     - GrantedUserConnection is a list of users and their roles which matches the input parameters"""
-    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false): GrantedUserConnection @tenant(peers:true)
+    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false): GrantedUserConnection @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
 
     """ Get all roles that are granted to the user of the referenced entity
     Input parameters:
@@ -739,7 +739,7 @@ type Query {
     - 'userId' is an identifier of the user for which the roles are returned
     Return value:
     - '[Role]' is a list of assigned roles to the user """
-    rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @tenant(peers: false)
+    rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @authorized(relation: "member", entityTypeParamName: "entity.entityType", entityParamName: "entity.entityId")
 
     """ Get all roles that exist for the referenced entity type
     Input parameters:
@@ -747,7 +747,7 @@ type Query {
     - 'entity' identifies the exact entity for which defined roles are returned
     Return value:
     - '[Role]' is a list of roles that exist for the specific entity """
-    availableRolesForEntity(tenantId: ID!, entity: EntityInput!): [Role]! @tenant(peers: false)
+    availableRolesForEntity(tenantId: ID!, entity: EntityInput!): [Role]! @authorized(relation: "member", entityTypeParamName: "entity.entityType", entityParamName: "entity.entityId")
 
     """ Get all roles that exist for the specific entity type
     Input parameters:
@@ -755,7 +755,7 @@ type Query {
     - 'entityType' is a type of entity for which defined roles are returned
     Return value:
     - '[Role]' is a list of roles that exist for the all entities of a certain type """
-    availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @tenant(peers: false)
+    availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
 
     """ Get the user by its tenantId and userId.
     Input parameters:
@@ -763,7 +763,7 @@ type Query {
     - 'userId' is an identifier of the user
     Return value:
     - 'User' is a user with the given identifiers """
-    user(tenantId:String!, userId:String!): User  @tenant(peers: true)
+    user(tenantId:String!, userId:String!): User  @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
 
     """ Get the user by its tenantId and email.
     Input parameters:
@@ -771,7 +771,7 @@ type Query {
     - 'email' is an email of the user
     Return value:
     - 'User' is a user with the given identifiers """
-    userByEmail(tenantId:String!, email:String!): User  @tenant(peers: true)
+    userByEmail(tenantId:String!, email:String!): User  @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
 
     """ Get all users of the tenant. Supports pagination.
     Input parameters:
@@ -780,7 +780,7 @@ type Query {
     - 'page' holds the current page number
     Return value:
     - 'UserConnection' is a list of users which matches the input parameters """
-    usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @tenant(peers: true)
+    usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
 
     """ Get all users that match the query.
     Searchable fields are userID, email, firstName, and lastName.
@@ -811,12 +811,12 @@ input Invite {
 }
 
 type Mutation {
-    inviteUser(tenantId: String!, invite: Invite!, notifyByEmail: Boolean!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
-    deleteInvite(tenantId: String!, invite: Invite!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
+    inviteUser(tenantId: String!, invite: Invite!, notifyByEmail: Boolean!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
 
-    assignRoleBindings(tenantId: ID!, entityType: String!, entityId: ID!, input: [Change]!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
-    removeFromEntity(tenantId: ID!, entityType: String!, userId: ID!, entityId: ID!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
-    leaveEntity(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @tenant(peers: false)
+    deleteInvite(tenantId: String!, invite: Invite!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
+    assignRoleBindings(tenantId: ID!, entityType: String!, entityId: ID!, input: [Change]!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
+    removeFromEntity(tenantId: ID!, entityType: String!, userId: ID!, entityId: ID!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
+    leaveEntity(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @authorized(relation: "member", entityTypeParamName: "entityType", entityParamName: "entityId")
 
     createAccount(tenantId: ID!, entityType: String!, entityId: ID!, owner: String!): Boolean! @peersOnly
     removeAccount(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @peersOnly
@@ -1742,16 +1742,6 @@ func (ec *executionContext) _Mutation_inviteUser(ctx context.Context, field grap
 			return ec.resolvers.Mutation().InviteUser(rctx, fc.Args["tenantId"].(string), fc.Args["invite"].(Invite), fc.Args["notifyByEmail"].(bool))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			peers, err := ec.unmarshalNBoolean2bool(ctx, false)
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.Tenant == nil {
-				return nil, errors.New("directive tenant is not implemented")
-			}
-			return ec.directives.Tenant(ctx, nil, directive0, peers)
-		}
-		directive2 := func(ctx context.Context) (interface{}, error) {
 			relation, err := ec.unmarshalNString2string(ctx, "member_manage")
 			if err != nil {
 				return nil, err
@@ -1767,10 +1757,10 @@ func (ec *executionContext) _Mutation_inviteUser(ctx context.Context, field grap
 			if ec.directives.Authorized == nil {
 				return nil, errors.New("directive authorized is not implemented")
 			}
-			return ec.directives.Authorized(ctx, nil, directive1, relation, nil, entityTypeParamName, entityParamName)
+			return ec.directives.Authorized(ctx, nil, directive0, relation, nil, entityTypeParamName, entityParamName)
 		}
 
-		tmp, err := directive2(rctx)
+		tmp, err := directive1(rctx)
 		if err != nil {
 			return nil, graphql.ErrorOnPath(ctx, err)
 		}
@@ -1839,16 +1829,6 @@ func (ec *executionContext) _Mutation_deleteInvite(ctx context.Context, field gr
 			return ec.resolvers.Mutation().DeleteInvite(rctx, fc.Args["tenantId"].(string), fc.Args["invite"].(Invite))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			peers, err := ec.unmarshalNBoolean2bool(ctx, false)
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.Tenant == nil {
-				return nil, errors.New("directive tenant is not implemented")
-			}
-			return ec.directives.Tenant(ctx, nil, directive0, peers)
-		}
-		directive2 := func(ctx context.Context) (interface{}, error) {
 			relation, err := ec.unmarshalNString2string(ctx, "member_manage")
 			if err != nil {
 				return nil, err
@@ -1864,10 +1844,10 @@ func (ec *executionContext) _Mutation_deleteInvite(ctx context.Context, field gr
 			if ec.directives.Authorized == nil {
 				return nil, errors.New("directive authorized is not implemented")
 			}
-			return ec.directives.Authorized(ctx, nil, directive1, relation, nil, entityTypeParamName, entityParamName)
+			return ec.directives.Authorized(ctx, nil, directive0, relation, nil, entityTypeParamName, entityParamName)
 		}
 
-		tmp, err := directive2(rctx)
+		tmp, err := directive1(rctx)
 		if err != nil {
 			return nil, graphql.ErrorOnPath(ctx, err)
 		}
@@ -1936,16 +1916,6 @@ func (ec *executionContext) _Mutation_assignRoleBindings(ctx context.Context, fi
 			return ec.resolvers.Mutation().AssignRoleBindings(rctx, fc.Args["tenantId"].(string), fc.Args["entityType"].(string), fc.Args["entityId"].(string), fc.Args["input"].([]*Change))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			peers, err := ec.unmarshalNBoolean2bool(ctx, false)
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.Tenant == nil {
-				return nil, errors.New("directive tenant is not implemented")
-			}
-			return ec.directives.Tenant(ctx, nil, directive0, peers)
-		}
-		directive2 := func(ctx context.Context) (interface{}, error) {
 			relation, err := ec.unmarshalNString2string(ctx, "member_manage")
 			if err != nil {
 				return nil, err
@@ -1961,10 +1931,10 @@ func (ec *executionContext) _Mutation_assignRoleBindings(ctx context.Context, fi
 			if ec.directives.Authorized == nil {
 				return nil, errors.New("directive authorized is not implemented")
 			}
-			return ec.directives.Authorized(ctx, nil, directive1, relation, nil, entityTypeParamName, entityParamName)
+			return ec.directives.Authorized(ctx, nil, directive0, relation, nil, entityTypeParamName, entityParamName)
 		}
 
-		tmp, err := directive2(rctx)
+		tmp, err := directive1(rctx)
 		if err != nil {
 			return nil, graphql.ErrorOnPath(ctx, err)
 		}
@@ -2033,16 +2003,6 @@ func (ec *executionContext) _Mutation_removeFromEntity(ctx context.Context, fiel
 			return ec.resolvers.Mutation().RemoveFromEntity(rctx, fc.Args["tenantId"].(string), fc.Args["entityType"].(string), fc.Args["userId"].(string), fc.Args["entityId"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			peers, err := ec.unmarshalNBoolean2bool(ctx, false)
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.Tenant == nil {
-				return nil, errors.New("directive tenant is not implemented")
-			}
-			return ec.directives.Tenant(ctx, nil, directive0, peers)
-		}
-		directive2 := func(ctx context.Context) (interface{}, error) {
 			relation, err := ec.unmarshalNString2string(ctx, "member_manage")
 			if err != nil {
 				return nil, err
@@ -2058,10 +2018,10 @@ func (ec *executionContext) _Mutation_removeFromEntity(ctx context.Context, fiel
 			if ec.directives.Authorized == nil {
 				return nil, errors.New("directive authorized is not implemented")
 			}
-			return ec.directives.Authorized(ctx, nil, directive1, relation, nil, entityTypeParamName, entityParamName)
+			return ec.directives.Authorized(ctx, nil, directive0, relation, nil, entityTypeParamName, entityParamName)
 		}
 
-		tmp, err := directive2(rctx)
+		tmp, err := directive1(rctx)
 		if err != nil {
 			return nil, graphql.ErrorOnPath(ctx, err)
 		}
@@ -2130,14 +2090,22 @@ func (ec *executionContext) _Mutation_leaveEntity(ctx context.Context, field gra
 			return ec.resolvers.Mutation().LeaveEntity(rctx, fc.Args["tenantId"].(string), fc.Args["entityType"].(string), fc.Args["entityId"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			peers, err := ec.unmarshalNBoolean2bool(ctx, false)
+			relation, err := ec.unmarshalNString2string(ctx, "member")
 			if err != nil {
 				return nil, err
 			}
-			if ec.directives.Tenant == nil {
-				return nil, errors.New("directive tenant is not implemented")
+			entityTypeParamName, err := ec.unmarshalOString2ᚖstring(ctx, "entityType")
+			if err != nil {
+				return nil, err
 			}
-			return ec.directives.Tenant(ctx, nil, directive0, peers)
+			entityParamName, err := ec.unmarshalNString2string(ctx, "entityId")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Authorized == nil {
+				return nil, errors.New("directive authorized is not implemented")
+			}
+			return ec.directives.Authorized(ctx, nil, directive0, relation, nil, entityTypeParamName, entityParamName)
 		}
 
 		tmp, err := directive1(rctx)
@@ -2694,14 +2662,22 @@ func (ec *executionContext) _Query_usersOfEntity(ctx context.Context, field grap
 			return ec.resolvers.Query().UsersOfEntity(rctx, fc.Args["tenantId"].(string), fc.Args["entity"].(EntityInput), fc.Args["limit"].(*int), fc.Args["page"].(*int), fc.Args["showInvitees"].(*bool))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			peers, err := ec.unmarshalNBoolean2bool(ctx, true)
+			relation, err := ec.unmarshalNString2string(ctx, "project_create")
 			if err != nil {
 				return nil, err
 			}
-			if ec.directives.Tenant == nil {
-				return nil, errors.New("directive tenant is not implemented")
+			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "tenant")
+			if err != nil {
+				return nil, err
 			}
-			return ec.directives.Tenant(ctx, nil, directive0, peers)
+			entityParamName, err := ec.unmarshalNString2string(ctx, "tenantId")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Authorized == nil {
+				return nil, errors.New("directive authorized is not implemented")
+			}
+			return ec.directives.Authorized(ctx, nil, directive0, relation, entityType, nil, entityParamName)
 		}
 
 		tmp, err := directive1(rctx)
@@ -2776,14 +2752,22 @@ func (ec *executionContext) _Query_rolesForUserOfEntity(ctx context.Context, fie
 			return ec.resolvers.Query().RolesForUserOfEntity(rctx, fc.Args["tenantId"].(string), fc.Args["entity"].(EntityInput), fc.Args["userId"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			peers, err := ec.unmarshalNBoolean2bool(ctx, false)
+			relation, err := ec.unmarshalNString2string(ctx, "member")
 			if err != nil {
 				return nil, err
 			}
-			if ec.directives.Tenant == nil {
-				return nil, errors.New("directive tenant is not implemented")
+			entityTypeParamName, err := ec.unmarshalOString2ᚖstring(ctx, "entity.entityType")
+			if err != nil {
+				return nil, err
 			}
-			return ec.directives.Tenant(ctx, nil, directive0, peers)
+			entityParamName, err := ec.unmarshalNString2string(ctx, "entity.entityId")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Authorized == nil {
+				return nil, errors.New("directive authorized is not implemented")
+			}
+			return ec.directives.Authorized(ctx, nil, directive0, relation, nil, entityTypeParamName, entityParamName)
 		}
 
 		tmp, err := directive1(rctx)
@@ -2863,14 +2847,22 @@ func (ec *executionContext) _Query_availableRolesForEntity(ctx context.Context, 
 			return ec.resolvers.Query().AvailableRolesForEntity(rctx, fc.Args["tenantId"].(string), fc.Args["entity"].(EntityInput))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			peers, err := ec.unmarshalNBoolean2bool(ctx, false)
+			relation, err := ec.unmarshalNString2string(ctx, "member")
 			if err != nil {
 				return nil, err
 			}
-			if ec.directives.Tenant == nil {
-				return nil, errors.New("directive tenant is not implemented")
+			entityTypeParamName, err := ec.unmarshalOString2ᚖstring(ctx, "entity.entityType")
+			if err != nil {
+				return nil, err
 			}
-			return ec.directives.Tenant(ctx, nil, directive0, peers)
+			entityParamName, err := ec.unmarshalNString2string(ctx, "entity.entityId")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Authorized == nil {
+				return nil, errors.New("directive authorized is not implemented")
+			}
+			return ec.directives.Authorized(ctx, nil, directive0, relation, nil, entityTypeParamName, entityParamName)
 		}
 
 		tmp, err := directive1(rctx)
@@ -2950,14 +2942,22 @@ func (ec *executionContext) _Query_availableRolesForEntityType(ctx context.Conte
 			return ec.resolvers.Query().AvailableRolesForEntityType(rctx, fc.Args["tenantId"].(string), fc.Args["entityType"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			peers, err := ec.unmarshalNBoolean2bool(ctx, false)
+			relation, err := ec.unmarshalNString2string(ctx, "project_create")
 			if err != nil {
 				return nil, err
 			}
-			if ec.directives.Tenant == nil {
-				return nil, errors.New("directive tenant is not implemented")
+			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "tenant")
+			if err != nil {
+				return nil, err
 			}
-			return ec.directives.Tenant(ctx, nil, directive0, peers)
+			entityParamName, err := ec.unmarshalNString2string(ctx, "tenantId")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Authorized == nil {
+				return nil, errors.New("directive authorized is not implemented")
+			}
+			return ec.directives.Authorized(ctx, nil, directive0, relation, entityType, nil, entityParamName)
 		}
 
 		tmp, err := directive1(rctx)
@@ -3037,14 +3037,22 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 			return ec.resolvers.Query().User(rctx, fc.Args["tenantId"].(string), fc.Args["userId"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			peers, err := ec.unmarshalNBoolean2bool(ctx, true)
+			relation, err := ec.unmarshalNString2string(ctx, "project_create")
 			if err != nil {
 				return nil, err
 			}
-			if ec.directives.Tenant == nil {
-				return nil, errors.New("directive tenant is not implemented")
+			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "tenant")
+			if err != nil {
+				return nil, err
 			}
-			return ec.directives.Tenant(ctx, nil, directive0, peers)
+			entityParamName, err := ec.unmarshalNString2string(ctx, "tenantId")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Authorized == nil {
+				return nil, errors.New("directive authorized is not implemented")
+			}
+			return ec.directives.Authorized(ctx, nil, directive0, relation, entityType, nil, entityParamName)
 		}
 
 		tmp, err := directive1(rctx)
@@ -3125,14 +3133,22 @@ func (ec *executionContext) _Query_userByEmail(ctx context.Context, field graphq
 			return ec.resolvers.Query().UserByEmail(rctx, fc.Args["tenantId"].(string), fc.Args["email"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			peers, err := ec.unmarshalNBoolean2bool(ctx, true)
+			relation, err := ec.unmarshalNString2string(ctx, "project_create")
 			if err != nil {
 				return nil, err
 			}
-			if ec.directives.Tenant == nil {
-				return nil, errors.New("directive tenant is not implemented")
+			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "tenant")
+			if err != nil {
+				return nil, err
 			}
-			return ec.directives.Tenant(ctx, nil, directive0, peers)
+			entityParamName, err := ec.unmarshalNString2string(ctx, "tenantId")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Authorized == nil {
+				return nil, errors.New("directive authorized is not implemented")
+			}
+			return ec.directives.Authorized(ctx, nil, directive0, relation, entityType, nil, entityParamName)
 		}
 
 		tmp, err := directive1(rctx)
@@ -3213,14 +3229,22 @@ func (ec *executionContext) _Query_usersConnection(ctx context.Context, field gr
 			return ec.resolvers.Query().UsersConnection(rctx, fc.Args["tenantId"].(string), fc.Args["limit"].(*int), fc.Args["page"].(*int))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			peers, err := ec.unmarshalNBoolean2bool(ctx, true)
+			relation, err := ec.unmarshalNString2string(ctx, "project_create")
 			if err != nil {
 				return nil, err
 			}
-			if ec.directives.Tenant == nil {
-				return nil, errors.New("directive tenant is not implemented")
+			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "tenant")
+			if err != nil {
+				return nil, err
 			}
-			return ec.directives.Tenant(ctx, nil, directive0, peers)
+			entityParamName, err := ec.unmarshalNString2string(ctx, "tenantId")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Authorized == nil {
+				return nil, errors.New("directive authorized is not implemented")
+			}
+			return ec.directives.Authorized(ctx, nil, directive0, relation, entityType, nil, entityParamName)
 		}
 
 		tmp, err := directive1(rctx)

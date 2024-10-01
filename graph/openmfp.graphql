@@ -87,7 +87,7 @@ type Query {
     - if 'showInvitees' is true, the list will contain also the users that are invited to the entity
     Return value:
     - GrantedUserConnection is a list of users and their roles which matches the input parameters"""
-    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false): GrantedUserConnection @tenant(peers:true)
+    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false): GrantedUserConnection @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
 
     """ Get all roles that are granted to the user of the referenced entity
     Input parameters:
@@ -96,7 +96,7 @@ type Query {
     - 'userId' is an identifier of the user for which the roles are returned
     Return value:
     - '[Role]' is a list of assigned roles to the user """
-    rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @tenant(peers: false)
+    rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @authorized(relation: "member", entityTypeParamName: "entity.entityType", entityParamName: "entity.entityId")
 
     """ Get all roles that exist for the referenced entity type
     Input parameters:
@@ -104,7 +104,7 @@ type Query {
     - 'entity' identifies the exact entity for which defined roles are returned
     Return value:
     - '[Role]' is a list of roles that exist for the specific entity """
-    availableRolesForEntity(tenantId: ID!, entity: EntityInput!): [Role]! @tenant(peers: false)
+    availableRolesForEntity(tenantId: ID!, entity: EntityInput!): [Role]! @authorized(relation: "member", entityTypeParamName: "entity.entityType", entityParamName: "entity.entityId")
 
     """ Get all roles that exist for the specific entity type
     Input parameters:
@@ -112,7 +112,7 @@ type Query {
     - 'entityType' is a type of entity for which defined roles are returned
     Return value:
     - '[Role]' is a list of roles that exist for the all entities of a certain type """
-    availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @tenant(peers: false)
+    availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
 
     """ Get the user by its tenantId and userId.
     Input parameters:
@@ -120,7 +120,7 @@ type Query {
     - 'userId' is an identifier of the user
     Return value:
     - 'User' is a user with the given identifiers """
-    user(tenantId:String!, userId:String!): User  @tenant(peers: true)
+    user(tenantId:String!, userId:String!): User  @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
 
     """ Get the user by its tenantId and email.
     Input parameters:
@@ -128,7 +128,7 @@ type Query {
     - 'email' is an email of the user
     Return value:
     - 'User' is a user with the given identifiers """
-    userByEmail(tenantId:String!, email:String!): User  @tenant(peers: true)
+    userByEmail(tenantId:String!, email:String!): User  @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
 
     """ Get all users of the tenant. Supports pagination.
     Input parameters:
@@ -137,7 +137,7 @@ type Query {
     - 'page' holds the current page number
     Return value:
     - 'UserConnection' is a list of users which matches the input parameters """
-    usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @tenant(peers: true)
+    usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
 
     """ Get all users that match the query.
     Searchable fields are userID, email, firstName, and lastName.
@@ -168,12 +168,12 @@ input Invite {
 }
 
 type Mutation {
-    inviteUser(tenantId: String!, invite: Invite!, notifyByEmail: Boolean!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
-    deleteInvite(tenantId: String!, invite: Invite!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
+    inviteUser(tenantId: String!, invite: Invite!, notifyByEmail: Boolean!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
 
-    assignRoleBindings(tenantId: ID!, entityType: String!, entityId: ID!, input: [Change]!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
-    removeFromEntity(tenantId: ID!, entityType: String!, userId: ID!, entityId: ID!): Boolean! @tenant(peers: false) @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
-    leaveEntity(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @tenant(peers: false)
+    deleteInvite(tenantId: String!, invite: Invite!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
+    assignRoleBindings(tenantId: ID!, entityType: String!, entityId: ID!, input: [Change]!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
+    removeFromEntity(tenantId: ID!, entityType: String!, userId: ID!, entityId: ID!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
+    leaveEntity(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @authorized(relation: "member", entityTypeParamName: "entityType", entityParamName: "entityId")
 
     createAccount(tenantId: ID!, entityType: String!, entityId: ID!, owner: String!): Boolean! @peersOnly
     removeAccount(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @peersOnly
