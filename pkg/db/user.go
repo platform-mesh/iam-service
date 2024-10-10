@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -97,7 +98,8 @@ func (d *Database) GetOrCreateUser(ctx context.Context, tenantID string, input g
 	// Check if user already exists
 	existingUser, err := d.getUserByIDOrEmail(ctx, tenantID, input.UserID, input.Email)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, errors.New("Failed to query for user")
+		user := strings.Join([]string{input.UserID, input.Email}, ":")
+		return nil, errors.Wrap(err, fmt.Sprintf("Failed to query for user: %s", user))
 	}
 
 	if existingUser != nil {
