@@ -8,7 +8,7 @@ import (
 	"github.com/openfga/openfga/pkg/server"
 	"github.com/openfga/openfga/pkg/storage/memory"
 	"google.golang.org/grpc/status"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type FgaData struct {
