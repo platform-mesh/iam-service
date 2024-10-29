@@ -19,9 +19,9 @@ type FgaData struct {
 
 type fgaRelations struct {
 	Tuples []struct {
-		Object   string `json:"object"`
-		Relation string `json:"relation"`
-		User     string `json:"user"`
+		Object   string `yaml:"object"`
+		Relation string `yaml:"relation"`
+		User     string `yaml:"user"`
 	} `yaml:"tuples"`
 }
 
