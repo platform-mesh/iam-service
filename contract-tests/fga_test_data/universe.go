@@ -22,7 +22,7 @@ type fgaRelations struct {
 		Object   string `json:"object"`
 		Relation string `json:"relation"`
 		User     string `json:"user"`
-	} `json:"tuples"`
+	} `yaml:"tuples"`
 }
 
 func GetOpenfgaServer(ctx context.Context, tenantId string, input FgaData) (*server.Server, error) {
