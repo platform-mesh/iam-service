@@ -3,7 +3,7 @@ module github.com/openmfp/iam-service
 go 1.23.2
 
 require (
-	github.com/99designs/gqlgen v0.17.55
+	github.com/99designs/gqlgen v0.17.56
 	github.com/agiledragon/gomonkey/v2 v2.12.0
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a
 	github.com/go-jose/go-jose/v4 v4.0.4
@@ -43,6 +43,7 @@ require (
 	github.com/go-openapi/jsonpointer v0.20.0 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.22.4 // indirect
+	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/google/cel-go v0.21.0 // indirect
 	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
