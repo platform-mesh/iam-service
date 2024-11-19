@@ -39,9 +39,39 @@ This package contains the GraphQL models and resolvers as reusable code. The `gr
 
 TBD
 
-### Dataloader
+### DataLoader
 
-To seed Postgresql and FGA store with the initial data, you can use [DataLoader job](./chart/README.md#dataloader).
+To seed Postgresql and FGA store with the initial data, you can use DataLoader job.
+
+This job does 3 things:
+1. Imports FGA schema
+2. Loads data to FGA store
+3. Loads data to Postgresql
+
+#### Prerequisites
+
+1. Postgresql
+2. OpenFGA server
+
+#### Golang configuration
+
+Dataloader uses the following fields from the `../intenral/pkg/config.Config` struct:
+
+1. `Config.Database` must reflect your postgresql setup.
+2. `Config.Openfga` must reflect your FGA server setup.
+
+#### Quickstart
+
+Dataloader needs the following params:
+1. `schema` - path to the FGA schema file (you can find the example in `./contract-tests/assets`)
+2. `file` - path to the FGA data  (you can find the example in `./contract-tests/assets`)
+3. `tenants` - list of tenants to load data for
+
+##### Terminal
+
+```bash 
+go run main.go dataload --schema=$SCHEMA_PATH  --file=$DATA_PATH --tenants=tenant1,tenant2
+```
 
 ## Releasing
 

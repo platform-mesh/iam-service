@@ -16,7 +16,7 @@ const (
 	defaultSpiffeeHeaderValue = `By=spiffe://cluster.local/ns/default/sa/default;Hash=afb15b2fa11e07b572fb8cc549a07a71b169bdd818199ab1c2ad90f6f05fb2aa;Subject="";URI=spiffe://cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account` // nolint: lll
 
 	pathToSchemaFile       = "./testdata/schema.fga"
-	pathToTenantDataFile   = "../chart/assets/data.yaml"
+	pathToTenantDataFile   = "./assets/data.yaml"
 	pathToUserTestDataFile = "./testdata/tuples.yaml"
 	createUser             = `mutation($tenantId: String!, $input: UserInput!) {
 		createUser(tenantId: $tenantId, input:$input){

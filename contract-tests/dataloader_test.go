@@ -29,12 +29,12 @@ func (suite *DataLoaderTestSuite) TestLoadData() {
 	storeID := "AAAAAAAAAAAAAAAAAAAAAAAAAA"
 	// Initialize the root command or any parent command
 	rootCmd := &cobra.Command{}
-	// Set the flags (mimicking: `go run main.go dataload --schema=../chart/assets/schema.fga
-	// --file=../chart/assets/data.yaml --tenants=tenant1,tenant2`)
+	// Set the flags (mimicking: `go run main.go dataload --schema=./assets/schema.fga
+	// --file=./assets/data.yaml --tenants=tenant1,tenant2`)
 	rootCmd.SetArgs([]string{
 		"dataload",
 		"--schema=./testdata/schema.fga",
-		"--file=../chart/assets/data.yaml",
+		"--file=./assets/data.yaml",
 		"--tenants=tenant1,tenant2",
 	})
 
