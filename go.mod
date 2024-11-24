@@ -3,7 +3,7 @@ module github.com/openmfp/iam-service
 go 1.23.2
 
 require (
-	github.com/99designs/gqlgen v0.17.56
+	github.com/99designs/gqlgen v0.17.57
 	github.com/agiledragon/gomonkey/v2 v2.12.0
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a
 	github.com/go-jose/go-jose/v4 v4.0.4
@@ -12,7 +12,7 @@ require (
 	github.com/openfga/api/proto v0.0.0-20241104193559-ee46d6721514
 	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20240926131254-992b301a003f
 	github.com/openfga/openfga v1.7.0
-	github.com/openmfp/golang-commons v0.101.0
+	github.com/openmfp/golang-commons v0.102.0
 	github.com/pkg/errors v0.9.1
 	github.com/r3labs/diff/v3 v3.0.1
 	github.com/rs/zerolog v1.33.0

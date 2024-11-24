@@ -1,8 +1,8 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
-github.com/99designs/gqlgen v0.17.56 h1:+J42ARAHvnysH6klO9Wq+tCsGF32cpAgU3SyF0VRJtI=
-github.com/99designs/gqlgen v0.17.56/go.mod h1:rmB6vLvtL8uf9F9w0/irJ5alBkD8DJvj35ET31BKbtY=
+github.com/99designs/gqlgen v0.17.57 h1:Ak4p60BRq6QibxY0lEc0JnQhDurfhxA67sp02lMjmPc=
+github.com/99designs/gqlgen v0.17.57/go.mod h1:Jx61hzOSTcR4VJy/HFIgXiQ5rJ0Ypw8DxWLjbYDAUw0=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/Masterminds/squirrel v1.5.4 h1:uUcX/aBc8O7Fg9kaISIUsHXdKuqehiXAMQTYX8afzqM=
 github.com/Masterminds/squirrel v1.5.4/go.mod h1:NNaOrjSoIDfDA40n7sr2tPNZRfjzjA400rg+riTZj10=
@@ -247,8 +247,8 @@ github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20240926131254-992b301a003f h
 github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20240926131254-992b301a003f/go.mod h1:ll/hN6kS4EE6B/7J/PbZqac9Nuv7ZHpI+Jfh36JLrbs=
 github.com/openfga/openfga v1.7.0 h1:4nCS7BFNmUJkPXZIQgK9L1kupg9kzZ+fpRTJU5tGCfQ=
 github.com/openfga/openfga v1.7.0/go.mod h1:JLljeouizK6D9e5xHnysAhMavo20nCVVzH7h80HtwpQ=
-github.com/openmfp/golang-commons v0.101.0 h1:MX/1+jalPJqVhG65/rag7vXxFejsASlsIieZRQpTqEI=
-github.com/openmfp/golang-commons v0.101.0/go.mod h1:eShP2e3z4MWtaaI+mEYeBx2JtBp/YgPcjw6rUbGHc9s=
+github.com/openmfp/golang-commons v0.102.0 h1:U3bh9FXIgO+lzZ4hmyJGabsdOh+k9fvg0Sd07jEUr6Y=
+github.com/openmfp/golang-commons v0.102.0/go.mod h1:qWtJQory6QjTZFXFWybUdLby/OlYpb8rANyJdSqorvU=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/pborman/getopt v0.0.0-20170112200414-7148bc3a4c30/go.mod h1:85jBQOZwpVEaDAr341tbn15RS4fCAsIst0qp7i8ex1o=
 github.com/pelletier/go-toml/v2 v2.2.2 h1:aYUidT7k73Pcl9nb2gScu7NSrKCSHIDE89b3+6Wq+LM=
