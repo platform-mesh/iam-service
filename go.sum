@@ -74,8 +74,8 @@ github.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nos
 github.com/fsnotify/fsnotify v1.7.0/go.mod h1:40Bi/Hjc2AVfZrqy+aj+yEI+/bRxZnMJyTJwOpGvigM=
 github.com/fxamacker/cbor/v2 v2.7.0 h1:iM5WgngdRBanHcxugY4JySA0nk1wZorNOpTgCMedv5E=
 github.com/fxamacker/cbor/v2 v2.7.0/go.mod h1:pxXPTn3joSm21Gbwsv0w9OSA2y1HFR9qXEeXQVeNoDQ=
-github.com/getsentry/sentry-go v0.29.1 h1:DyZuChN8Hz3ARxGVV8ePaNXh1dQ7d76AiB117xcREwA=
-github.com/getsentry/sentry-go v0.29.1/go.mod h1:x3AtIzN01d6SiWkderzaH28Tm0lgkafpJ5Bm3li39O0=
+github.com/getsentry/sentry-go v0.30.0 h1:lWUwDnY7sKHaVIoZ9wYqRHJ5iEmoc0pqcRqFkosKzBo=
+github.com/getsentry/sentry-go v0.30.0/go.mod h1:WU9B9/1/sHDqeV8T+3VwwbjeR5MSXs/6aqG3mqZrezA=
 github.com/go-chi/chi/v5 v5.1.0 h1:acVI1TYaD+hhedDJ3r54HyA6sExp3HfXq7QWEEY/xMw=
 github.com/go-chi/chi/v5 v5.1.0/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
 github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA=
@@ -247,8 +247,8 @@ github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20240926131254-992b301a003f h
 github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20240926131254-992b301a003f/go.mod h1:ll/hN6kS4EE6B/7J/PbZqac9Nuv7ZHpI+Jfh36JLrbs=
 github.com/openfga/openfga v1.7.0 h1:4nCS7BFNmUJkPXZIQgK9L1kupg9kzZ+fpRTJU5tGCfQ=
 github.com/openfga/openfga v1.7.0/go.mod h1:JLljeouizK6D9e5xHnysAhMavo20nCVVzH7h80HtwpQ=
-github.com/openmfp/golang-commons v0.104.0 h1:Wp0EpEo1WKVj8MscwGX/egO5k2/KyqdGGZeL5Gd6Xa8=
-github.com/openmfp/golang-commons v0.104.0/go.mod h1:jCs10M7Os7IrKAfKB2vN1IPlWKNjJtqxEfFeCHeyw2w=
+github.com/openmfp/golang-commons v0.105.0 h1:O78giklOBZ6YjQsqlIoovTEBe4Mj3wXNw50tHYX38II=
+github.com/openmfp/golang-commons v0.105.0/go.mod h1:OuC2tPte6k41ijFDkyhWSpjyoXNQbZqc5VttOPxjrZk=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/pborman/getopt v0.0.0-20170112200414-7148bc3a4c30/go.mod h1:85jBQOZwpVEaDAr341tbn15RS4fCAsIst0qp7i8ex1o=
 github.com/pelletier/go-toml/v2 v2.2.2 h1:aYUidT7k73Pcl9nb2gScu7NSrKCSHIDE89b3+6Wq+LM=
