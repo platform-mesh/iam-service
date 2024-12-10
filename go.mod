@@ -24,7 +24,7 @@ require (
 	go.opentelemetry.io/otel v1.32.0
 	google.golang.org/grpc v1.68.1
 	gorm.io/driver/postgres v1.5.11
-	gorm.io/driver/sqlite v1.5.6
+	gorm.io/driver/sqlite v1.5.7
 	gorm.io/gorm v1.25.12
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	sigs.k8s.io/yaml v1.4.0
