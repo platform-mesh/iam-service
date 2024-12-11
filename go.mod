@@ -8,7 +8,7 @@ require (
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a
 	github.com/go-jose/go-jose/v4 v4.0.4
 	github.com/google/uuid v1.6.0
-	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.2.0
 	github.com/openfga/api/proto v0.0.0-20241204203216-24dec682b31d
 	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20241115164311-10e575c8e47c
 	github.com/openfga/openfga v1.8.1
