@@ -245,8 +245,8 @@ github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.0 h1:8SG7/vwALn54lVB/0yZ/MMwhFrPYtpEHQb2IpWsCzug=
 github.com/opencontainers/image-spec v1.1.0/go.mod h1:W4s4sFTMaBeK1BQLXbG4AdM2szdn85PY75RI83NrTrM=
-github.com/openfga/api/proto v0.0.0-20241213152732-0bb89b73d655 h1:SNuWYca+fV7EW7O5ZkYR/8sanVP30oqSEjukbCPGE5w=
-github.com/openfga/api/proto v0.0.0-20241213152732-0bb89b73d655/go.mod h1:gil5LBD8tSdFQbUkCQdnXsoeU9kDJdJgbGdHkgJfcd0=
+github.com/openfga/api/proto v0.0.0-20241216184503-a03cf03166fe h1:bhpmiESSfrdzZ2/yB8UIRNTvaM2orDdVAo7bO2ciVTw=
+github.com/openfga/api/proto v0.0.0-20241216184503-a03cf03166fe/go.mod h1:gil5LBD8tSdFQbUkCQdnXsoeU9kDJdJgbGdHkgJfcd0=
 github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20241115164311-10e575c8e47c h1:1y84C0V4NRfPtRi4MqQ7+gnFtYgeBKPIeIAPLdVJ7j4=
 github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20241115164311-10e575c8e47c/go.mod h1:12RMe/HuRNyOzS33RQa53jwdcxE2znr8ycXMlVbgQN4=
 github.com/openfga/openfga v1.8.2 h1:cbwyMXj7iUUse93Kie1vXX/TkBP8G18na/FiSatPzZo=
