@@ -103,6 +103,17 @@ func (s *FGAEventer) HandleLogin(ctx context.Context, logger *commonsLogger.Logg
 		return err
 	}
 
+	err = s.writeInvites(ctx, logger, storeID, modelID, userEmail, userId, invites)
+	if err != nil {
+		logger.Error().Err(err).Str("userEmail", userEmail).Msg("unable to write invites")
+		return err
+	}
+
+	return s.inviteManger.DeleteInvitesForEmail(ctx, tenantID, userEmail)
+}
+
+func (s *FGAEventer) writeInvites(ctx context.Context, logger *commonsLogger.Logger,
+	storeID string, modelID string, userEmail string, userId string, invites []db.Invite) error {
 	for _, invite := range invites {
 		var tupleKeys []*openfgav1.TupleKey
 		for _, role := range strings.Split(invite.Roles, ",") {
@@ -147,6 +158,5 @@ func (s *FGAEventer) HandleLogin(ctx context.Context, logger *commonsLogger.Logg
 			return err
 		}
 	}
-
-	return s.inviteManger.DeleteInvitesForEmail(ctx, tenantID, userEmail)
+	return nil
 }
