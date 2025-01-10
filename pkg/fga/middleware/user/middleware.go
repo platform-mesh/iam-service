@@ -35,6 +35,8 @@ func NewUnaryInterceptor(tenentIdReader policy_services.TenantIdReader) grpc.Una
 		}
 
 		header := strings.TrimPrefix(authHeader[0], "Bearer")
+		header = strings.TrimSpace(header)
+
 		ctx = commonsCtx.AddWebTokenToContext(ctx, header, []jose.SignatureAlgorithm{jose.RS256})
 		ctx = commonsCtx.AddAuthHeaderToContext(ctx, authHeader[0])
 
