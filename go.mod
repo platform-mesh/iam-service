@@ -3,7 +3,7 @@ module github.com/openmfp/iam-service
 go 1.23.2
 
 require (
-	github.com/99designs/gqlgen v0.17.63
+	github.com/99designs/gqlgen v0.17.64
 	github.com/agiledragon/gomonkey/v2 v2.12.0
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a
 	github.com/go-jose/go-jose/v4 v4.0.4
@@ -119,7 +119,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/machinebox/graphql v0.2.2 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
