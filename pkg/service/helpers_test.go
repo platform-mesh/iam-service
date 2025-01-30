@@ -3,6 +3,8 @@ package service_test
 import (
 	"testing"
 
+	"github.com/openmfp/iam-service/pkg/db"
+	"github.com/openmfp/iam-service/pkg/graph"
 	"github.com/openmfp/iam-service/pkg/service"
 	"github.com/stretchr/testify/assert"
 )
@@ -92,4 +94,88 @@ func Test_GeneratePaginationLimits(t *testing.T) {
 		assert.Equal(t, 100, end)
 	})
 
+}
+func Test_checkFilterRoles(t *testing.T) {
+
+	dnAdmin := "Admin"
+	tnAdmin := "admin"
+	dnGuest := "Guest"
+	tnGuest := "guest"
+	t.Run("No search filter roles", func(t *testing.T) {
+		userRoles := []*graph.Role{
+			{TechnicalName: "admin", DisplayName: "Admin"},
+			{TechnicalName: "user", DisplayName: "User"},
+		}
+		searchfilterRoles := []*graph.RoleInput{
+			{
+				DisplayName:   dnAdmin,
+				TechnicalName: tnAdmin,
+			},
+		}
+		result := service.CheckFilterRoles(userRoles, searchfilterRoles)
+		assert.True(t, result)
+	})
+
+	t.Run("Matching role found", func(t *testing.T) {
+		userRoles := []*graph.Role{
+			{TechnicalName: "admin"},
+			{TechnicalName: "user"},
+		}
+		searchfilterRoles := []*graph.RoleInput{}
+		result := service.CheckFilterRoles(userRoles, searchfilterRoles)
+		assert.True(t, result)
+	})
+
+	t.Run("No matching role found", func(t *testing.T) {
+		userRoles := []*graph.Role{
+			{TechnicalName: "admin", DisplayName: "Admin"},
+			{TechnicalName: "user", DisplayName: "User"},
+		}
+		searchfilterRoles := []*graph.RoleInput{
+			{TechnicalName: tnGuest, DisplayName: dnGuest},
+		}
+		result := service.CheckFilterRoles(userRoles, searchfilterRoles)
+		assert.False(t, result)
+	})
+}
+
+func Test_filterInvites(t *testing.T) {
+	t.Run("Filter invites by email", func(t *testing.T) {
+		invites := []db.Invite{
+			{Email: "test1@example.com"},
+			{Email: "test2@example.com"},
+			{Email: "sample@example.com"},
+		}
+		searchTerm := "test"
+		result := service.FilterInvites(invites, searchTerm)
+		expected := []db.Invite{
+			{Email: "test1@example.com"},
+			{Email: "test2@example.com"},
+		}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("No invites match search term", func(t *testing.T) {
+		invites := []db.Invite{
+			{Email: "test1@example.com"},
+			{Email: "test2@example.com"},
+			{Email: "sample@example.com"},
+		}
+		searchTerm := "nomatch"
+		result := service.FilterInvites(invites, searchTerm)
+		expected := []db.Invite{}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Empty search term returns all invites", func(t *testing.T) {
+		invites := []db.Invite{
+			{Email: "test1@example.com"},
+			{Email: "test2@example.com"},
+			{Email: "sample@example.com"},
+		}
+		searchTerm := ""
+		result := service.FilterInvites(invites, searchTerm)
+		expected := invites
+		assert.Equal(t, expected, result)
+	})
 }

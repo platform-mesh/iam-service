@@ -36,6 +36,14 @@ input EntityInput {
     entityId: ID!
 }
 
+""" Holds a payload of a role input - label, id, display name and technical name """
+input RoleInput {
+    label: String
+    id: String
+    displayName: String!
+    technicalName: String!
+}
+
 """ Contains a tenant information """
 type TenantInfo {
     """ An unique identifier of the tenant """
@@ -87,7 +95,7 @@ type Query {
     - if 'showInvitees' is true, the list will contain also the users that are invited to the entity
     Return value:
     - GrantedUserConnection is a list of users and their roles which matches the input parameters"""
-    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false): GrantedUserConnection @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
+    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false, searchTerm: String, roles: [RoleInput]): GrantedUserConnection @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
 
     """ Get all roles that are granted to the user of the referenced entity
     Input parameters:

@@ -26,7 +26,7 @@ import (
 type ServiceInterface interface {
 	AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graph.Change) (bool, error)
 	UsersOfEntity(ctx context.Context, tenantID string, entity graph.EntityInput, limit *int,
-		page *int, showInvitees *bool) (*graph.GrantedUserConnection, error)
+		page *int, showInvitees *bool, searchTerm *string, filterRoles []*graph.RoleInput) (*graph.GrantedUserConnection, error)
 	RemoveFromEntity(ctx context.Context, tenantID string, entityType string, userID string, entityID string) (bool, error)
 	LeaveEntity(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error)
 	RolesForUserOfEntity(ctx context.Context, tenantID string, entity graph.EntityInput, userID string) ([]*graph.Role, error)
@@ -195,13 +195,15 @@ func (s *Service) AssignRoleBindings(ctx context.Context, tenantID string, entit
 	return err == nil, err
 }
 
-func (s *Service) UsersOfEntity( // nolint: funlen, cyclop
+func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 	ctx context.Context,
 	tenantID string,
 	entity graph.EntityInput,
 	limit *int,
 	page *int,
 	showInvitees *bool,
+	searchTerm *string,
+	filterRoles []*graph.RoleInput,
 ) (*graph.GrantedUserConnection, error) {
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.UsersOfEntity")
 	defer span.End()
@@ -247,17 +249,21 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop
 
 	if showUsers {
 		for _, user := range users {
-			roles := userIDToRoles[user.UserID]
+			userRoles := userIDToRoles[user.UserID]
 
-			resolvedRoles, err := s.getResolvedRoles(ctx, entity.EntityType, roles)
+			resolvedRoles, err := s.getResolvedRoles(ctx, entity.EntityType, userRoles)
 			if err != nil {
 				return nil, err
 			}
 
-			out.Users = append(out.Users, &graph.GrantedUser{
-				User:  user,
-				Roles: resolvedRoles,
-			})
+			if matchSearchTerm(user, searchTerm) {
+				if CheckFilterRoles(resolvedRoles, filterRoles) {
+					out.Users = append(out.Users, &graph.GrantedUser{
+						User:  user,
+						Roles: resolvedRoles,
+					})
+				}
+			}
 		}
 	}
 
@@ -276,6 +282,9 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop
 			Str("EntityID", entity.EntityID).
 			Msg("unable to get invitations users for scope")
 		return nil, err
+	}
+	if searchTerm != nil {
+		invites = FilterInvites(invites, *searchTerm)
 	}
 	invitesLength := len(invites)
 

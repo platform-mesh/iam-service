@@ -364,3 +364,192 @@ func removeAccountMutation(tenantId string, entityType string, entityId string) 
 		},
 	}
 }
+
+// Query: usersOfEntity
+func usersOfEntity_filterSearchtermAndRoles_Query(tenantId string) apitest.GraphQLRequestBody {
+	const apiTestQuery = ` query usersOfEntity(
+    $tenantId: ID!
+    $entity: EntityInput!
+    $limit: Int
+    $page: Int
+    $showInvitees: Boolean
+    $searchTerm: String
+    $roles: [RoleInput]
+  ) {
+    usersOfEntity(
+      tenantId: $tenantId
+      entity: $entity
+      limit: $limit
+      page: $page
+      showInvitees: $showInvitees
+      searchTerm: $searchTerm
+      roles: $roles
+    ) {
+      users {
+        user {
+          userId
+          email
+          firstName
+          lastName
+          invitationOutstanding
+        }
+        roles {
+          displayName
+          technicalName
+        }
+      }
+      pageInfo {
+        ownerCount
+        totalCount
+      }
+    }
+  }`
+
+	ds1 := "Owner" // nolint: goconst
+	tn1 := "owner" // nolint: goconst
+	return apitest.GraphQLRequestBody{
+		Query: apiTestQuery,
+		Variables: map[string]interface{}{
+			"tenantId": tenantId,
+			"entity": EntityInput{
+				"project",
+				"test",
+			},
+			"limit":        10,
+			"page":         1,
+			"showInvitees": true,
+			"searchTerm":   "Alice",
+			"roles": []*graphql.RoleInput{
+				{
+					DisplayName:   ds1,
+					TechnicalName: tn1,
+				},
+			},
+		},
+	}
+}
+
+func usersOfEntity_filterSearchtermAndRoles2_Query(tenantId string) apitest.GraphQLRequestBody {
+	const apiTestQuery = ` query usersOfEntity(
+    $tenantId: ID!
+    $entity: EntityInput!
+    $limit: Int
+    $page: Int
+    $showInvitees: Boolean
+    $searchTerm: String
+    $roles: [RoleInput]
+  ) {
+    usersOfEntity(
+      tenantId: $tenantId
+      entity: $entity
+      limit: $limit
+      page: $page
+      showInvitees: $showInvitees
+      searchTerm: $searchTerm
+      roles: $roles
+    ) {
+      users {
+        user {
+          userId
+          email
+          firstName
+          lastName
+          invitationOutstanding
+        }
+        roles {
+          displayName
+          technicalName
+        }
+      }
+      pageInfo {
+        ownerCount
+        totalCount
+      }
+    }
+  }`
+
+	ds1 := "Owner"
+	tn1 := "owner"
+	_ = ds1
+	_ = tn1
+	return apitest.GraphQLRequestBody{
+		Query: apiTestQuery,
+		Variables: map[string]interface{}{
+			"tenantId": tenantId,
+			"entity": EntityInput{
+				"project",
+				"test",
+			},
+			"showInvitees": true,
+			"searchTerm":   "BOB",
+			"roles": []*graphql.RoleInput{
+				{
+					DisplayName:   ds1,
+					TechnicalName: tn1,
+				},
+			},
+		},
+	}
+}
+
+func usersOfEntity_filterRoles_Query(tenantId string) apitest.GraphQLRequestBody {
+	const apiTestQuery = ` query usersOfEntity(
+    $tenantId: ID!
+    $entity: EntityInput!
+    $limit: Int
+    $page: Int
+    $showInvitees: Boolean
+    $searchTerm: String
+    $roles: [RoleInput]
+  ) {
+    usersOfEntity(
+      tenantId: $tenantId
+      entity: $entity
+      limit: $limit
+      page: $page
+      showInvitees: $showInvitees
+      searchTerm: $searchTerm
+      roles: $roles
+    ) {
+      users {
+        user {
+          userId
+          email
+          firstName
+          lastName
+          invitationOutstanding
+        }
+        roles {
+          displayName
+          technicalName
+        }
+      }
+      pageInfo {
+        ownerCount
+        totalCount
+      }
+    }
+  }`
+
+	ds1 := "Owner"
+	tn1 := "owner"
+	_ = ds1
+	_ = tn1
+	return apitest.GraphQLRequestBody{
+		Query: apiTestQuery,
+		Variables: map[string]interface{}{
+			"tenantId": tenantId,
+			"entity": EntityInput{
+				"project",
+				"test",
+			},
+			"showInvitees": true,
+			"roles": []*graphql.RoleInput{
+				{
+					DisplayName:   ds1,
+					TechnicalName: tn1,
+				},
+			},
+		},
+	}
+}

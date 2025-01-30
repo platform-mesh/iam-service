@@ -157,3 +157,45 @@ func (suite *QueriesTestSuite) TestQuery_RolesForUserOfEntity() {
 		Assert(jsonpath.Equal("$.data.rolesForUserOfEntity[1].technicalName", "vault_maintainer")).
 		End()
 }
+
+// Test usersOfEntity
+func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filterSearchtermAndRoles() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
+		GraphQLRequest(usersOfEntity_filterSearchtermAndRoles_Query(tenantId)).
+		Expect(suite.T()).
+		Status(http.StatusOK).
+		Assert(gqlAssertions.NoGQLErrors()).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users", 2)).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[0].user.email", "ALICE@mycorp.com")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[1].user.email", "ALICE2@mycorp.com")).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users[0].roles", 1)).
+		End()
+}
+
+func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filterSearchtermAndRoles2() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
+		GraphQLRequest(usersOfEntity_filterSearchtermAndRoles2_Query(tenantId)).
+		Expect(suite.T()).
+		Status(http.StatusOK).
+		Assert(gqlAssertions.NoGQLErrors()).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users", 1)).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[0].user.email", "BOB@mycorp.com")).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users[0].roles", 1)).
+		End()
+}
+
+func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filterRoles() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
+		GraphQLRequest(usersOfEntity_filterRoles_Query(tenantId)).
+		Expect(suite.T()).
+		Status(http.StatusOK).
+		Assert(gqlAssertions.NoGQLErrors()).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users", 5)).
+		End()
+}

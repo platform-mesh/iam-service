@@ -30,7 +30,7 @@ func (suite *MutationsTestSuite) TestMutation_UsersConnection() {
 		Expect(suite.T()).
 		Status(http.StatusOK).
 		Assert(gqlAssertions.NoGQLErrors()).
-		Assert(jsonpath.Equal("$.data.usersConnection.pageInfo.totalCount", float64(146))).
+		Assert(jsonpath.Equal("$.data.usersConnection.pageInfo.totalCount", float64(151))).
 		Assert(jsonpath.Equal("$.data.usersConnection.user[0].userId", "")).
 		Assert(jsonpath.Equal("$.data.usersConnection.user[0].email", "invited-admin-member@it.corp")).
 		Assert(jsonpath.Equal("$.data.usersConnection.user[0].firstName", nil)).

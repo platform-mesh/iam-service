@@ -7,3 +7,11 @@ type Mutation struct {
 
 type Query struct {
 }
+
+// Holds a payload of a role input - label, id, display name and technical name
+type RoleInput struct {
+	Label         *string `json:"label,omitempty"`
+	ID            *string `json:"id,omitempty"`
+	DisplayName   string  `json:"displayName"`
+	TechnicalName string  `json:"technicalName"`
+}

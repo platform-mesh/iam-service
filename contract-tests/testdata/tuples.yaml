@@ -13,3 +13,12 @@ tuples:
   - object: role:project/test/vault_maintainer
     relation: assignee
     user: user:AHCAE4EIVI
+  - object: role:project/test/owner
+    relation: assignee
+    user: user:ALICE
+  - object: role:project/test/owner
+    relation: assignee
+    user: user:ALICE2
+  - object: role:project/test/owner
+    relation: assignee
+    user: user:BOB

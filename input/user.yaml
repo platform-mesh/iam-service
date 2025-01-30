@@ -550,3 +550,45 @@ user:
 - email: I547291@mycorp.com
   tenant_id: eCh0yae7ooWaek2iejo8geiqua
   user_id: I547291
+
+# new users for usersOfEntity test
+- email: ALICE@mycorp.com
+  groupsAssignments:
+  - entity: team
+    group: teamAdmins
+    scope: exampleTeam1
+  invitationoutstanding: true
+  tenant_id: eCh0yae7ooWaek2iejo8geiqua
+  user_id: ALICE
+- email: ALICE2@mycorp.com
+  groupsAssignments:
+  - entity: team
+    group: teamAdmins
+    scope: exampleTeam1
+  invitationoutstanding: true
+  tenant_id: eCh0yae7ooWaek2iejo8geiqua
+  user_id: ALICE2
+- email: BOB@mycorp.com
+  groupsAssignments:
+  - entity: team
+    group: teamAdmins
+    scope: exampleTeam1
+  invitationoutstanding: true
+  tenant_id: eCh0yae7ooWaek2iejo8geiqua
+  user_id: BOB
+- email: BOB2@mycorp.com
+  groupsAssignments:
+  - entity: team
+    group: teamAdmins
+    scope: exampleTeam1
+  invitationoutstanding: true
+  tenant_id: eCh0yae7ooWaek2iejo8geiqua
+  user_id: BOB2
+- email: CHARLIE@mycorp.com
+  groupsAssignments:
+  - entity: project
+    group: projectMembers
+    scope: exampleProject
+  invitationoutstanding: true
+  tenant_id: eCh0yae7ooWaek2iejo8geiqua
+  user_id: CHARLIE

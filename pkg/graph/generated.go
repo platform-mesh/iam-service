@@ -90,7 +90,7 @@ type ComplexityRoot struct {
 		User                        func(childComplexity int, tenantID string, userID string) int
 		UserByEmail                 func(childComplexity int, tenantID string, email string) int
 		UsersConnection             func(childComplexity int, tenantID string, limit *int, page *int) int
-		UsersOfEntity               func(childComplexity int, tenantID string, entity EntityInput, limit *int, page *int, showInvitees *bool) int
+		UsersOfEntity               func(childComplexity int, tenantID string, entity EntityInput, limit *int, page *int, showInvitees *bool, searchTerm *string, roles []*RoleInput) int
 	}
 
 	Role struct {
@@ -132,7 +132,7 @@ type MutationResolver interface {
 	RemoveUser(ctx context.Context, tenantID string, userID *string, email *string) (*bool, error)
 }
 type QueryResolver interface {
-	UsersOfEntity(ctx context.Context, tenantID string, entity EntityInput, limit *int, page *int, showInvitees *bool) (*GrantedUserConnection, error)
+	UsersOfEntity(ctx context.Context, tenantID string, entity EntityInput, limit *int, page *int, showInvitees *bool, searchTerm *string, roles []*RoleInput) (*GrantedUserConnection, error)
 	RolesForUserOfEntity(ctx context.Context, tenantID string, entity EntityInput, userID string) ([]*Role, error)
 	AvailableRolesForEntity(ctx context.Context, tenantID string, entity EntityInput) ([]*Role, error)
 	AvailableRolesForEntityType(ctx context.Context, tenantID string, entityType string) ([]*Role, error)
@@ -432,7 +432,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.UsersOfEntity(childComplexity, args["tenantId"].(string), args["entity"].(EntityInput), args["limit"].(*int), args["page"].(*int), args["showInvitees"].(*bool)), true
+		return e.complexity.Query.UsersOfEntity(childComplexity, args["tenantId"].(string), args["entity"].(EntityInput), args["limit"].(*int), args["page"].(*int), args["showInvitees"].(*bool), args["searchTerm"].(*string), args["roles"].([]*RoleInput)), true
 
 	case "Role.displayName":
 		if e.complexity.Role.DisplayName == nil {
@@ -543,6 +543,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputChange,
 		ec.unmarshalInputEntityInput,
 		ec.unmarshalInputInvite,
+		ec.unmarshalInputRoleInput,
 		ec.unmarshalInputUserInput,
 	)
 	first := true
@@ -679,6 +680,14 @@ input EntityInput {
     entityId: ID!
 }
 
+""" Holds a payload of a role input - label, id, display name and technical name """
+input RoleInput {
+    label: String
+    id: String
+    displayName: String!
+    technicalName: String!
+}
+
 """ Contains a tenant information """
 type TenantInfo {
     """ An unique identifier of the tenant """
@@ -730,7 +739,7 @@ type Query {
     - if 'showInvitees' is true, the list will contain also the users that are invited to the entity
     Return value:
     - GrantedUserConnection is a list of users and their roles which matches the input parameters"""
-    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false): GrantedUserConnection @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
+    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false, searchTerm: String, roles: [RoleInput]): GrantedUserConnection @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
 
     """ Get all roles that are granted to the user of the referenced entity
     Input parameters:
@@ -1481,6 +1490,24 @@ func (ec *executionContext) field_Query_usersOfEntity_args(ctx context.Context, 
 		}
 	}
 	args["showInvitees"] = arg4
+	var arg5 *string
+	if tmp, ok := rawArgs["searchTerm"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("searchTerm"))
+		arg5, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["searchTerm"] = arg5
+	var arg6 []*RoleInput
+	if tmp, ok := rawArgs["roles"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
+		arg6, err = ec.unmarshalORoleInput2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRoleInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["roles"] = arg6
 	return args, nil
 }
 
@@ -2659,7 +2686,7 @@ func (ec *executionContext) _Query_usersOfEntity(ctx context.Context, field grap
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Query().UsersOfEntity(rctx, fc.Args["tenantId"].(string), fc.Args["entity"].(EntityInput), fc.Args["limit"].(*int), fc.Args["page"].(*int), fc.Args["showInvitees"].(*bool))
+			return ec.resolvers.Query().UsersOfEntity(rctx, fc.Args["tenantId"].(string), fc.Args["entity"].(EntityInput), fc.Args["limit"].(*int), fc.Args["page"].(*int), fc.Args["showInvitees"].(*bool), fc.Args["searchTerm"].(*string), fc.Args["roles"].([]*RoleInput))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			relation, err := ec.unmarshalNString2string(ctx, "project_create")
@@ -6072,6 +6099,54 @@ func (ec *executionContext) unmarshalInputInvite(ctx context.Context, obj interf
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputRoleInput(ctx context.Context, obj interface{}) (RoleInput, error) {
+	var it RoleInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"label", "id", "displayName", "technicalName"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "label":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("label"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Label = data
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "displayName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("displayName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DisplayName = data
+		case "technicalName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("technicalName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TechnicalName = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUserInput(ctx context.Context, obj interface{}) (UserInput, error) {
 	var it UserInput
 	asMap := map[string]interface{}{}
@@ -7948,6 +8023,34 @@ func (ec *executionContext) marshalORole2ᚖgithubᚗcomᚋopenmfpᚋiamᚑservi
 		return graphql.Null
 	}
 	return ec._Role(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalORoleInput2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRoleInput(ctx context.Context, v interface{}) ([]*RoleInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*RoleInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalORoleInput2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRoleInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalORoleInput2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRoleInput(ctx context.Context, v interface{}) (*RoleInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputRoleInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {

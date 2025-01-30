@@ -6,3 +6,4 @@ coverage.out
 .vscode/launch.json
 
 __debug_bin*
+.env-dataloader

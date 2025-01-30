@@ -3,11 +3,14 @@ package service
 import (
 	"context"
 	"math"
+	"strings"
 
 	"github.com/pkg/errors"
 
 	"github.com/openmfp/golang-commons/context/keys"
 	"github.com/openmfp/golang-commons/logger"
+	"github.com/openmfp/iam-service/pkg/db"
+	"github.com/openmfp/iam-service/pkg/graph"
 )
 
 const MAX_INT = math.MaxInt
@@ -81,4 +84,47 @@ func maxInt(a int, b int) int {
 		return a
 	}
 	return b
+}
+
+func matchSearchTerm(user *graph.User, s *string) bool {
+	if s == nil {
+		return true
+	}
+	if strings.Contains(strings.ToLower(user.Email), strings.ToLower(*s)) {
+		return true
+	}
+	if user.FirstName != nil && *user.FirstName != "" && strings.Contains(strings.ToLower(*user.FirstName), strings.ToLower(*s)) {
+		return true
+	}
+	if user.LastName != nil && *user.LastName != "" && strings.Contains(strings.ToLower(*user.LastName), strings.ToLower(*s)) {
+		return true
+	}
+	if user.ID == *s {
+		return true
+	}
+	return false
+}
+
+func CheckFilterRoles(userRoles []*graph.Role, searchfilterRoles []*graph.RoleInput) bool {
+	if len(searchfilterRoles) == 0 {
+		return true
+	}
+	for _, searchRole := range searchfilterRoles {
+		for _, userRole := range userRoles {
+			if searchRole.TechnicalName == userRole.TechnicalName {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func FilterInvites(invites []db.Invite, s string) []db.Invite {
+	out := []db.Invite{}
+	for _, invite := range invites {
+		if strings.Contains(strings.ToLower(invite.Email), strings.ToLower(s)) {
+			out = append(out, invite)
+		}
+	}
+	return out
 }
