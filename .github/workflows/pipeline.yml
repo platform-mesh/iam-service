@@ -11,3 +11,4 @@ jobs:
     with:
       imageTagName: ghcr.io/openmfp/iam-service
       useLocalCoverageConfig: true
+      doubleTagging: true
