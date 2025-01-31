@@ -38,8 +38,6 @@ input EntityInput {
 
 """ Holds a payload of a role input - label, id, display name and technical name """
 input RoleInput {
-    label: String
-    id: String
     displayName: String!
     technicalName: String!
 }

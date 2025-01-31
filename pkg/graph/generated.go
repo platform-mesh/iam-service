@@ -682,8 +682,6 @@ input EntityInput {
 
 """ Holds a payload of a role input - label, id, display name and technical name """
 input RoleInput {
-    label: String
-    id: String
     displayName: String!
     technicalName: String!
 }
@@ -6106,27 +6104,13 @@ func (ec *executionContext) unmarshalInputRoleInput(ctx context.Context, obj int
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"label", "id", "displayName", "technicalName"}
+	fieldsInOrder := [...]string{"displayName", "technicalName"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "label":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("label"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Label = data
-		case "id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ID = data
 		case "displayName":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("displayName"))
 			data, err := ec.unmarshalNString2string(ctx, v)
