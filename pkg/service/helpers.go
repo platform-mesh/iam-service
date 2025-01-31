@@ -99,7 +99,7 @@ func matchSearchTerm(user *graph.User, s *string) bool {
 	if user.LastName != nil && *user.LastName != "" && strings.Contains(strings.ToLower(*user.LastName), strings.ToLower(*s)) {
 		return true
 	}
-	if user.ID == *s {
+	if strings.Contains(strings.ToLower(user.UserID), strings.ToLower(*s)) {
 		return true
 	}
 	return false
