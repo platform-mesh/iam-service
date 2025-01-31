@@ -748,7 +748,7 @@ type Query {
     - 'userId' is an identifier of the user for which the roles are returned
     Return value:
     - '[Role]' is a list of assigned roles to the user """
-    rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @authorized(relation: "member", entityTypeParamName: "entity.entityType", entityParamName: "entity.entityId")
+    rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
 
     """ Get all roles that exist for the referenced entity type
     Input parameters:
@@ -2779,22 +2779,22 @@ func (ec *executionContext) _Query_rolesForUserOfEntity(ctx context.Context, fie
 			return ec.resolvers.Query().RolesForUserOfEntity(rctx, fc.Args["tenantId"].(string), fc.Args["entity"].(EntityInput), fc.Args["userId"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			relation, err := ec.unmarshalNString2string(ctx, "member")
+			relation, err := ec.unmarshalNString2string(ctx, "project_create")
 			if err != nil {
 				return nil, err
 			}
-			entityTypeParamName, err := ec.unmarshalOString2ᚖstring(ctx, "entity.entityType")
+			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "tenant")
 			if err != nil {
 				return nil, err
 			}
-			entityParamName, err := ec.unmarshalNString2string(ctx, "entity.entityId")
+			entityParamName, err := ec.unmarshalNString2string(ctx, "tenantId")
 			if err != nil {
 				return nil, err
 			}
 			if ec.directives.Authorized == nil {
 				return nil, errors.New("directive authorized is not implemented")
 			}
-			return ec.directives.Authorized(ctx, nil, directive0, relation, nil, entityTypeParamName, entityParamName)
+			return ec.directives.Authorized(ctx, nil, directive0, relation, entityType, nil, entityParamName)
 		}
 
 		tmp, err := directive1(rctx)
