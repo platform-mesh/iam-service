@@ -132,7 +132,7 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	github.com/vrischmann/envconfig v1.3.0
+	github.com/vrischmann/envconfig v1.4.1
 	go.opentelemetry.io/otel/metric v1.34.0 // indirect
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
