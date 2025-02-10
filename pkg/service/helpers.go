@@ -102,19 +102,36 @@ func CheckFilterRoles(userRoles []*graph.Role, searchfilterRoles []*graph.RoleIn
 	return false
 }
 
-func FilterInvites(invites []db.Invite, s string, filterRoles []*graph.RoleInput) ([]db.Invite, int) {
+func FilterInvites(invites []db.Invite, s *string, filterRoles []*graph.RoleInput) ([]db.Invite, int) {
 	out := []db.Invite{}
-	owners := 0
-	for _, invite := range invites {
-		if strings.Contains(strings.ToLower(invite.Email), strings.ToLower(s)) {
-			if (len(filterRoles) == 0) || utils.CheckRolesFilter(invite.Roles, filterRoles) {
-				if strings.Contains(invite.Roles, "owner") {
-					owners++
-				}
-				out = append(out, invite)
+
+	// filter by search string if any
+	searchFilter := []db.Invite{}
+	if s != nil {
+		for _, invite := range invites {
+			if strings.Contains(strings.ToLower(invite.Email), strings.ToLower(*s)) {
+				searchFilter = append(searchFilter, invite)
 			}
 		}
+	} else {
+		searchFilter = append(searchFilter, invites...)
 	}
+
+	// filter by roles if any
+	for _, invite := range searchFilter {
+		if (len(filterRoles) == 0) || utils.CheckRolesFilter(invite.Roles, filterRoles) {
+			out = append(out, invite)
+		}
+	}
+
+	// count owners
+	owners := 0
+	for _, invite := range out {
+		if strings.Contains(invite.Roles, "owner") {
+			owners++
+		}
+	}
+
 	return out, owners
 }
 

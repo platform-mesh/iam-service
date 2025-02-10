@@ -709,6 +709,8 @@ user:
 
 
 - email: FOOBAR1@mycorp.com
+  first_name: John
+  last_name: Smith
   groupsAssignments:
   - entity: project
     group: projectMembers
@@ -717,6 +719,8 @@ user:
   tenant_id: eCh0yae7ooWaek2iejo8geiqua
   user_id: FOOBAR1
 - email: FOOBAR2@mycorp.com
+  first_name: Alice
+  last_name: Johnson
   groupsAssignments:
   - entity: project
     group: projectMembers
@@ -725,6 +729,8 @@ user:
   tenant_id: eCh0yae7ooWaek2iejo8geiqua
   user_id: FOOBAR2
 - email: FOOBAR3@mycorp.com
+  first_name: Robert
+  last_name: Williams
   groupsAssignments:
   - entity: project
     group: projectMembers
@@ -733,6 +739,8 @@ user:
   tenant_id: eCh0yae7ooWaek2iejo8geiqua
   user_id: FOOBAR3
 - email: FOOBAR4@mycorp.com
+  first_name: Michael
+  last_name: Brown
   groupsAssignments:
   - entity: project
     group: projectMembers
@@ -741,6 +749,8 @@ user:
   tenant_id: eCh0yae7ooWaek2iejo8geiqua
   user_id: FOOBAR4
 - email: FOOBAR5@mycorp.com
+  first_name: Maria
+  last_name: Garcia
   groupsAssignments:
   - entity: project
     group: projectMembers
@@ -749,6 +759,8 @@ user:
   tenant_id: eCh0yae7ooWaek2iejo8geiqua
   user_id: FOOBAR5
 - email: FOOBAR6@mycorp.com
+  first_name: David
+  last_name: Rodriguez
   groupsAssignments:
   - entity: project
     group: projectMembers
@@ -757,6 +769,8 @@ user:
   tenant_id: eCh0yae7ooWaek2iejo8geiqua
   user_id: FOOBAR6
 - email: FOOBAR7@mycorp.com
+  first_name: Jennifer
+  last_name: Martinez
   groupsAssignments:
   - entity: project
     group: projectMembers
@@ -765,6 +779,8 @@ user:
   tenant_id: eCh0yae7ooWaek2iejo8geiqua
   user_id: FOOBAR7
 - email: FOOBAR8@mycorp.com
+  first_name: Christopher
+  last_name: Anderson
   groupsAssignments:
   - entity: project
     group: projectMembers
@@ -773,6 +789,8 @@ user:
   tenant_id: eCh0yae7ooWaek2iejo8geiqua
   user_id: FOOBAR8
 - email: FOOBAR9@mycorp.com
+  first_name: Angela
+  last_name: Thomas
   groupsAssignments:
   - entity: project
     group: projectMembers
@@ -781,6 +799,8 @@ user:
   tenant_id: eCh0yae7ooWaek2iejo8geiqua
   user_id: FOOBAR9
 - email: FOOBAR10@mycorp.com
+  first_name: Joseph
+  last_name: Jackson
   groupsAssignments:
   - entity: project
     group: projectMembers
@@ -789,6 +809,8 @@ user:
   tenant_id: eCh0yae7ooWaek2iejo8geiqua
   user_id: FOOBAR10
 - email: FOOBAR11@mycorp.com
+  first_name: Lisa
+  last_name: White
   groupsAssignments:
   - entity: project
     group: projectMembers
@@ -797,6 +819,8 @@ user:
   tenant_id: eCh0yae7ooWaek2iejo8geiqua
   user_id: FOOBAR11
 - email: FOOBAR12@mycorp.com
+  first_name: James
+  last_name: Harris
   groupsAssignments:
   - entity: project
     group: projectMembers
@@ -805,6 +829,8 @@ user:
   tenant_id: eCh0yae7ooWaek2iejo8geiqua
   user_id: FOOBAR12
 - email: FOOBAR13@mycorp.com
+  first_name: Laura
+  last_name: Martin
   groupsAssignments:
   - entity: project
     group: projectMembers
@@ -813,6 +839,8 @@ user:
   tenant_id: eCh0yae7ooWaek2iejo8geiqua
   user_id: FOOBAR13
 - email: FOOBAR14@mycorp.com
+  first_name: Kevin
+  last_name: Thompson
   groupsAssignments:
   - entity: project
     group: projectMembers

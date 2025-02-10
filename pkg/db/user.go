@@ -33,16 +33,25 @@ func (d *Database) GetUserByID(ctx context.Context, tenantID string, userID stri
 // and using a search filter for user_id, first_name, last_name and email
 func (d *Database) GetUsersByUserIDs(
 	ctx context.Context, tenantID string, userIDs []string, limit, page int, searchTerm *string,
+	sortBy *graph.SortBy,
 ) ([]*graph.User, error) {
 
+	orderString := "first_name, last_name desc"
 	var users []*graph.User
+	if sortBy != nil {
+		if sortBy.Direction != "asc" && sortBy.Direction != "desc" {
+			return nil, errors.New("invalid sort direction")
+		}
+		orderString = fmt.Sprintf("first_name %s, last_name %s", sortBy.Direction, sortBy.Direction)
+		d.logger.Debug().Str("direction", string(sortBy.Direction)).Str("orderString", orderString).Msg("GetUsersByUserIDs")
+	}
 
 	var query *gorm.DB
 	if searchTerm == nil {
 		query = d.db.
 			Where("tenant_id = ?", tenantID).
 			Where("user_id in ?", userIDs).
-			Order("first_name, last_name desc")
+			Order(orderString)
 	} else {
 		dbLikeString := fmt.Sprintf("%%%s%%", *searchTerm)
 		d.logger.Debug().Str("searchTerm", *searchTerm).Str("dbLikeString", dbLikeString).Msg("GetUsersByUserIDs")
@@ -50,7 +59,7 @@ func (d *Database) GetUsersByUserIDs(
 			Where("tenant_id = ?", tenantID).
 			Where("user_id in ?", userIDs).
 			Where("user_id LIKE ? OR first_name LIKE ? OR last_name LIKE ? OR email LIKE ?", dbLikeString, dbLikeString, dbLikeString, dbLikeString).
-			Order("first_name, last_name desc")
+			Order(orderString)
 	}
 
 	if limit > 0 {

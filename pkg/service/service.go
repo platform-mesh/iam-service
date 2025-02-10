@@ -26,7 +26,8 @@ import (
 type ServiceInterface interface { // nolint: interfacebloat
 	AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graph.Change) (bool, error)
 	UsersOfEntity(ctx context.Context, tenantID string, entity graph.EntityInput, limit *int,
-		page *int, showInvitees *bool, searchTerm *string, rolesFilter []*graph.RoleInput) (*graph.GrantedUserConnection, error)
+		page *int, showInvitees *bool, searchTerm *string, rolesFilter []*graph.RoleInput, sortBy *graph.SortBy,
+	) (*graph.GrantedUserConnection, error)
 	RemoveFromEntity(ctx context.Context, tenantID string, entityType string, userID string, entityID string) (bool, error)
 	LeaveEntity(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error)
 	RolesForUserOfEntity(ctx context.Context, tenantID string, entity graph.EntityInput, userID string) ([]*graph.Role, error)
@@ -204,6 +205,7 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 	showInvitees *bool,
 	searchTerm *string,
 	rolesfilter []*graph.RoleInput,
+	sortBy *graph.SortBy,
 ) (*graph.GrantedUserConnection, error) {
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.UsersOfEntity")
 	defer span.End()
@@ -235,7 +237,7 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 	userIDs := GetUserIDsFromUserIDRoles(userIDToRoles)
 
 	// count users for all pages
-	allUsers, _ := s.Db.GetUsersByUserIDs(ctx, tenantID, userIDs, 0, *page, searchTerm)
+	allUsers, _ := s.Db.GetUsersByUserIDs(ctx, tenantID, userIDs, 0, *page, searchTerm, sortBy)
 	ownerCount := 0
 	for _, u := range allUsers {
 		for _, role := range userIDToRoles[u.UserID] {
@@ -244,7 +246,7 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 			}
 		}
 	}
-	users, err := s.Db.GetUsersByUserIDs(ctx, tenantID, userIDs, *limit, *page, searchTerm)
+	users, err := s.Db.GetUsersByUserIDs(ctx, tenantID, userIDs, *limit, *page, searchTerm, sortBy)
 
 	if err != nil {
 		logger.Error().Err(err).Msg("unable to get users by id")
@@ -296,10 +298,7 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 			Msg("unable to get invitations users for scope")
 		return nil, err
 	}
-	invitedOwners := 0
-	if searchTerm != nil {
-		invites, invitedOwners = FilterInvites(invites, *searchTerm, rolesfilter)
-	}
+	invites, invitedOwners := FilterInvites(invites, searchTerm, rolesfilter)
 	invitesLength := len(invites)
 
 	if showInvitations {

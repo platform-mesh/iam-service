@@ -2,6 +2,12 @@
 
 package graph
 
+import (
+	"fmt"
+	"io"
+	"strconv"
+)
+
 type Mutation struct {
 }
 
@@ -12,4 +18,89 @@ type Query struct {
 type RoleInput struct {
 	DisplayName   string `json:"displayName"`
 	TechnicalName string `json:"technicalName"`
+}
+
+type SortBy struct {
+	Field     SortableFields `json:"field"`
+	Direction SortDirection  `json:"direction"`
+}
+
+type SortDirection string
+
+const (
+	SortDirectionAsc  SortDirection = "asc"
+	SortDirectionDesc SortDirection = "desc"
+)
+
+var AllSortDirection = []SortDirection{
+	SortDirectionAsc,
+	SortDirectionDesc,
+}
+
+func (e SortDirection) IsValid() bool {
+	switch e {
+	case SortDirectionAsc, SortDirectionDesc:
+		return true
+	}
+	return false
+}
+
+func (e SortDirection) String() string {
+	return string(e)
+}
+
+func (e *SortDirection) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SortDirection(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SortDirection", str)
+	}
+	return nil
+}
+
+func (e SortDirection) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type SortableFields string
+
+const (
+	SortableFieldsUser SortableFields = "user"
+)
+
+var AllSortableFields = []SortableFields{
+	SortableFieldsUser,
+}
+
+func (e SortableFields) IsValid() bool {
+	switch e {
+	case SortableFieldsUser:
+		return true
+	}
+	return false
+}
+
+func (e SortableFields) String() string {
+	return string(e)
+}
+
+func (e *SortableFields) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SortableFields(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SortableFields", str)
+	}
+	return nil
+}
+
+func (e SortableFields) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }

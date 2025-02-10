@@ -539,6 +539,53 @@ func usersOfEntityFiltered(vars map[string]interface{}) apitest.GraphQLRequestBo
 	}
 }
 
+func usersOfEntityFilteredSortby(vars map[string]interface{}) apitest.GraphQLRequestBody {
+	const apiTestQuery = ` query usersOfEntity(
+    $tenantId: ID!
+    $entity: EntityInput!
+    $limit: Int
+    $page: Int
+    $showInvitees: Boolean
+    $searchTerm: String
+    $roles: [RoleInput]
+		$sortBy: SortBy
+  ) {
+    usersOfEntity(
+      tenantId: $tenantId
+      entity: $entity
+      limit: $limit
+      page: $page
+      showInvitees: $showInvitees
+      searchTerm: $searchTerm
+      roles: $roles,
+			sortBy: $sortBy,
+    ) {
+      users {
+        user {
+          userId
+          email
+          firstName
+          lastName
+          invitationOutstanding
+        }
+        roles {
+          displayName
+          technicalName
+        }
+      }
+      pageInfo {
+        ownerCount
+        totalCount
+      }
+    }
+  }`
+
+	return apitest.GraphQLRequestBody{
+		Query:     apiTestQuery,
+		Variables: vars,
+	}
+}
+
 func usersOfEntity_filterRoles_Query(tenantId string) apitest.GraphQLRequestBody {
 	const apiTestQuery = ` query usersOfEntity(
     $tenantId: ID!

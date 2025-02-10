@@ -643,9 +643,9 @@ func (_c *DatabaseService_GetUsers_Call) RunAndReturn(run func(context.Context, 
 	return _c
 }
 
-// GetUsersByUserIDs provides a mock function with given fields: ctx, tenantID, userIDs, limit, page, searchTerm
-func (_m *DatabaseService) GetUsersByUserIDs(ctx context.Context, tenantID string, userIDs []string, limit int, page int, searchTerm *string) ([]*graph.User, error) {
-	ret := _m.Called(ctx, tenantID, userIDs, limit, page, searchTerm)
+// GetUsersByUserIDs provides a mock function with given fields: ctx, tenantID, userIDs, limit, page, searchTerm, sortBy
+func (_m *DatabaseService) GetUsersByUserIDs(ctx context.Context, tenantID string, userIDs []string, limit int, page int, searchTerm *string, sortBy *graph.SortBy) ([]*graph.User, error) {
+	ret := _m.Called(ctx, tenantID, userIDs, limit, page, searchTerm, sortBy)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUsersByUserIDs")
@@ -653,19 +653,19 @@ func (_m *DatabaseService) GetUsersByUserIDs(ctx context.Context, tenantID strin
 
 	var r0 []*graph.User
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, []string, int, int, *string) ([]*graph.User, error)); ok {
-		return rf(ctx, tenantID, userIDs, limit, page, searchTerm)
+	if rf, ok := ret.Get(0).(func(context.Context, string, []string, int, int, *string, *graph.SortBy) ([]*graph.User, error)); ok {
+		return rf(ctx, tenantID, userIDs, limit, page, searchTerm, sortBy)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, []string, int, int, *string) []*graph.User); ok {
-		r0 = rf(ctx, tenantID, userIDs, limit, page, searchTerm)
+	if rf, ok := ret.Get(0).(func(context.Context, string, []string, int, int, *string, *graph.SortBy) []*graph.User); ok {
+		r0 = rf(ctx, tenantID, userIDs, limit, page, searchTerm, sortBy)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*graph.User)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, []string, int, int, *string) error); ok {
-		r1 = rf(ctx, tenantID, userIDs, limit, page, searchTerm)
+	if rf, ok := ret.Get(1).(func(context.Context, string, []string, int, int, *string, *graph.SortBy) error); ok {
+		r1 = rf(ctx, tenantID, userIDs, limit, page, searchTerm, sortBy)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -685,13 +685,14 @@ type DatabaseService_GetUsersByUserIDs_Call struct {
 //   - limit int
 //   - page int
 //   - searchTerm *string
-func (_e *DatabaseService_Expecter) GetUsersByUserIDs(ctx interface{}, tenantID interface{}, userIDs interface{}, limit interface{}, page interface{}, searchTerm interface{}) *DatabaseService_GetUsersByUserIDs_Call {
-	return &DatabaseService_GetUsersByUserIDs_Call{Call: _e.mock.On("GetUsersByUserIDs", ctx, tenantID, userIDs, limit, page, searchTerm)}
+//   - sortBy *graph.SortBy
+func (_e *DatabaseService_Expecter) GetUsersByUserIDs(ctx interface{}, tenantID interface{}, userIDs interface{}, limit interface{}, page interface{}, searchTerm interface{}, sortBy interface{}) *DatabaseService_GetUsersByUserIDs_Call {
+	return &DatabaseService_GetUsersByUserIDs_Call{Call: _e.mock.On("GetUsersByUserIDs", ctx, tenantID, userIDs, limit, page, searchTerm, sortBy)}
 }
 
-func (_c *DatabaseService_GetUsersByUserIDs_Call) Run(run func(ctx context.Context, tenantID string, userIDs []string, limit int, page int, searchTerm *string)) *DatabaseService_GetUsersByUserIDs_Call {
+func (_c *DatabaseService_GetUsersByUserIDs_Call) Run(run func(ctx context.Context, tenantID string, userIDs []string, limit int, page int, searchTerm *string, sortBy *graph.SortBy)) *DatabaseService_GetUsersByUserIDs_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].([]string), args[3].(int), args[4].(int), args[5].(*string))
+		run(args[0].(context.Context), args[1].(string), args[2].([]string), args[3].(int), args[4].(int), args[5].(*string), args[6].(*graph.SortBy))
 	})
 	return _c
 }
@@ -701,7 +702,7 @@ func (_c *DatabaseService_GetUsersByUserIDs_Call) Return(_a0 []*graph.User, _a1 
 	return _c
 }
 
-func (_c *DatabaseService_GetUsersByUserIDs_Call) RunAndReturn(run func(context.Context, string, []string, int, int, *string) ([]*graph.User, error)) *DatabaseService_GetUsersByUserIDs_Call {
+func (_c *DatabaseService_GetUsersByUserIDs_Call) RunAndReturn(run func(context.Context, string, []string, int, int, *string, *graph.SortBy) ([]*graph.User, error)) *DatabaseService_GetUsersByUserIDs_Call {
 	_c.Call.Return(run)
 	return _c
 }

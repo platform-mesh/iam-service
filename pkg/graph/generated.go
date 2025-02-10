@@ -90,7 +90,7 @@ type ComplexityRoot struct {
 		User                        func(childComplexity int, tenantID string, userID string) int
 		UserByEmail                 func(childComplexity int, tenantID string, email string) int
 		UsersConnection             func(childComplexity int, tenantID string, limit *int, page *int) int
-		UsersOfEntity               func(childComplexity int, tenantID string, entity EntityInput, limit *int, page *int, showInvitees *bool, searchTerm *string, roles []*RoleInput) int
+		UsersOfEntity               func(childComplexity int, tenantID string, entity EntityInput, limit *int, page *int, showInvitees *bool, searchTerm *string, roles []*RoleInput, sortBy *SortBy) int
 	}
 
 	Role struct {
@@ -132,7 +132,7 @@ type MutationResolver interface {
 	RemoveUser(ctx context.Context, tenantID string, userID *string, email *string) (*bool, error)
 }
 type QueryResolver interface {
-	UsersOfEntity(ctx context.Context, tenantID string, entity EntityInput, limit *int, page *int, showInvitees *bool, searchTerm *string, roles []*RoleInput) (*GrantedUserConnection, error)
+	UsersOfEntity(ctx context.Context, tenantID string, entity EntityInput, limit *int, page *int, showInvitees *bool, searchTerm *string, roles []*RoleInput, sortBy *SortBy) (*GrantedUserConnection, error)
 	RolesForUserOfEntity(ctx context.Context, tenantID string, entity EntityInput, userID string) ([]*Role, error)
 	AvailableRolesForEntity(ctx context.Context, tenantID string, entity EntityInput) ([]*Role, error)
 	AvailableRolesForEntityType(ctx context.Context, tenantID string, entityType string) ([]*Role, error)
@@ -432,7 +432,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.UsersOfEntity(childComplexity, args["tenantId"].(string), args["entity"].(EntityInput), args["limit"].(*int), args["page"].(*int), args["showInvitees"].(*bool), args["searchTerm"].(*string), args["roles"].([]*RoleInput)), true
+		return e.complexity.Query.UsersOfEntity(childComplexity, args["tenantId"].(string), args["entity"].(EntityInput), args["limit"].(*int), args["page"].(*int), args["showInvitees"].(*bool), args["searchTerm"].(*string), args["roles"].([]*RoleInput), args["sortBy"].(*SortBy)), true
 
 	case "Role.displayName":
 		if e.complexity.Role.DisplayName == nil {
@@ -544,6 +544,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputEntityInput,
 		ec.unmarshalInputInvite,
 		ec.unmarshalInputRoleInput,
+		ec.unmarshalInputSortBy,
 		ec.unmarshalInputUserInput,
 	)
 	first := true
@@ -686,6 +687,20 @@ input RoleInput {
     technicalName: String!
 }
 
+enum SortableFields {
+    user
+}
+
+enum SortDirection {
+    asc
+    desc
+}
+
+input SortBy {
+    field: SortableFields!
+    direction: SortDirection!
+}
+
 """ Contains a tenant information """
 type TenantInfo {
     """ An unique identifier of the tenant """
@@ -737,7 +752,7 @@ type Query {
     - if 'showInvitees' is true, the list will contain also the users that are invited to the entity
     Return value:
     - GrantedUserConnection is a list of users and their roles which matches the input parameters"""
-    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false, searchTerm: String, roles: [RoleInput]): GrantedUserConnection @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
+    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false, searchTerm: String, roles: [RoleInput], sortBy: SortBy): GrantedUserConnection @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
 
     """ Get all roles that are granted to the user of the referenced entity
     Input parameters:
@@ -1506,6 +1521,15 @@ func (ec *executionContext) field_Query_usersOfEntity_args(ctx context.Context, 
 		}
 	}
 	args["roles"] = arg6
+	var arg7 *SortBy
+	if tmp, ok := rawArgs["sortBy"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sortBy"))
+		arg7, err = ec.unmarshalOSortBy2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortBy(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["sortBy"] = arg7
 	return args, nil
 }
 
@@ -2684,7 +2708,7 @@ func (ec *executionContext) _Query_usersOfEntity(ctx context.Context, field grap
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Query().UsersOfEntity(rctx, fc.Args["tenantId"].(string), fc.Args["entity"].(EntityInput), fc.Args["limit"].(*int), fc.Args["page"].(*int), fc.Args["showInvitees"].(*bool), fc.Args["searchTerm"].(*string), fc.Args["roles"].([]*RoleInput))
+			return ec.resolvers.Query().UsersOfEntity(rctx, fc.Args["tenantId"].(string), fc.Args["entity"].(EntityInput), fc.Args["limit"].(*int), fc.Args["page"].(*int), fc.Args["showInvitees"].(*bool), fc.Args["searchTerm"].(*string), fc.Args["roles"].([]*RoleInput), fc.Args["sortBy"].(*SortBy))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			relation, err := ec.unmarshalNString2string(ctx, "project_create")
@@ -6131,6 +6155,40 @@ func (ec *executionContext) unmarshalInputRoleInput(ctx context.Context, obj int
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSortBy(ctx context.Context, obj interface{}) (SortBy, error) {
+	var it SortBy
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"field", "direction"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "field":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
+			data, err := ec.unmarshalNSortableFields2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortableFields(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Field = data
+		case "direction":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("direction"))
+			data, err := ec.unmarshalNSortDirection2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortDirection(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Direction = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUserInput(ctx context.Context, obj interface{}) (UserInput, error) {
 	var it UserInput
 	asMap := map[string]interface{}{}
@@ -7367,6 +7425,26 @@ func (ec *executionContext) marshalNRole2ᚖgithubᚗcomᚋopenmfpᚋiamᚑservi
 	return ec._Role(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNSortDirection2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortDirection(ctx context.Context, v interface{}) (SortDirection, error) {
+	var res SortDirection
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSortDirection2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortDirection(ctx context.Context, sel ast.SelectionSet, v SortDirection) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNSortableFields2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortableFields(ctx context.Context, v interface{}) (SortableFields, error) {
+	var res SortableFields
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSortableFields2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortableFields(ctx context.Context, sel ast.SelectionSet, v SortableFields) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -8034,6 +8112,14 @@ func (ec *executionContext) unmarshalORoleInput2ᚖgithubᚗcomᚋopenmfpᚋiam�
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputRoleInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOSortBy2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortBy(ctx context.Context, v interface{}) (*SortBy, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputSortBy(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 

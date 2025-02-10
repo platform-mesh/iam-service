@@ -581,13 +581,13 @@ func Test_UsersOfEntity(t *testing.T) {
 
 	// mock
 	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(userIDToRoles, nil).Once()
-	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(mockResponseUsers, nil).Twice()
 	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames)
 	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(invites, nil).Once()
 
 	// Act
-	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{})
+	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{}, nil)
 
 	// asserts
 	assert.NoError(t, err)
@@ -632,15 +632,15 @@ func Test_UsersOfEntity_Filter(t *testing.T) {
 	// mock
 	mockFga.EXPECT().UsersForEntityRolefilter(mock.Anything, tenantID, entity.EntityID, entity.EntityType, rolesFilter).
 		Return(mockres_UserForEntityRolefilter, nil).Once()
-	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(mockres_dbUsers, nil).Once()
-	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(mockres_dbUsers, nil).Once()
 	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames)
 	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(invites, nil).Once()
 
 	// Act
-	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, &searchTerm, rolesFilter)
+	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, &searchTerm, rolesFilter, nil)
 
 	// asserts
 	assert.NoError(t, err)
@@ -715,15 +715,15 @@ func Test_UsersOfEntity_FilterAdvanced(t *testing.T) {
 
 	// mock
 	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(mockResponseFgaUserIDRoles, nil).Once()
-	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(mockres_DbUsers, nil).Once()
-	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(mockres_DbUsers, nil).Once()
 	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames)
 	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(mockResponseInvites, nil).Once()
 
 	// Act
-	guc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, &searchTerm, emptyRolesFilter)
+	guc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, &searchTerm, emptyRolesFilter, nil)
 
 	// asserts
 	assert.NoError(t, err)
@@ -785,15 +785,15 @@ func Test_UsersOfEntity_FilterAdvanced_Groupfilter(t *testing.T) {
 	// mock
 	mockFga.EXPECT().UsersForEntityRolefilter(mock.Anything, tenantID, entity.EntityID, entity.EntityType, rolesFilter).
 		Return(mockres_fgaUserRoles_rolesfiltered, nil).Once()
-	mockSvc.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	mockSvc.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(mockres_dbUsers_termfiltered, nil).Once()
-	mockSvc.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	mockSvc.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(mockres_dbUsers_termfiltered, nil).Once()
 	mockSvc.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames)
 	mockSvc.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(mockres_dbInvites, nil).Once()
 
 	// Act
-	guc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, &searchTerm, rolesFilter)
+	guc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, &searchTerm, rolesFilter, nil)
 
 	// asserts
 	assert.NoError(t, err)
@@ -841,13 +841,13 @@ func Test_UsersOfEntity_With_Invitations(t *testing.T) {
 	// mock
 	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(userIDToRoles, nil).Once()
 	mockDb.EXPECT().GetUsersByUserIDs(
-		mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(users, nil).Twice()
 	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames)
 	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(invites, nil).Once()
 
 	// Act
-	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{})
+	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{}, nil)
 
 	// asserts
 	assert.NoError(t, err)
@@ -874,7 +874,7 @@ func Test_UsersOfEntity_Errors(t *testing.T) {
 	}
 
 	// Act
-	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{})
+	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{}, nil)
 
 	// asserts
 	assert.Error(t, err)
@@ -885,7 +885,7 @@ func Test_UsersOfEntity_Errors(t *testing.T) {
 	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(nil, errors.New("")).Once()
 
 	// Act
-	uc, err = service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{})
+	uc, err = service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{}, nil)
 
 	// asserts
 	assert.Error(t, err)
@@ -896,11 +896,11 @@ func Test_UsersOfEntity_Errors(t *testing.T) {
 		mock.Anything, tenantID, entity.EntityID, entity.EntityType,
 	).Return(userIDToRoles, nil).Once()
 	mockDb.EXPECT().GetUsersByUserIDs(
-		mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(nil, errors.New("")).Twice()
 
 	// Act
-	uc, err = service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{})
+	uc, err = service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{}, nil)
 
 	// asserts
 	assert.Error(t, err)
@@ -1450,15 +1450,15 @@ func Test_UsersOfEntity_pagination(t *testing.T) {
 	// mock
 	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).
 		Return(mockResponse_UsersForEntity, nil).Once()
-	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(mockResponseDbUsers1, nil).Once()
-	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(mockResponseDbUsers2, nil).Once()
 	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames)
 	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(mockResponseInvites, nil).Once()
 
 	// Act
-	guc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{})
+	guc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{}, nil)
 
 	// asserts
 	assert.NoError(t, err)
@@ -1543,13 +1543,13 @@ func Test_UsersOfEntity_pagination_nils(t *testing.T) {
 	// mock
 	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).
 		Return(mockResponse_UsersForEntity, nil).Once()
-	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(mockResponseDbUsers, nil).Twice()
 	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames)
 	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(mockResponseInvites, nil).Once()
 
 	// Act
-	guc, err := service.UsersOfEntity(ctx, tenantID, entity, nil, nil, &showInvitees, nil, []*graph.RoleInput{})
+	guc, err := service.UsersOfEntity(ctx, tenantID, entity, nil, nil, &showInvitees, nil, []*graph.RoleInput{}, nil)
 
 	// asserts
 	assert.NoError(t, err)

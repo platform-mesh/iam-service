@@ -79,7 +79,7 @@ func TestUser_GetUsersByUserIDs(t *testing.T) {
 		gormDB.Create(&user)
 	}
 
-	result, err := database.GetUsersByUserIDs(ctx, tenantID, userIDs, 10, -2, nil)
+	result, err := database.GetUsersByUserIDs(ctx, tenantID, userIDs, 10, -2, nil, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, len(userIDs), len(result))
@@ -524,8 +524,37 @@ func Test_GetUsersByUserIDs2(t *testing.T) {
 	}
 
 	searchTerm := "test"
-	result, err := database.GetUsersByUserIDs(ctx, tenantID, userIDs, 10, -2, &searchTerm)
+	result, err := database.GetUsersByUserIDs(ctx, tenantID, userIDs, 10, -2, &searchTerm, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, len(userIDs), len(result))
+}
+
+func Test_GetUsersByUserIDs3(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	ctx := context.TODO()
+	tenantID := "tenant1"
+	userIDs := []string{uuid.New().String(), uuid.New().String()}
+
+	// Insert test data
+	for _, userID := range userIDs {
+		user := graph.User{
+			UserID:   userID,
+			TenantID: tenantID,
+			Email:    "test" + userID + "@example.com",
+		}
+		gormDB.Create(&user)
+	}
+
+	searchTerm := "test"
+	result, err := database.GetUsersByUserIDs(ctx, tenantID, userIDs, 10, -2, &searchTerm, &graph.SortBy{Field: "user", Direction: "Asc"})
+	assert.Error(t, err)
+	assert.Nil(t, result)
 }

@@ -174,7 +174,8 @@ func Test_FilterInvites(t *testing.T) {
 
 	t.Run("Empty search string with no role filter", func(t *testing.T) {
 		// when no search string and no role filter, every invite should match
-		filtered, owners := service.FilterInvites(invites, "", nil)
+		searchTerm := ""
+		filtered, owners := service.FilterInvites(invites, &searchTerm, nil)
 		// Expect all invites are returned
 		assert.Equal(t, len(invites), len(filtered))
 		// Count owner occurrences
@@ -188,8 +189,9 @@ func Test_FilterInvites(t *testing.T) {
 	})
 
 	t.Run("Search filter matches email case insensitively", func(t *testing.T) {
+		searchTerm := "EXAMPLE.COM"
 		// search string is set to a part of the email
-		filtered, _ := service.FilterInvites(invites, "EXAMPLE.COM", nil)
+		filtered, _ := service.FilterInvites(invites, &searchTerm, nil)
 		// All emails ending with example.com should match (invites 1,2,3 match, invite4 does not)
 		assert.Equal(t, 3, len(filtered))
 	})
@@ -199,7 +201,8 @@ func Test_FilterInvites(t *testing.T) {
 		roleFilter := []*graph.RoleInput{
 			{TechnicalName: "admin", DisplayName: "Administrator"},
 		}
-		filtered, owners := service.FilterInvites(invites, "example.com", roleFilter)
+		searchTerm := "example.com"
+		filtered, owners := service.FilterInvites(invites, &searchTerm, roleFilter)
 		// Only invite1 and invite3 have "admin" in Roles.
 		assert.Equal(t, 2, len(filtered))
 		// invite1 contains "owner" so owners count should be 1
@@ -211,7 +214,8 @@ func Test_FilterInvites(t *testing.T) {
 		roleFilter := []*graph.RoleInput{
 			{TechnicalName: "nonexistent", DisplayName: "Nonexistent"},
 		}
-		filtered, owners := service.FilterInvites(invites, "example.com", roleFilter)
+		searchTerm := "example.com"
+		filtered, owners := service.FilterInvites(invites, &searchTerm, roleFilter)
 		// None of the invites contain the role "nonexistent"
 		assert.Equal(t, 0, len(filtered))
 		assert.Equal(t, 0, owners)
@@ -222,9 +226,20 @@ func Test_FilterInvites(t *testing.T) {
 		roleFilter := []*graph.RoleInput{
 			{TechnicalName: "admin", DisplayName: "Administrator"},
 		}
-		filtered, owners := service.FilterInvites(invites, "nomatch", roleFilter)
+		searchTerm := "nomatch"
+		filtered, owners := service.FilterInvites(invites, &searchTerm, roleFilter)
 		assert.Equal(t, 0, len(filtered))
 		assert.Equal(t, 0, owners)
+	})
+
+	t.Run("Search filter nil, should only filter by roles", func(t *testing.T) {
+		roleFilter := []*graph.RoleInput{
+			{TechnicalName: "admin", DisplayName: "Administrator"},
+		}
+		// search string is set to a part of the email
+		filtered, _ := service.FilterInvites(invites, nil, roleFilter)
+		// All emails ending with example.com should match (invites 1,2,3 match, invite4 does not)
+		assert.Equal(t, 2, len(filtered))
 	})
 }
 func Test_GetUserIDsFromUserIDRoles(t *testing.T) {
