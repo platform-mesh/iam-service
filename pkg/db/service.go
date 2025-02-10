@@ -45,7 +45,9 @@ type Service interface {
 
 type UserService interface {
 	GetUserByID(ctx context.Context, tenantID string, userId string) (*graph.User, error)
-	GetUsersByUserIDs(ctx context.Context, tenantID string, userIDs []string, limit, page int) ([]*graph.User, error)
+	GetUsersByUserIDs(
+		ctx context.Context, tenantID string, userIDs []string, limit, page int, searchTerm *string,
+	) ([]*graph.User, error)
 	GetUserByEmail(ctx context.Context, tenantID string, email string) (*graph.User, error)
 	GetOrCreateUser(ctx context.Context, tenantID string, input graph.UserInput) (*graph.User, error)
 	RemoveUser(ctx context.Context, tenantID string, userId string, email string) (bool, error)

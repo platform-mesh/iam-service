@@ -2,10 +2,11 @@ package db_test
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
-	"k8s.io/utils/ptr"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+	"k8s.io/utils/ptr"
 
 	"github.com/agiledragon/gomonkey/v2"
 	"github.com/google/uuid"
@@ -78,7 +79,7 @@ func TestUser_GetUsersByUserIDs(t *testing.T) {
 		gormDB.Create(&user)
 	}
 
-	result, err := database.GetUsersByUserIDs(ctx, tenantID, userIDs, 10, -2)
+	result, err := database.GetUsersByUserIDs(ctx, tenantID, userIDs, 10, -2, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, len(userIDs), len(result))
@@ -497,4 +498,34 @@ func Test_SearchUsers(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_GetUsersByUserIDs2(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	ctx := context.TODO()
+	tenantID := "tenant1"
+	userIDs := []string{uuid.New().String(), uuid.New().String()}
+
+	// Insert test data
+	for _, userID := range userIDs {
+		user := graph.User{
+			UserID:   userID,
+			TenantID: tenantID,
+			Email:    "test" + userID + "@example.com",
+		}
+		gormDB.Create(&user)
+	}
+
+	searchTerm := "test"
+	result, err := database.GetUsersByUserIDs(ctx, tenantID, userIDs, 10, -2, &searchTerm)
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, len(userIDs), len(result))
 }

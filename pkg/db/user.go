@@ -29,13 +29,29 @@ func (d *Database) GetUserByID(ctx context.Context, tenantID string, userID stri
 	return &existingUser, nil
 }
 
-// GetUsersByUserIDs  returns a member by ID
-func (d *Database) GetUsersByUserIDs(ctx context.Context, tenantID string, userIDs []string, limit, page int) ([]*graph.User, error) {
+// GetUsersByUserIDs returns a member by ID, limiting response to the current page contents
+// and using a search filter for user_id, first_name, last_name and email
+func (d *Database) GetUsersByUserIDs(
+	ctx context.Context, tenantID string, userIDs []string, limit, page int, searchTerm *string,
+) ([]*graph.User, error) {
+
 	var users []*graph.User
-	query := d.db.
-		Where("tenant_id = ?", tenantID).
-		Where("user_id in ?", userIDs).
-		Order("first_name, last_name desc")
+
+	var query *gorm.DB
+	if searchTerm == nil {
+		query = d.db.
+			Where("tenant_id = ?", tenantID).
+			Where("user_id in ?", userIDs).
+			Order("first_name, last_name desc")
+	} else {
+		dbLikeString := fmt.Sprintf("%%%s%%", *searchTerm)
+		d.logger.Debug().Str("searchTerm", *searchTerm).Str("dbLikeString", dbLikeString).Msg("GetUsersByUserIDs")
+		query = d.db.
+			Where("tenant_id = ?", tenantID).
+			Where("user_id in ?", userIDs).
+			Where("user_id LIKE ? OR first_name LIKE ? OR last_name LIKE ? OR email LIKE ?", dbLikeString, dbLikeString, dbLikeString, dbLikeString).
+			Order("first_name, last_name desc")
+	}
 
 	if limit > 0 {
 		offset := (limit * page) - limit

@@ -22,3 +22,94 @@ tuples:
   - object: role:project/test/owner
     relation: assignee
     user: user:BOB
+
+
+# assign users to roles for BIXIEProject
+  - object: role:project/BIXIEProject/owner
+    relation: assignee
+    user: user:BIXIE1
+  - object: role:project/BIXIEProject/vault_maintainer
+    relation: assignee
+    user: user:BIXIE1
+  - object: role:project/BIXIEProject/owner
+    relation: assignee
+    user: user:BIXIE2
+  - object: role:project/BIXIEProject/owner
+    relation: assignee
+    user: user:BIXIE3
+  - object: role:project/BIXIEProject/owner
+    relation: assignee
+    user: user:BIXIE4
+  - object: role:project/BIXIEProject/owner
+    relation: assignee
+    user: user:BIXIE5
+  - object: role:project/BIXIEProject/owner
+    relation: assignee
+    user: user:BIXIE6
+  - object: role:project/BIXIEProject/owner
+    relation: assignee
+    user: user:BIXIE7
+  - object: role:project/BIXIEProject/member
+    relation: assignee
+    user: user:BIXIE8
+  - object: role:project/BIXIEProject/member
+    relation: assignee
+    user: user:BIXIE9
+  - object: role:project/BIXIEProject/member
+    relation: assignee
+    user: user:BIXIE10
+  - object: role:project/BIXIEProject/member
+    relation: assignee
+    user: user:BIXIE11
+  - object: role:project/BIXIEProject/member
+    relation: assignee
+    user: user:BIXIE12
+  - object: role:project/BIXIEProject/member
+    relation: assignee
+    user: user:BIXIE13
+  - object: role:project/BIXIEProject/member
+    relation: assignee
+    user: user:BIXIE14
+
+  - object: role:project/FoobarProject/owner
+    relation: assignee
+    user: user:FOOBAR1
+  - object: role:project/FoobarProject/owner
+    relation: assignee
+    user: user:FOOBAR2
+  - object: role:project/FoobarProject/owner
+    relation: assignee
+    user: user:FOOBAR3
+  - object: role:project/FoobarProject/owner
+    relation: assignee
+    user: user:FOOBAR4
+  - object: role:project/FoobarProject/owner
+    relation: assignee
+    user: user:FOOBAR5
+  - object: role:project/FoobarProject/owner
+    relation: assignee
+    user: user:FOOBAR6
+  - object: role:project/FoobarProject/owner
+    relation: assignee
+    user: user:FOOBAR7
+  - object: role:project/FoobarProject/owner
+    relation: assignee
+    user: user:FOOBAR8
+  - object: role:project/FoobarProject/owner
+    relation: assignee
+    user: user:FOOBAR9
+  - object: role:project/FoobarProject/owner
+    relation: assignee
+    user: user:FOOBAR10
+  - object: role:project/FoobarProject/owner
+    relation: assignee
+    user: user:FOOBAR11
+  - object: role:project/FoobarProject/owner
+    relation: assignee
+    user: user:FOOBAR12
+  - object: role:project/FoobarProject/owner
+    relation: assignee
+    user: user:FOOBAR13
+  - object: role:project/FoobarProject/owner
+    relation: assignee
+    user: user:FOOBAR14

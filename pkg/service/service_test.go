@@ -552,7 +552,7 @@ func Test_UsersOfEntity(t *testing.T) {
 		"userID678": []string{"owner"},
 	}
 
-	users := []*graph.User{
+	mockResponseUsers := []*graph.User{
 		{
 			TenantID: tenantID,
 			UserID:   "userID123",
@@ -563,21 +563,17 @@ func Test_UsersOfEntity(t *testing.T) {
 			UserID:   "userID345",
 			Email:    "user345@sap.com",
 		},
-	}
-
-	groups := []*db.Role{
 		{
-			ID:            "roleID123",
-			DisplayName:   "owner",
-			TechnicalName: "owner",
-			EntityType:    "project",
-			EntityID:      "entityId",
+			TenantID: tenantID,
+			UserID:   "userID678",
+			Email:    "userID678@sap.com",
 		},
 	}
+
 	invites := []db.Invite{
 		{
 			TenantID:   tenantID,
-			Email:      "",
+			Email:      "someuser",
 			EntityType: "project",
 			EntityID:   "entityId",
 		},
@@ -585,12 +581,13 @@ func Test_UsersOfEntity(t *testing.T) {
 
 	// mock
 	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(userIDToRoles, nil).Once()
-	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything).Return(users, nil).Once()
-	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).Return(groups, nil)
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(mockResponseUsers, nil).Twice()
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames)
 	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(invites, nil).Once()
 
 	// Act
-	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, nil)
+	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{})
 
 	// asserts
 	assert.NoError(t, err)
@@ -599,7 +596,7 @@ func Test_UsersOfEntity(t *testing.T) {
 	assert.Equal(t, 4, uc.PageInfo.TotalCount)
 	assert.Equal(t, 2, uc.PageInfo.OwnerCount)
 
-	assert.Equal(t, 3, len(uc.Users))
+	assert.Equal(t, 4, len(uc.Users))
 }
 
 func Test_UsersOfEntity_Filter(t *testing.T) {
@@ -616,43 +613,166 @@ func Test_UsersOfEntity_Filter(t *testing.T) {
 	var limit int = 10
 	var showInvitees bool = true
 
-	userIDToRoles := types.UserIDToRoles{
+	mockres_UserForEntityRolefilter := types.UserIDToRoles{
 		"userID123": []string{"owner"},
-		"userID345": []string{"member"},
-		"userID678": []string{"owner"},
 	}
 
-	users := []*graph.User{
-		{
-			TenantID: tenantID,
-			UserID:   "userID123",
-			Email:    "user123@sap.com",
-		},
-		{
-			TenantID: tenantID,
-			UserID:   "userID345",
-			Email:    "user345@sap.com",
-		},
+	mockres_dbUsers := []*graph.User{
+		{TenantID: tenantID, UserID: "userID123", Email: "user123@sap.com"},
 	}
 
-	groups := []*db.Role{
-		{
-			ID:            "roleID123",
-			DisplayName:   "owner",
-			TechnicalName: "owner",
-			EntityType:    "project",
-			EntityID:      "entityId",
-		},
-	}
 	invites := []db.Invite{
-		{
-			TenantID:   tenantID,
-			Email:      "",
-			EntityType: "project",
-			EntityID:   "entityId",
-		},
+		{TenantID: tenantID, Email: "user123456", EntityType: "project", EntityID: "entityId", Roles: "owner"},
 	}
 	searchTerm := "user123"
+	rolesFilter := []*graph.RoleInput{
+		{DisplayName: "Owner", TechnicalName: "owner"},
+	}
+
+	// mock
+	mockFga.EXPECT().UsersForEntityRolefilter(mock.Anything, tenantID, entity.EntityID, entity.EntityType, rolesFilter).
+		Return(mockres_UserForEntityRolefilter, nil).Once()
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(mockres_dbUsers, nil).Once()
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(mockres_dbUsers, nil).Once()
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames)
+	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(invites, nil).Once()
+
+	// Act
+	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, &searchTerm, rolesFilter)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.NotNil(t, uc)
+
+	assert.Equal(t, 2, len(uc.Users))
+	assert.Equal(t, 2, uc.PageInfo.TotalCount)
+	assert.Equal(t, 2, uc.PageInfo.OwnerCount)
+}
+
+func Test_UsersOfEntity_FilterAdvanced(t *testing.T) {
+	service, mockDb, mockFga := setupService(t)
+	ctx := context.Background()
+
+	// set parameters
+	tenantID := "01emp2m3v3batersxj73qhm5zq"
+	entity := graph.EntityInput{
+		EntityType: "project",
+		EntityID:   "dolomiten-sync",
+	}
+	var page int = 1
+	var limit int = 10
+	var showInvitees bool = true
+
+	mockResponseFgaUserIDRoles := types.UserIDToRoles{
+		"usermiID123":  []string{"owner"},
+		"userID345":    []string{"member"},
+		"usermiID678":  []string{"owner"},
+		"userID111":    []string{"owner"},
+		"userID222":    []string{"member"},
+		"userID333":    []string{"owner"},
+		"usermiID444":  []string{"member"},
+		"userID555":    []string{"owner"},
+		"userID666":    []string{"member"},
+		"userID777":    []string{"owner"},
+		"usermiID888":  []string{"member", "owner"},
+		"userID999":    []string{"admin"},
+		"userID000":    []string{"admin"},
+		"userID1111":   []string{"owner"},
+		"userID2222":   []string{"member"},
+		"userID3333":   []string{"owner"},
+		"usermiID4444": []string{"admin", "owner"},
+		"userID5555":   []string{"admin"},
+		"userID6666":   []string{"member"},
+		"userID7777":   []string{"admin", "owner"},
+		"userID8888":   []string{"member"},
+		"userID9999":   []string{"admin"},
+		"userID0000":   []string{"member"},
+	}
+
+	mockres_DbUsers := []*graph.User{ // 5, owners: 4
+		{UserID: "usermiID123", Email: "something@corp.co", TenantID: "t1"},
+		{UserID: "usermiID678", Email: "usermiID678@corp.co", TenantID: "t1"},
+		{UserID: "usermiID444", Email: "usermiID444@corp.co", TenantID: "t1"},
+		{UserID: "usermiID888", Email: "usermiID888@corp.co", TenantID: "t1"},
+		{UserID: "usermiID4444", Email: "usermiID4444@corp.co", TenantID: "t1"},
+	}
+
+	mockResponseInvites := []db.Invite{ // searchTerm: 7, owners: 3
+		{TenantID: tenantID, Email: "mi@sap.com", EntityType: "project", EntityID: "entityId", Roles: "member"},
+		{TenantID: tenantID, Email: "user_001@example.com", EntityType: "project", EntityID: "entityId", Roles: "member"},
+		{TenantID: tenantID, Email: "user_002@example.com", EntityType: "project", EntityID: "entityId", Roles: "admin"},
+		{TenantID: tenantID, Email: "mi2@sap.com", EntityType: "project", EntityID: "entityId", Roles: "member"},
+		{TenantID: tenantID, Email: "mi3@sap.com", EntityType: "project", EntityID: "entityId", Roles: "member"},
+		{TenantID: tenantID, Email: "mi4@sap.com", EntityType: "project", EntityID: "entityId", Roles: "owner"},
+		{TenantID: tenantID, Email: "mi5@sap.com", EntityType: "project", EntityID: "entityId", Roles: "owner,admin"},
+		{TenantID: tenantID, Email: "mi6@sap.com", EntityType: "project", EntityID: "entityId", Roles: "owner"},
+		{TenantID: tenantID, Email: "mi7@sap.com", EntityType: "project", EntityID: "entityId", Roles: "member"},
+	}
+	searchTerm := "mi"
+	emptyRolesFilter := []*graph.RoleInput{}
+
+	// mock
+	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(mockResponseFgaUserIDRoles, nil).Once()
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(mockres_DbUsers, nil).Once()
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(mockres_DbUsers, nil).Once()
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames)
+	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(mockResponseInvites, nil).Once()
+
+	// Act
+	guc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, &searchTerm, emptyRolesFilter)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.NotNil(t, guc)
+
+	assert.Equal(t, 10, len(guc.Users))
+	assert.Equal(t, 12, guc.PageInfo.TotalCount)
+	assert.Equal(t, 7, guc.PageInfo.OwnerCount)
+
+}
+
+func Test_UsersOfEntity_FilterAdvanced_Groupfilter(t *testing.T) {
+	service, mockSvc, mockFga := setupService(t)
+	ctx := context.Background()
+
+	// set parameters
+	tenantID := "01emp2m3v3batersxj73qhm5zq"
+	entity := graph.EntityInput{
+		EntityType: "project",
+		EntityID:   "dolomiten-sync",
+	}
+	var page int = 1
+	var limit int = 10
+	var showInvitees bool = true
+
+	mockres_fgaUserRoles_rolesfiltered := types.UserIDToRoles{ // 11
+		"userID123":  []string{"owner"},
+		"miID678":    []string{"owner"},
+		"userID111":  []string{"owner"},
+		"userID333":  []string{"owner"},
+		"userID555":  []string{"owner"},
+		"userID777":  []string{"owner"},
+		"miID888":    []string{"member", "owner"},
+		"userID1111": []string{"owner"},
+		"userID3333": []string{"owner"},
+		"userID7777": []string{"admin", "owner"},
+	}
+
+	mockres_dbUsers_termfiltered := []*graph.User{ // 2
+		{TenantID: tenantID, UserID: "miID678", Email: "miID678@corp.co"},
+		{TenantID: tenantID, UserID: "miID888", Email: "miID888@corp.co"},
+	}
+
+	mockres_dbInvites := []db.Invite{ // invitees: 3, owners+searchFilter: 1
+		{TenantID: tenantID, Email: "newemail1@example.com", EntityType: "project", EntityID: "entityId", Roles: "owner"},
+		{TenantID: tenantID, Email: "newemail2@example.com", EntityType: "project", EntityID: "entityId", Roles: "member"},
+		{TenantID: tenantID, Email: "mi3@example.com", EntityType: "project", EntityID: "entityId", Roles: "owner"},
+	}
+	searchTerm := "mi"
 	dnOwner := "Owner"
 	tnOwner := "owner"
 	rolesFilter := []*graph.RoleInput{
@@ -663,22 +783,26 @@ func Test_UsersOfEntity_Filter(t *testing.T) {
 	}
 
 	// mock
-	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(userIDToRoles, nil).Once()
-	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything).Return(users, nil).Once()
-	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).Return(groups, nil)
-	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(invites, nil).Once()
+	mockFga.EXPECT().UsersForEntityRolefilter(mock.Anything, tenantID, entity.EntityID, entity.EntityType, rolesFilter).
+		Return(mockres_fgaUserRoles_rolesfiltered, nil).Once()
+	mockSvc.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(mockres_dbUsers_termfiltered, nil).Once()
+	mockSvc.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(mockres_dbUsers_termfiltered, nil).Once()
+	mockSvc.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames)
+	mockSvc.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(mockres_dbInvites, nil).Once()
 
 	// Act
-	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, &searchTerm, rolesFilter)
+	guc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, &searchTerm, rolesFilter)
 
 	// asserts
 	assert.NoError(t, err)
-	assert.NotNil(t, uc)
+	assert.NotNil(t, guc)
 
-	assert.Equal(t, 3, uc.PageInfo.TotalCount)
-	assert.Equal(t, 2, uc.PageInfo.OwnerCount)
+	assert.Equal(t, 3, len(guc.Users))
+	assert.Equal(t, 3, guc.PageInfo.TotalCount)
+	assert.Equal(t, 3, guc.PageInfo.OwnerCount)
 
-	assert.Equal(t, 1, len(uc.Users))
 }
 
 func Test_UsersOfEntity_With_Invitations(t *testing.T) {
@@ -705,15 +829,6 @@ func Test_UsersOfEntity_With_Invitations(t *testing.T) {
 			Email:    "user@sap.com",
 		},
 	}
-	groups := []*db.Role{
-		{
-			ID:            "roleID123",
-			DisplayName:   "admin",
-			TechnicalName: "admin",
-			EntityType:    "project",
-			EntityID:      "entityId",
-		},
-	}
 	invites := []db.Invite{
 		{
 			TenantID:   tenantID,
@@ -725,12 +840,14 @@ func Test_UsersOfEntity_With_Invitations(t *testing.T) {
 
 	// mock
 	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(userIDToRoles, nil).Once()
-	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything).Return(users, nil).Once()
-	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).Return(groups, nil).Twice()
+	mockDb.EXPECT().GetUsersByUserIDs(
+		mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+	).Return(users, nil).Twice()
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames)
 	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(invites, nil).Once()
 
 	// Act
-	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, nil)
+	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{})
 
 	// asserts
 	assert.NoError(t, err)
@@ -757,7 +874,7 @@ func Test_UsersOfEntity_Errors(t *testing.T) {
 	}
 
 	// Act
-	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, nil)
+	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{})
 
 	// asserts
 	assert.Error(t, err)
@@ -768,18 +885,22 @@ func Test_UsersOfEntity_Errors(t *testing.T) {
 	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(nil, errors.New("")).Once()
 
 	// Act
-	uc, err = service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, nil)
+	uc, err = service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{})
 
 	// asserts
 	assert.Error(t, err)
 	assert.Nil(t, uc)
 
 	// mock
-	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(userIDToRoles, nil).Once()
-	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("")).Once()
+	mockFga.EXPECT().UsersForEntity(
+		mock.Anything, tenantID, entity.EntityID, entity.EntityType,
+	).Return(userIDToRoles, nil).Once()
+	mockDb.EXPECT().GetUsersByUserIDs(
+		mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+	).Return(nil, errors.New("")).Twice()
 
 	// Act
-	uc, err = service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, nil)
+	uc, err = service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{})
 
 	// asserts
 	assert.Error(t, err)
@@ -1232,4 +1353,210 @@ func TestSearchUsers(t *testing.T) {
 			}
 		})
 	}
+}
+
+func mockFunc_GetRolesByTechnicalNames(ctx context.Context, tenantID string, technicalNames []string) ([]*db.Role, error) {
+	resolvedRoles := []*db.Role{}
+	for _, role := range technicalNames {
+		switch role {
+		case "owner":
+			resolvedRoles = append(resolvedRoles, &db.Role{TechnicalName: "owner", DisplayName: "Owner"})
+		case "member":
+			resolvedRoles = append(resolvedRoles, &db.Role{TechnicalName: "member", DisplayName: "Member"})
+		case "admin":
+			resolvedRoles = append(resolvedRoles, &db.Role{TechnicalName: "admin", DisplayName: "Admin"})
+		}
+	}
+	return resolvedRoles, nil
+}
+
+func Test_UsersOfEntity_pagination(t *testing.T) {
+	service, mockDb, mockFga := setupService(t)
+	ctx := context.Background()
+
+	// set parameters
+	tenantID := "tenantid"
+	entity := graph.EntityInput{
+		EntityType: "project",
+		EntityID:   "dolomiten-sync",
+	}
+	var page int = 3
+	var limit int = 10
+	var showInvitees bool = true
+
+	mockResponse_UsersForEntity := types.UserIDToRoles{
+		"userID123":    []string{"owner"},
+		"userID345":    []string{"member"},
+		"usermiID678":  []string{"owner"},
+		"userID111":    []string{"owner"},
+		"userID222":    []string{"member"},
+		"userID333":    []string{"owner"},
+		"usermiID444":  []string{"member"},
+		"userID555":    []string{"owner"},
+		"userID666":    []string{"member"},
+		"userID777":    []string{"owner"}, // end first 10, 6 owners
+		"usermiID888":  []string{"member", "owner"},
+		"userID999":    []string{"admin"},
+		"userID000":    []string{"admin"},
+		"userID1111":   []string{"owner"},
+		"userID2222":   []string{"member"},
+		"userID3333":   []string{"owner"},
+		"usermiID4444": []string{"admin", "owner"},
+		"userID5555":   []string{"admin"},
+		"userID6666":   []string{"member"},
+		"userID7777":   []string{"admin", "owner"}, // end second 10, 5 owners
+		"userID8888":   []string{"member"},
+		"userID9999":   []string{"admin"},
+		"userID0000":   []string{"member"},
+	}
+
+	mockResponseDbUsers1 := []*graph.User{
+		{TenantID: tenantID, UserID: "userID123", Email: "userID123@corp.co"},
+		{TenantID: tenantID, UserID: "userID345", Email: "userID345@corp.co"},
+		{TenantID: tenantID, UserID: "usermiID678", Email: "usermiID678@corp.co"},
+		{TenantID: tenantID, UserID: "userID111", Email: "userID111@corp.co"},
+		{TenantID: tenantID, UserID: "userID222", Email: "userID222@corp.co"},
+		{TenantID: tenantID, UserID: "userID333", Email: "userID333@corp.co"},
+		{TenantID: tenantID, UserID: "userID444", Email: "userID444@corp.co"},
+		{TenantID: tenantID, UserID: "userID555", Email: "userID555@corp.co"},
+		{TenantID: tenantID, UserID: "userID666", Email: "userID666@corp.co"},
+		{TenantID: tenantID, UserID: "userID777", Email: "userID777@corp.co"},
+		{TenantID: tenantID, UserID: "usermiID888", Email: "usermiID888@corp.co"},
+		{TenantID: tenantID, UserID: "userID999", Email: "userID999@corp.co"},
+		{TenantID: tenantID, UserID: "userID000", Email: "userID000@corp.co"},
+		{TenantID: tenantID, UserID: "userID1111", Email: "userID1111@corp.co"},
+		{TenantID: tenantID, UserID: "userID2222", Email: "userID2222@corp.co"},
+		{TenantID: tenantID, UserID: "userID3333", Email: "userID3333@corp.co"},
+		{TenantID: tenantID, UserID: "usermiID4444", Email: "usermiID4444@corp.co"},
+		{TenantID: tenantID, UserID: "userID5555", Email: "userID5555@corp.co"},
+		{TenantID: tenantID, UserID: "userID6666", Email: "userID6666@corp.co"},
+		{TenantID: tenantID, UserID: "userID7777", Email: "userID7777@corp.co"},
+		{TenantID: tenantID, UserID: "userID8888", Email: "userID8888@corp.co"},
+		{TenantID: tenantID, UserID: "userID9999", Email: "userID9999@corp.co"},
+		{TenantID: tenantID, UserID: "userID0000", Email: "userID0000@corp.co"},
+	}
+	mockResponseDbUsers2 := []*graph.User{
+		{TenantID: tenantID, UserID: "userID8888", Email: "userID8888@corp.co"},
+		{TenantID: tenantID, UserID: "userID9999", Email: "userID9999@corp.co"},
+		{TenantID: tenantID, UserID: "userID0000", Email: "userID0000@corp.co"},
+	}
+
+	mockResponseInvites := []db.Invite{
+		{TenantID: tenantID, Email: "mi@sap.com", EntityType: "project", EntityID: "entityId", Roles: "member"},
+		{TenantID: tenantID, Email: "user_001@example.com", EntityType: "project", EntityID: "entityId", Roles: "member"},
+		{TenantID: tenantID, Email: "user_002@example.com", EntityType: "project", EntityID: "entityId", Roles: "admin"},
+		{TenantID: tenantID, Email: "mi2@sap.com", EntityType: "project", EntityID: "entityId", Roles: "member"},
+	}
+	// mock
+	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).
+		Return(mockResponse_UsersForEntity, nil).Once()
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(mockResponseDbUsers1, nil).Once()
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(mockResponseDbUsers2, nil).Once()
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames)
+	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(mockResponseInvites, nil).Once()
+
+	// Act
+	guc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{})
+
+	// asserts
+	assert.NoError(t, err)
+	assert.NotNil(t, guc)
+
+	assert.Equal(t, 7, len(guc.Users))
+	assert.Equal(t, 27, guc.PageInfo.TotalCount)
+	assert.Equal(t, 11, guc.PageInfo.OwnerCount)
+
+}
+
+func Test_UsersOfEntity_pagination_nils(t *testing.T) {
+	service, mockDb, mockFga := setupService(t)
+	ctx := context.Background()
+
+	// set parameters
+	tenantID := "tenantid"
+	entity := graph.EntityInput{
+		EntityType: "project",
+		EntityID:   "dolomiten-sync",
+	}
+	var showInvitees bool = true
+
+	mockResponse_UsersForEntity := types.UserIDToRoles{
+		"userID123":    []string{"owner"},
+		"userID345":    []string{"member"},
+		"usermiID678":  []string{"owner"},
+		"userID111":    []string{"owner"},
+		"userID222":    []string{"member"},
+		"userID333":    []string{"owner"},
+		"usermiID444":  []string{"member"},
+		"userID555":    []string{"owner"},
+		"userID666":    []string{"member"},
+		"userID777":    []string{"owner"}, // end first 10, 6 owners
+		"usermiID888":  []string{"member", "owner"},
+		"userID999":    []string{"admin"},
+		"userID000":    []string{"admin"},
+		"userID1111":   []string{"owner"},
+		"userID2222":   []string{"member"},
+		"userID3333":   []string{"owner"},
+		"usermiID4444": []string{"admin", "owner"},
+		"userID5555":   []string{"admin"},
+		"userID6666":   []string{"member"},
+		"userID7777":   []string{"admin", "owner"}, // end second 10, 5 owners
+		"userID8888":   []string{"member"},
+		"userID9999":   []string{"admin"},
+		"userID0000":   []string{"member"},
+	}
+
+	mockResponseDbUsers := []*graph.User{
+		{TenantID: tenantID, UserID: "userID123", Email: "userID123@corp.co"},
+		{TenantID: tenantID, UserID: "userID345", Email: "userID345@corp.co"},
+		{TenantID: tenantID, UserID: "usermiID678", Email: "usermiID678@corp.co"},
+		{TenantID: tenantID, UserID: "userID111", Email: "userID111@corp.co"},
+		{TenantID: tenantID, UserID: "userID222", Email: "userID222@corp.co"},
+		{TenantID: tenantID, UserID: "userID333", Email: "userID333@corp.co"},
+		{TenantID: tenantID, UserID: "userID444", Email: "userID444@corp.co"},
+		{TenantID: tenantID, UserID: "userID555", Email: "userID555@corp.co"},
+		{TenantID: tenantID, UserID: "userID666", Email: "userID666@corp.co"},
+		{TenantID: tenantID, UserID: "userID777", Email: "userID777@corp.co"},
+		{TenantID: tenantID, UserID: "usermiID888", Email: "usermiID888@corp.co"},
+		{TenantID: tenantID, UserID: "userID999", Email: "userID999@corp.co"},
+		{TenantID: tenantID, UserID: "userID000", Email: "userID000@corp.co"},
+		{TenantID: tenantID, UserID: "userID1111", Email: "userID1111@corp.co"},
+		{TenantID: tenantID, UserID: "userID2222", Email: "userID2222@corp.co"},
+		{TenantID: tenantID, UserID: "userID3333", Email: "userID3333@corp.co"},
+		{TenantID: tenantID, UserID: "usermiID4444", Email: "usermiID4444@corp.co"},
+		{TenantID: tenantID, UserID: "userID5555", Email: "userID5555@corp.co"},
+		{TenantID: tenantID, UserID: "userID6666", Email: "userID6666@corp.co"},
+		{TenantID: tenantID, UserID: "userID7777", Email: "userID7777@corp.co"},
+		{TenantID: tenantID, UserID: "userID8888", Email: "userID8888@corp.co"},
+		{TenantID: tenantID, UserID: "userID9999", Email: "userID9999@corp.co"},
+		{TenantID: tenantID, UserID: "userID0000", Email: "userID0000@corp.co"},
+	}
+
+	mockResponseInvites := []db.Invite{
+		{TenantID: tenantID, Email: "mi@sap.com", EntityType: "project", EntityID: "entityId", Roles: "member"},
+		{TenantID: tenantID, Email: "user_001@example.com", EntityType: "project", EntityID: "entityId", Roles: "member"},
+		{TenantID: tenantID, Email: "user_002@example.com", EntityType: "project", EntityID: "entityId", Roles: "admin"},
+		{TenantID: tenantID, Email: "mi2@sap.com", EntityType: "project", EntityID: "entityId", Roles: "member"},
+	}
+	// mock
+	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).
+		Return(mockResponse_UsersForEntity, nil).Once()
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(mockResponseDbUsers, nil).Twice()
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames)
+	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(mockResponseInvites, nil).Once()
+
+	// Act
+	guc, err := service.UsersOfEntity(ctx, tenantID, entity, nil, nil, &showInvitees, nil, []*graph.RoleInput{})
+
+	// asserts
+	assert.NoError(t, err)
+	assert.NotNil(t, guc)
+
+	assert.Equal(t, 23, len(guc.Users))
+	assert.Equal(t, 27, guc.PageInfo.TotalCount)
+	assert.Equal(t, 11, guc.PageInfo.OwnerCount)
+
 }

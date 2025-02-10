@@ -23,10 +23,10 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-type ServiceInterface interface {
+type ServiceInterface interface { // nolint: interfacebloat
 	AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graph.Change) (bool, error)
 	UsersOfEntity(ctx context.Context, tenantID string, entity graph.EntityInput, limit *int,
-		page *int, showInvitees *bool, searchTerm *string, filterRoles []*graph.RoleInput) (*graph.GrantedUserConnection, error)
+		page *int, showInvitees *bool, searchTerm *string, rolesFilter []*graph.RoleInput) (*graph.GrantedUserConnection, error)
 	RemoveFromEntity(ctx context.Context, tenantID string, entityType string, userID string, entityID string) (bool, error)
 	LeaveEntity(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error)
 	RolesForUserOfEntity(ctx context.Context, tenantID string, entity graph.EntityInput, userID string) ([]*graph.Role, error)
@@ -203,7 +203,7 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 	page *int,
 	showInvitees *bool,
 	searchTerm *string,
-	filterRoles []*graph.RoleInput,
+	rolesfilter []*graph.RoleInput,
 ) (*graph.GrantedUserConnection, error) {
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.UsersOfEntity")
 	defer span.End()
@@ -213,12 +213,16 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 	}
 	logger := setupLogger(ctx)
 
-	userIDToRoles, err := s.Fga.UsersForEntity(ctx, tenantID, entity.EntityID, entity.EntityType)
+	var userIDToRoles map[string][]string
+	var err error
+	if len(rolesfilter) > 0 {
+		userIDToRoles, err = s.Fga.UsersForEntityRolefilter(ctx, tenantID, entity.EntityID, entity.EntityType, rolesfilter)
+	} else {
+		userIDToRoles, err = s.Fga.UsersForEntity(ctx, tenantID, entity.EntityID, entity.EntityType)
+	}
 	if err != nil {
 		return nil, err
 	}
-
-	userIDs, ownerCount := s.getUserIDsAndOwnerCount(userIDToRoles)
 
 	if limit == nil {
 		limit = &minusOne
@@ -228,7 +232,20 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 		page = &one
 	}
 
-	users, err := s.Db.GetUsersByUserIDs(ctx, tenantID, userIDs, *limit, *page)
+	userIDs := GetUserIDsFromUserIDRoles(userIDToRoles)
+
+	// count users for all pages
+	allUsers, _ := s.Db.GetUsersByUserIDs(ctx, tenantID, userIDs, 0, *page, searchTerm)
+	ownerCount := 0
+	for _, u := range allUsers {
+		for _, role := range userIDToRoles[u.UserID] {
+			if role == "owner" {
+				ownerCount++
+			}
+		}
+	}
+	users, err := s.Db.GetUsersByUserIDs(ctx, tenantID, userIDs, *limit, *page, searchTerm)
+
 	if err != nil {
 		logger.Error().Err(err).Msg("unable to get users by id")
 		return nil, err
@@ -238,7 +255,7 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 		Users: make([]*graph.GrantedUser, 0, len(users)),
 		PageInfo: &graph.PageInfo{
 			OwnerCount: ownerCount,
-			TotalCount: len(userIDToRoles),
+			TotalCount: len(allUsers),
 		},
 	}
 
@@ -249,21 +266,17 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 
 	if showUsers {
 		for _, user := range users {
-			userRoles := userIDToRoles[user.UserID]
+			roles := userIDToRoles[user.UserID]
 
-			resolvedRoles, err := s.getResolvedRoles(ctx, entity.EntityType, userRoles)
+			resolvedRoles, err := s.getResolvedRoles(ctx, entity.EntityType, roles)
 			if err != nil {
 				return nil, err
 			}
 
-			if matchSearchTerm(user, searchTerm) {
-				if CheckFilterRoles(resolvedRoles, filterRoles) {
-					out.Users = append(out.Users, &graph.GrantedUser{
-						User:  user,
-						Roles: resolvedRoles,
-					})
-				}
-			}
+			out.Users = append(out.Users, &graph.GrantedUser{
+				User:  user,
+				Roles: resolvedRoles,
+			})
 		}
 	}
 
@@ -283,14 +296,15 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 			Msg("unable to get invitations users for scope")
 		return nil, err
 	}
+	invitedOwners := 0
 	if searchTerm != nil {
-		invites = FilterInvites(invites, *searchTerm)
+		invites, invitedOwners = FilterInvites(invites, *searchTerm, rolesfilter)
 	}
 	invitesLength := len(invites)
 
 	if showInvitations {
 		if *limit != MAX_INT {
-			sliceStart, sliceEnd := GeneratePaginationLimits(*limit, len(userIDToRoles), *page, len(invites))
+			sliceStart, sliceEnd := GeneratePaginationLimits(*limit, len(allUsers), *page, len(invites))
 			invites = invites[sliceStart:sliceEnd]
 		}
 
@@ -311,36 +325,23 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 			})
 		}
 	}
+	out.PageInfo.OwnerCount += invitedOwners
 	out.PageInfo.TotalCount += invitesLength
 
 	return &out, nil
 }
 
-func (s *Service) getUserIDsAndOwnerCount(userIDToRoles map[string][]string) ([]string, int) {
-	ownerCount := 0
-	userIDs := make([]string, 0, len(userIDToRoles))
-	for userID, UserRoles := range userIDToRoles {
-		userIDs = append(userIDs, userID)
-
-		if slices.Contains(UserRoles, "owner") {
-			ownerCount++
-		}
-	}
-
-	return userIDs, ownerCount
-}
-
 func (s *Service) getResolvedRoles(ctx context.Context, entityType string, roles []string) ([]*graph.Role, error) {
-	groups, err := s.Db.GetRolesByTechnicalNames(ctx, entityType, roles)
+	dbRoles, err := s.Db.GetRolesByTechnicalNames(ctx, entityType, roles)
 	if err != nil {
 		return nil, err
 	}
 
-	resolvedRoles := make([]*graph.Role, 0, len(groups))
-	for _, group := range groups {
+	resolvedRoles := make([]*graph.Role, 0, len(dbRoles))
+	for _, role := range dbRoles {
 		resolvedRoles = append(resolvedRoles, &graph.Role{
-			DisplayName:   group.DisplayName,
-			TechnicalName: group.TechnicalName,
+			DisplayName:   role.DisplayName,
+			TechnicalName: role.TechnicalName,
 		})
 	}
 

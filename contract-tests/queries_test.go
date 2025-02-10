@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/openmfp/iam-service/contract-tests/gqlAssertions"
+	graphql "github.com/openmfp/iam-service/pkg/graph"
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
 	"github.com/stretchr/testify/suite"
@@ -55,6 +56,11 @@ func (suite *QueriesTestSuite) TestQuery_AvailableRolesForEntity() {
 				map[string]interface{}{
 					"displayName":   "Vault Maintainer",
 					"technicalName": "vault_maintainer",
+					"permissions":   nil,
+				},
+				map[string]interface{}{
+					"displayName":   "Admin",
+					"technicalName": "admin",
 					"permissions":   nil,
 				},
 			},
@@ -174,17 +180,96 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filterSearchtermAndRoles(
 		End()
 }
 
-func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filterSearchtermAndRoles2() {
+func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_BOB_and_Owner() {
 	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
 
 	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntity_filterSearchtermAndRoles2_Query(tenantId)).
+		GraphQLRequest(usersOfEntity_filter_BOB_and_Owner_Query(tenantId)).
 		Expect(suite.T()).
 		Status(http.StatusOK).
 		Assert(gqlAssertions.NoGQLErrors()).
 		Assert(jsonpath.Len("$.data.usersOfEntity.users", 1)).
 		Assert(jsonpath.Equal("$.data.usersOfEntity.users[0].user.email", "BOB@mycorp.com")).
 		Assert(jsonpath.Len("$.data.usersOfEntity.users[0].roles", 1)).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.ownerCount", float64(1))).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.totalCount", float64(1))).
+		End()
+}
+
+func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_BIXIE() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
+			"tenantId": tenantId,
+			"page":     1,
+			"limit":    10,
+			"entity": EntityInput{
+				"project",
+				"BIXIEProject",
+			},
+			"showInvitees": false,
+			"searchTerm":   "BIXIE",
+			"roles":        []*graphql.RoleInput{},
+		})).
+		Expect(suite.T()).
+		Status(http.StatusOK).
+		Assert(gqlAssertions.NoGQLErrors()).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users", 10)).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[0].user.email", "BIXIE1@mycorp.com")).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users[0].roles", 2)).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.ownerCount", float64(7))).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.totalCount", float64(15))).
+		End()
+}
+
+func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_BIXIE_p2() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
+			"tenantId": tenantId,
+			"page":     2,
+			"limit":    10,
+			"entity": EntityInput{
+				"project",
+				"BIXIEProject",
+			},
+			"showInvitees": false,
+			"searchTerm":   "BIXIE",
+			"roles":        []*graphql.RoleInput{},
+		})).
+		Expect(suite.T()).
+		Status(http.StatusOK).
+		Assert(gqlAssertions.NoGQLErrors()).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users", 4)).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.ownerCount", float64(7))).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.totalCount", float64(15))).
+		End()
+}
+
+func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_BIXIE_p2_invitees() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
+			"tenantId": tenantId,
+			"page":     2,
+			"limit":    10,
+			"entity": EntityInput{
+				"project",
+				"BIXIEProject",
+			},
+			"showInvitees": true,
+			"searchTerm":   "BIXIE",
+			"roles":        []*graphql.RoleInput{},
+		})).
+		Expect(suite.T()).
+		Status(http.StatusOK).
+		Assert(gqlAssertions.NoGQLErrors()).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users", 5)).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.ownerCount", float64(7))).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.totalCount", float64(15))).
 		End()
 }
 
@@ -197,5 +282,170 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filterRoles() {
 		Status(http.StatusOK).
 		Assert(gqlAssertions.NoGQLErrors()).
 		Assert(jsonpath.Len("$.data.usersOfEntity.users", 5)).
+		End()
+}
+
+func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_invitees() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
+			"tenantId": tenantId,
+			"page":     2,
+			"limit":    10,
+			"entity": EntityInput{
+				"project",
+				"FoobarProject",
+			},
+			"showInvitees": true,
+			"searchTerm":   "FOOBAR",
+			"roles":        []*graphql.RoleInput{},
+		})).
+		Expect(suite.T()).
+		Status(http.StatusOK).
+		Assert(gqlAssertions.NoGQLErrors()).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users", 10)).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.ownerCount", float64(16))).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.totalCount", float64(24))).
+		End()
+}
+
+func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p3_invitees() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
+			"tenantId": tenantId,
+			"page":     3,
+			"limit":    10,
+			"entity": EntityInput{
+				"project",
+				"FoobarProject",
+			},
+			"showInvitees": true,
+			"searchTerm":   "FOOBAR",
+			"roles":        []*graphql.RoleInput{},
+		})).
+		Expect(suite.T()).
+		Status(http.StatusOK).
+		Assert(gqlAssertions.NoGQLErrors()).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users", 4)).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.ownerCount", float64(16))).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.totalCount", float64(24))).
+		End()
+}
+
+func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
+			"tenantId": tenantId,
+			"page":     1,
+			"limit":    10,
+			"entity": EntityInput{
+				"project",
+				"FoobarProject",
+			},
+			"showInvitees": false,
+			"searchTerm":   "FOOBAR",
+			"roles":        []*graphql.RoleInput{},
+		})).
+		Expect(suite.T()).
+		Status(http.StatusOK).
+		Assert(gqlAssertions.NoGQLErrors()).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users", 10)).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.ownerCount", float64(16))).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.totalCount", float64(24))).
+		End()
+}
+
+func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1_owners() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
+			"tenantId": tenantId,
+			"page":     1,
+			"limit":    10,
+			"entity": EntityInput{
+				"project",
+				"FoobarProject",
+			},
+			"showInvitees": false,
+			"searchTerm":   "FOOBAR",
+			"roles": []*graphql.RoleInput{
+				{
+					DisplayName:   "Owner",
+					TechnicalName: "owner",
+				},
+			},
+		})).
+		Expect(suite.T()).
+		Status(http.StatusOK).
+		Assert(gqlAssertions.NoGQLErrors()).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users", 10)).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.ownerCount", float64(16))).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.totalCount", float64(16))).
+		End()
+}
+
+func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_owners() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
+			"tenantId": tenantId,
+			"page":     2,
+			"limit":    10,
+			"entity": EntityInput{
+				"project",
+				"FoobarProject",
+			},
+			"showInvitees": false,
+			"searchTerm":   "FOOBAR",
+			"roles": []*graphql.RoleInput{
+				{
+					DisplayName:   "Owner",
+					TechnicalName: "owner",
+				},
+			},
+		})).
+		Expect(suite.T()).
+		Status(http.StatusOK).
+		Assert(gqlAssertions.NoGQLErrors()).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users", 4)).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.ownerCount", float64(16))).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.totalCount", float64(16))).
+		End()
+}
+
+func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_owners_invitees() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
+			"tenantId": tenantId,
+			"page":     2,
+			"limit":    10,
+			"entity": EntityInput{
+				"project",
+				"FoobarProject",
+			},
+			"showInvitees": true,
+			"searchTerm":   "FOOBAR",
+			"roles": []*graphql.RoleInput{
+				{
+					DisplayName:   "Owner",
+					TechnicalName: "owner",
+				},
+			},
+		})).
+		Expect(suite.T()).
+		Status(http.StatusOK).
+		Assert(gqlAssertions.NoGQLErrors()).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users", 6)).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.ownerCount", float64(16))).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.totalCount", float64(16))).
 		End()
 }

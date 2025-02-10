@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -11,6 +12,7 @@ import (
 	"github.com/openmfp/golang-commons/logger"
 	"github.com/openmfp/iam-service/pkg/db"
 	"github.com/openmfp/iam-service/pkg/graph"
+	"github.com/openmfp/iam-service/pkg/utils"
 )
 
 const MAX_INT = math.MaxInt
@@ -18,14 +20,14 @@ const MAX_INT = math.MaxInt
 func setupLogger(ctx context.Context) *logger.Logger {
 	log := logger.LoadLoggerFromContext(ctx)
 
-	requestID := getRequestId(ctx)
+	requestID := GetRequestId(ctx)
 
 	return logger.NewFromZerolog(
 		log.With().Str("request_id", requestID).Logger(),
 	)
 }
 
-func getRequestId(ctx context.Context) string {
+func GetRequestId(ctx context.Context) string {
 	if val, ok := ctx.Value(keys.RequestIdCtxKey).(string); ok {
 		return val
 	}
@@ -86,25 +88,6 @@ func maxInt(a int, b int) int {
 	return b
 }
 
-func matchSearchTerm(user *graph.User, s *string) bool {
-	if s == nil {
-		return true
-	}
-	if strings.Contains(strings.ToLower(user.Email), strings.ToLower(*s)) {
-		return true
-	}
-	if user.FirstName != nil && *user.FirstName != "" && strings.Contains(strings.ToLower(*user.FirstName), strings.ToLower(*s)) {
-		return true
-	}
-	if user.LastName != nil && *user.LastName != "" && strings.Contains(strings.ToLower(*user.LastName), strings.ToLower(*s)) {
-		return true
-	}
-	if strings.Contains(strings.ToLower(user.UserID), strings.ToLower(*s)) {
-		return true
-	}
-	return false
-}
-
 func CheckFilterRoles(userRoles []*graph.Role, searchfilterRoles []*graph.RoleInput) bool {
 	if len(searchfilterRoles) == 0 {
 		return true
@@ -119,12 +102,32 @@ func CheckFilterRoles(userRoles []*graph.Role, searchfilterRoles []*graph.RoleIn
 	return false
 }
 
-func FilterInvites(invites []db.Invite, s string) []db.Invite {
+func FilterInvites(invites []db.Invite, s string, filterRoles []*graph.RoleInput) ([]db.Invite, int) {
 	out := []db.Invite{}
+	owners := 0
 	for _, invite := range invites {
 		if strings.Contains(strings.ToLower(invite.Email), strings.ToLower(s)) {
-			out = append(out, invite)
+			if (len(filterRoles) == 0) || utils.CheckRolesFilter(invite.Roles, filterRoles) {
+				if strings.Contains(invite.Roles, "owner") {
+					owners++
+				}
+				out = append(out, invite)
+			}
 		}
 	}
-	return out
+	return out, owners
+}
+
+func GetUserIDsFromUserIDRoles(userIDToRoles map[string][]string) []string {
+	ownerCount := 0
+	userIDs := make([]string, 0, len(userIDToRoles))
+	for userID, UserRoles := range userIDToRoles {
+		userIDs = append(userIDs, userID)
+
+		if slices.Contains(UserRoles, "owner") {
+			ownerCount++
+		}
+	}
+
+	return userIDs
 }

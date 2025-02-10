@@ -429,7 +429,7 @@ func usersOfEntity_filterSearchtermAndRoles_Query(tenantId string) apitest.Graph
 	}
 }
 
-func usersOfEntity_filterSearchtermAndRoles2_Query(tenantId string) apitest.GraphQLRequestBody {
+func usersOfEntity_filter_BOB_and_Owner_Query(tenantId string) apitest.GraphQLRequestBody {
 	const apiTestQuery = ` query usersOfEntity(
     $tenantId: ID!
     $entity: EntityInput!
@@ -476,6 +476,8 @@ func usersOfEntity_filterSearchtermAndRoles2_Query(tenantId string) apitest.Grap
 		Query: apiTestQuery,
 		Variables: map[string]interface{}{
 			"tenantId": tenantId,
+			"page":     1,
+			"limit":    10,
 			"entity": EntityInput{
 				"project",
 				"test",
@@ -489,6 +491,51 @@ func usersOfEntity_filterSearchtermAndRoles2_Query(tenantId string) apitest.Grap
 				},
 			},
 		},
+	}
+}
+
+func usersOfEntityFiltered(vars map[string]interface{}) apitest.GraphQLRequestBody {
+	const apiTestQuery = ` query usersOfEntity(
+    $tenantId: ID!
+    $entity: EntityInput!
+    $limit: Int
+    $page: Int
+    $showInvitees: Boolean
+    $searchTerm: String
+    $roles: [RoleInput]
+  ) {
+    usersOfEntity(
+      tenantId: $tenantId
+      entity: $entity
+      limit: $limit
+      page: $page
+      showInvitees: $showInvitees
+      searchTerm: $searchTerm
+      roles: $roles
+    ) {
+      users {
+        user {
+          userId
+          email
+          firstName
+          lastName
+          invitationOutstanding
+        }
+        roles {
+          displayName
+          technicalName
+        }
+      }
+      pageInfo {
+        ownerCount
+        totalCount
+      }
+    }
+  }`
+
+	return apitest.GraphQLRequestBody{
+		Query:     apiTestQuery,
+		Variables: vars,
 	}
 }
 

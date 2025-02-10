@@ -232,6 +232,10 @@ func TestLoadTenantConfigData_Error(t *testing.T) {
   issuer: https://hyperspacedev.accounts.ondemand.com
   audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
   zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
+- tenantId: eCh0yae7ooWaek2iejo8geiqua
+  issuer: https://hyperspacedev.accounts.ondemand.com
+  audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
+  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
 `), nil
 	})
 

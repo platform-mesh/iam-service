@@ -1070,3 +1070,134 @@ func TestRemoveFromEntity(t *testing.T) {
 		})
 	}
 }
+
+func Test_UsersForEntityRolefilter(t *testing.T) {
+	tc := []struct {
+		name       string
+		setupMocks func(*mocks.OpenFGAServiceClient, *storeMocks.FGAStoreHelper)
+		error      error
+		result     types.UserIDToRoles
+	}{
+		{
+			name: "success",
+			result: types.UserIDToRoles{
+				"alice": []string{"member"},
+				"bob":   []string{"member"},
+			},
+			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
+				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, mock.Anything).
+					Return("storeId", nil).Once()
+
+				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
+					StoreId: "storeId",
+					TupleKey: &openfgav1.ReadRequestTupleKey{
+						Relation: "assignee",
+						Object:   "role:entityType/entityId/member",
+					},
+					PageSize: wrapperspb.Int32(100),
+				}).Return(&openfgav1.ReadResponse{
+					Tuples: []*openfgav1.Tuple{
+						{
+							Key: &openfgav1.TupleKey{
+								User:   "user:alice",
+								Object: "role:entityType/entityId/member",
+							},
+						},
+						{
+							Key: &openfgav1.TupleKey{
+								User:   "user:bob",
+								Object: "role:entityType/entityId/member",
+							},
+						},
+					},
+				}, nil).Once()
+
+				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
+					StoreId: "storeId",
+					TupleKey: &openfgav1.ReadRequestTupleKey{
+						Relation: "assignee",
+						Object:   "role:entityType/entityId/owner",
+					},
+					PageSize: wrapperspb.Int32(100),
+				}).Return(&openfgav1.ReadResponse{
+					Tuples: []*openfgav1.Tuple{
+						{
+							Key: &openfgav1.TupleKey{
+								User:   "user:alice",
+								Object: "NOT_VALID_OBJECT",
+							},
+						},
+					},
+				}, nil).Once()
+
+				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
+					StoreId: "storeId",
+					TupleKey: &openfgav1.ReadRequestTupleKey{
+						Relation: "assignee",
+						Object:   "role:entityType/entityId/vault_maintainer",
+					},
+					PageSize: wrapperspb.Int32(100),
+				}).Return(&openfgav1.ReadResponse{
+					Tuples: []*openfgav1.Tuple{
+						{
+							Key: &openfgav1.TupleKey{
+								User:   "user:alice",
+								Object: "role:entityType/entityId/vault_maintainer",
+							},
+						},
+					},
+				}, nil).Once()
+			},
+		},
+		{
+			name:  "GetStoreIDForTenant_ERROR",
+			error: assert.AnError,
+			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
+				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
+					Return("", assert.AnError).Once()
+			},
+		},
+		{
+			name:  "read_ERROR",
+			error: assert.AnError,
+			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
+				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, mock.Anything).
+					Return("storeId", nil).Once()
+
+				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
+					StoreId: "storeId",
+					TupleKey: &openfgav1.ReadRequestTupleKey{
+						Relation: "assignee",
+						Object:   "role:entityType/entityId/owner",
+					},
+					PageSize: wrapperspb.Int32(100),
+				}).Return(nil, assert.AnError).Once()
+			},
+		},
+	}
+	for _, tt := range tc {
+		t.Run(tt.name, func(t *testing.T) {
+			// setup service
+			openFGAServiceClientMock := &mocks.OpenFGAServiceClient{}
+			fgaStoreHelperMock := &storeMocks.FGAStoreHelper{}
+			s := CompatService{
+				upstream: openFGAServiceClientMock,
+				helper:   fgaStoreHelperMock,
+				roles:    getRoles(),
+			}
+
+			// setup mocks
+			if tt.setupMocks != nil {
+				tt.setupMocks(openFGAServiceClientMock, fgaStoreHelperMock)
+			}
+
+			// execute
+			filefilter := []*graph.RoleInput{
+				{DisplayName: "Member", TechnicalName: "member"},
+			}
+			res, err := s.UsersForEntityRolefilter(context.TODO(), "tenantID", "entityId", "entityType", filefilter)
+			assert.Equal(t, tt.error, err)
+			assert.Equal(t, tt.result, res)
+		})
+	}
+}

@@ -285,6 +285,68 @@ func (_c *Service_UsersForEntity_Call) RunAndReturn(run func(context.Context, st
 	return _c
 }
 
+// UsersForEntityRolefilter provides a mock function with given fields: ctx, tenantID, entityID, entityType, rolefilter
+func (_m *Service) UsersForEntityRolefilter(ctx context.Context, tenantID string, entityID string, entityType string, rolefilter []*graph.RoleInput) (types.UserIDToRoles, error) {
+	ret := _m.Called(ctx, tenantID, entityID, entityType, rolefilter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UsersForEntityRolefilter")
+	}
+
+	var r0 types.UserIDToRoles
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, []*graph.RoleInput) (types.UserIDToRoles, error)); ok {
+		return rf(ctx, tenantID, entityID, entityType, rolefilter)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, []*graph.RoleInput) types.UserIDToRoles); ok {
+		r0 = rf(ctx, tenantID, entityID, entityType, rolefilter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(types.UserIDToRoles)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, []*graph.RoleInput) error); ok {
+		r1 = rf(ctx, tenantID, entityID, entityType, rolefilter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Service_UsersForEntityRolefilter_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UsersForEntityRolefilter'
+type Service_UsersForEntityRolefilter_Call struct {
+	*mock.Call
+}
+
+// UsersForEntityRolefilter is a helper method to define mock.On call
+//   - ctx context.Context
+//   - tenantID string
+//   - entityID string
+//   - entityType string
+//   - rolefilter []*graph.RoleInput
+func (_e *Service_Expecter) UsersForEntityRolefilter(ctx interface{}, tenantID interface{}, entityID interface{}, entityType interface{}, rolefilter interface{}) *Service_UsersForEntityRolefilter_Call {
+	return &Service_UsersForEntityRolefilter_Call{Call: _e.mock.On("UsersForEntityRolefilter", ctx, tenantID, entityID, entityType, rolefilter)}
+}
+
+func (_c *Service_UsersForEntityRolefilter_Call) Run(run func(ctx context.Context, tenantID string, entityID string, entityType string, rolefilter []*graph.RoleInput)) *Service_UsersForEntityRolefilter_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].([]*graph.RoleInput))
+	})
+	return _c
+}
+
+func (_c *Service_UsersForEntityRolefilter_Call) Return(_a0 types.UserIDToRoles, _a1 error) *Service_UsersForEntityRolefilter_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Service_UsersForEntityRolefilter_Call) RunAndReturn(run func(context.Context, string, string, string, []*graph.RoleInput) (types.UserIDToRoles, error)) *Service_UsersForEntityRolefilter_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewService creates a new instance of Service. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewService(t interface {

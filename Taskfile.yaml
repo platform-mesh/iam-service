@@ -56,4 +56,4 @@ tasks:
       - task: fmt
       - task: lint
       - task: build
-      - task: test
+      - task: cover

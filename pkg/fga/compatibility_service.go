@@ -21,7 +21,9 @@ import (
 	"github.com/openmfp/iam-service/pkg/db"
 	"github.com/openmfp/iam-service/pkg/fga/middleware/principal"
 	"github.com/openmfp/iam-service/pkg/fga/types"
+	"github.com/openmfp/iam-service/pkg/graph"
 	graphql "github.com/openmfp/iam-service/pkg/graph"
+	"github.com/openmfp/iam-service/pkg/utils"
 )
 
 // TODO: get a list of roles to ask for from the database
@@ -31,6 +33,9 @@ func getRoles() []string {
 
 type Service interface {
 	UsersForEntity(ctx context.Context, tenantID string, entityID string, entityType string) (types.UserIDToRoles, error)
+	UsersForEntityRolefilter(
+		ctx context.Context, tenantID string, entityID string, entityType string, rolefilter []*graph.RoleInput,
+	) (types.UserIDToRoles, error)
 	CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, ownerUserID string) error
 	RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) error
 	AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graphql.Change) error
@@ -205,6 +210,59 @@ func (s *CompatService) UsersForEntity(
 			roleID := roleIdRaw[2]
 
 			userIDToRoles[userID] = append(userIDToRoles[userID], roleID)
+		}
+	}
+
+	return userIDToRoles, nil
+}
+
+// UsersForEntityRolefilter returns a map of user IDs to roles for a given entity using a rolefilter
+func (s *CompatService) UsersForEntityRolefilter(
+	ctx context.Context,
+	tenantID string,
+	entityID string,
+	entityType string,
+	rolefilter []*graph.RoleInput,
+) (types.UserIDToRoles, error) {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.GrantedUsers")
+	defer span.End()
+
+	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	logger := commonsLogger.LoadLoggerFromContext(ctx)
+	userIDToRoles := types.UserIDToRoles{}
+	for _, role := range s.roles {
+		roleMembers, err := s.upstream.Read(ctx, &openfgav1.ReadRequest{
+			StoreId: storeID,
+			TupleKey: &openfgav1.ReadRequestTupleKey{
+				Object:   fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role),
+				Relation: "assignee",
+			},
+			PageSize: wrapperspb.Int32(100),
+		})
+		if err != nil {
+			logger.Error().AnErr("openFGA read error", err).Send()
+			commonsSentry.CaptureError(err, commonsSentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "role": role})
+			return nil, err
+		}
+
+		for _, tuple := range roleMembers.Tuples {
+			user := tuple.Key.User
+			userID := strings.TrimPrefix(user, "user:")
+
+			roleIdRaw := strings.Split(tuple.Key.Object, "/")
+			if len(roleIdRaw) < 3 {
+				logger.Error().Str("role", tuple.Key.Object).Msg("role ID is not in expected format")
+				commonsSentry.CaptureError(errors.New("role ID not in expected format"), commonsSentry.Tags{"role": tuple.Key.Object})
+				continue
+			}
+			roleTechnicalName := roleIdRaw[2]
+			if utils.CheckRolesFilter(roleTechnicalName, rolefilter) {
+				userIDToRoles[userID] = append(userIDToRoles[userID], roleTechnicalName)
+			}
 		}
 	}
 
