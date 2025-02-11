@@ -464,7 +464,7 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1_owners_a
 			},
 			"showInvitees": false,
 			"searchTerm":   "FOOBAR",
-			"sortBy": &graphql.SortBy{
+			"sortBy": &graphql.SortByInput{
 				Field:     "user",
 				Direction: "asc",
 			},
@@ -520,7 +520,7 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_owners_a
 			},
 			"showInvitees": false,
 			"searchTerm":   "FOOBAR",
-			"sortBy": &graphql.SortBy{
+			"sortBy": &graphql.SortByInput{
 				Field:     "user",
 				Direction: "asc",
 			},
@@ -558,7 +558,7 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_owners_d
 			},
 			"showInvitees": false,
 			"searchTerm":   "FOOBAR",
-			"sortBy": &graphql.SortBy{
+			"sortBy": &graphql.SortByInput{
 				Field:     "user",
 				Direction: "desc",
 			},
@@ -596,7 +596,7 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1_owners_d
 			},
 			"showInvitees": false,
 			"searchTerm":   "FOOBAR",
-			"sortBy": &graphql.SortBy{
+			"sortBy": &graphql.SortByInput{
 				Field:     "user",
 				Direction: "desc",
 			},
@@ -652,7 +652,7 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1_owners_D
 			},
 			"showInvitees": false,
 			"searchTerm":   "FOOBAR",
-			"sortBy": &graphql.SortBy{
+			"sortBy": &graphql.SortByInput{
 				Field:     "user",
 				Direction: "Desc",
 			},

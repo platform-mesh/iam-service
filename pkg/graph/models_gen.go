@@ -20,7 +20,7 @@ type RoleInput struct {
 	TechnicalName string `json:"technicalName"`
 }
 
-type SortBy struct {
+type SortByInput struct {
 	Field     SortableFields `json:"field"`
 	Direction SortDirection  `json:"direction"`
 }

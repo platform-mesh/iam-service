@@ -33,7 +33,7 @@ func (d *Database) GetUserByID(ctx context.Context, tenantID string, userID stri
 // and using a search filter for user_id, first_name, last_name and email
 func (d *Database) GetUsersByUserIDs(
 	ctx context.Context, tenantID string, userIDs []string, limit, page int, searchTerm *string,
-	sortBy *graph.SortBy,
+	sortBy *graph.SortByInput,
 ) ([]*graph.User, error) {
 
 	orderString := "first_name, last_name desc"

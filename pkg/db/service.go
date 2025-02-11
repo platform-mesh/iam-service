@@ -47,7 +47,7 @@ type UserService interface {
 	GetUserByID(ctx context.Context, tenantID string, userId string) (*graph.User, error)
 	GetUsersByUserIDs(
 		ctx context.Context, tenantID string, userIDs []string, limit, page int, searchTerm *string,
-		sortBy *graph.SortBy,
+		sortBy *graph.SortByInput,
 	) ([]*graph.User, error)
 	GetUserByEmail(ctx context.Context, tenantID string, email string) (*graph.User, error)
 	GetOrCreateUser(ctx context.Context, tenantID string, input graph.UserInput) (*graph.User, error)

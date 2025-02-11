@@ -56,7 +56,7 @@ func (r *mutationResolver) RemoveUser(ctx context.Context, tenantID string, user
 }
 
 // UsersOfEntity is the resolver for the usersOfEntity field.
-func (r *queryResolver) UsersOfEntity(ctx context.Context, tenantID string, entity graph.EntityInput, limit *int, page *int, showInvitees *bool, searchTerm *string, roles []*graph.RoleInput, sortBy *graph.SortBy) (*graph.GrantedUserConnection, error) {
+func (r *queryResolver) UsersOfEntity(ctx context.Context, tenantID string, entity graph.EntityInput, limit *int, page *int, showInvitees *bool, searchTerm *string, roles []*graph.RoleInput, sortBy *graph.SortByInput) (*graph.GrantedUserConnection, error) {
 	return r.service.UsersOfEntity(ctx, tenantID, entity, limit, page, showInvitees, searchTerm, roles, sortBy)
 }
 

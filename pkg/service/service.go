@@ -26,7 +26,7 @@ import (
 type ServiceInterface interface { // nolint: interfacebloat
 	AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graph.Change) (bool, error)
 	UsersOfEntity(ctx context.Context, tenantID string, entity graph.EntityInput, limit *int,
-		page *int, showInvitees *bool, searchTerm *string, rolesFilter []*graph.RoleInput, sortBy *graph.SortBy,
+		page *int, showInvitees *bool, searchTerm *string, rolesFilter []*graph.RoleInput, sortBy *graph.SortByInput,
 	) (*graph.GrantedUserConnection, error)
 	RemoveFromEntity(ctx context.Context, tenantID string, entityType string, userID string, entityID string) (bool, error)
 	LeaveEntity(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error)
@@ -205,7 +205,7 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 	showInvitees *bool,
 	searchTerm *string,
 	rolesfilter []*graph.RoleInput,
-	sortBy *graph.SortBy,
+	sortBy *graph.SortByInput,
 ) (*graph.GrantedUserConnection, error) {
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.UsersOfEntity")
 	defer span.End()

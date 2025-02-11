@@ -548,7 +548,7 @@ func usersOfEntityFilteredSortby(vars map[string]interface{}) apitest.GraphQLReq
     $showInvitees: Boolean
     $searchTerm: String
     $roles: [RoleInput]
-		$sortBy: SortBy
+		$sortBy: SortByInput
   ) {
     usersOfEntity(
       tenantId: $tenantId

@@ -51,7 +51,7 @@ enum SortDirection {
     desc
 }
 
-input SortBy {
+input SortByInput {
     field: SortableFields!
     direction: SortDirection!
 }
@@ -110,7 +110,7 @@ type Query {
     - 'sortBy' is a field and direction to sort the users by
     Return value:
     - GrantedUserConnection is a list of users and their roles which matches the input parameters"""
-    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false, searchTerm: String, roles: [RoleInput], sortBy: SortBy): GrantedUserConnection @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
+    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false, searchTerm: String, roles: [RoleInput], sortBy: SortByInput): GrantedUserConnection @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
 
     """ Get all roles that are granted to the user of the referenced entity
     Input parameters:

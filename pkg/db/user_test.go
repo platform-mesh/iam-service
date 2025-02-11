@@ -554,7 +554,7 @@ func Test_GetUsersByUserIDs3(t *testing.T) {
 	}
 
 	searchTerm := "test"
-	result, err := database.GetUsersByUserIDs(ctx, tenantID, userIDs, 10, -2, &searchTerm, &graph.SortBy{Field: "user", Direction: "Asc"})
+	result, err := database.GetUsersByUserIDs(ctx, tenantID, userIDs, 10, -2, &searchTerm, &graph.SortByInput{Field: "user", Direction: "Asc"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
 }
