@@ -12,7 +12,7 @@ require (
 	github.com/openfga/api/proto v0.0.0-20250127102726-f9709139a369
 	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20241115164311-10e575c8e47c
 	github.com/openfga/openfga v1.8.4
-	github.com/openmfp/golang-commons v0.133.0
+	github.com/openmfp/golang-commons v0.134.0
 	github.com/pkg/errors v0.9.1
 	github.com/r3labs/diff/v3 v3.0.1
 	github.com/rs/zerolog v1.33.0
@@ -144,9 +144,9 @@ require (
 	google.golang.org/protobuf v1.36.5
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.32.1 // indirect
+	k8s.io/api v0.32.2 // indirect
 	k8s.io/apimachinery v0.32.2
-	k8s.io/client-go v0.32.1
+	k8s.io/client-go v0.32.2
 	k8s.io/klog/v2 v2.130.1 // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.2 // indirect
