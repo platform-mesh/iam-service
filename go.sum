@@ -252,8 +252,8 @@ github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20241115164311-10e575c8e47c h
 github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20241115164311-10e575c8e47c/go.mod h1:12RMe/HuRNyOzS33RQa53jwdcxE2znr8ycXMlVbgQN4=
 github.com/openfga/openfga v1.8.4 h1:OqyRpuxMCxcS7irTFYFkhAIYzmAnczNwxUqjnuZOQyo=
 github.com/openfga/openfga v1.8.4/go.mod h1:9Ax9VMMySV2JMsCT8MTePeYt4OrTnPAy1XUV1y9RyuU=
-github.com/openmfp/golang-commons v0.134.0 h1:oqophHORXKCQuY9Rh39ZEKm/2HFz1o3JlZy15NBHM7o=
-github.com/openmfp/golang-commons v0.134.0/go.mod h1:tDuWXG1COI99BOLz50wnfKsS6BmXheU22lGl9Nmqs/Q=
+github.com/openmfp/golang-commons v0.135.0 h1:zi9kUHqA4oIf5s0R+Nt1Oy+k4RaU7QPSSCVKChzf088=
+github.com/openmfp/golang-commons v0.135.0/go.mod h1:j1Qm6FAgjT/z2uHBlzu9zS6RY2I+pHATyy+ztCVPO68=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/pborman/getopt v0.0.0-20170112200414-7148bc3a4c30/go.mod h1:85jBQOZwpVEaDAr341tbn15RS4fCAsIst0qp7i8ex1o=
 github.com/pelletier/go-toml/v2 v2.2.2 h1:aYUidT7k73Pcl9nb2gScu7NSrKCSHIDE89b3+6Wq+LM=
