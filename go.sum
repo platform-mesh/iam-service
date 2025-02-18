@@ -252,8 +252,8 @@ github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20241115164311-10e575c8e47c h
 github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20241115164311-10e575c8e47c/go.mod h1:12RMe/HuRNyOzS33RQa53jwdcxE2znr8ycXMlVbgQN4=
 github.com/openfga/openfga v1.8.4 h1:OqyRpuxMCxcS7irTFYFkhAIYzmAnczNwxUqjnuZOQyo=
 github.com/openfga/openfga v1.8.4/go.mod h1:9Ax9VMMySV2JMsCT8MTePeYt4OrTnPAy1XUV1y9RyuU=
-github.com/openmfp/golang-commons v0.138.0 h1:Y2c6FUDlgbGklIvLVuJosoDfLkPIHWt7Fv7df+fVfWs=
-github.com/openmfp/golang-commons v0.138.0/go.mod h1:B7xk5i8H8OW6IdLiOInTPeuxSc1Z+16ndCx9vL48tHk=
+github.com/openmfp/golang-commons v0.139.0 h1:p3/00AeRieQLXJLEUwCQWGN3BZixd67H0jaN3eJVuvQ=
+github.com/openmfp/golang-commons v0.139.0/go.mod h1:2wBbm8YsyPazBcR0CzWzS+LO68P6KOy5I2BDPpEhswI=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/pborman/getopt v0.0.0-20170112200414-7148bc3a4c30/go.mod h1:85jBQOZwpVEaDAr341tbn15RS4fCAsIst0qp7i8ex1o=
 github.com/pelletier/go-toml/v2 v2.2.2 h1:aYUidT7k73Pcl9nb2gScu7NSrKCSHIDE89b3+6Wq+LM=
@@ -397,8 +397,8 @@ golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPh
 golang.org/x/crypto v0.33.0 h1:IOBPskki6Lysi0lo9qQvbxiQ+FvsCC/YWOecCHAixus=
 golang.org/x/crypto v0.33.0/go.mod h1:bVdXmD7IV/4GdElGPozy6U7lWdRXA4qyRVGJV57uQ5M=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
-golang.org/x/exp v0.0.0-20250215185904-eff6e970281f h1:oFMYAjX0867ZD2jcNiLBrI9BdpmEkvPyi5YrBGXbamg=
-golang.org/x/exp v0.0.0-20250215185904-eff6e970281f/go.mod h1:BHOTPb3L19zxehTsLoJXVaTktb06DFgmdW6Wb9s8jqk=
+golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa h1:t2QcU6V556bFjYgu4L6C+6VrCPyJZ+eyRsABUPs1mz4=
+golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa/go.mod h1:BHOTPb3L19zxehTsLoJXVaTktb06DFgmdW6Wb9s8jqk=
 golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=
 golang.org/x/lint v0.0.0-20190227174305-5b3e6a55c961/go.mod h1:wehouNa3lNwaWXcvxsM5YxQ5yQlVC4a0KAMCusXpPoU=
 golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3/go.mod h1:6SW0HCj/g11FgYtHlgUYUwCkIfeOF89ocIRzGO/8vkc=
