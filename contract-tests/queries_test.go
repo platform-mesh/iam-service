@@ -692,3 +692,59 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_p2_owners_invitees
 		Assert(jsonpath.Equal("$.data.usersOfEntity.pageInfo.totalCount", float64(16))).
 		End()
 }
+
+func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_FGA_pagination() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
+		GraphQLRequest(usersOfEntityFilteredSortby(map[string]interface{}{
+			"tenantId": tenantId,
+			"page":     1,
+			"limit":    10,
+			"entity": EntityInput{
+				"project",
+				"FoobarProject",
+			},
+			"showInvitees": false,
+			"searchTerm":   "FOOBAR",
+			"sortBy": &graphql.SortByInput{
+				Field:     "user",
+				Direction: "desc",
+			},
+		})).
+		Expect(suite.T()).
+		Status(http.StatusOK).
+		Assert(gqlAssertions.NoGQLErrors()).
+		Assert(jsonpath.Len("$.data.usersOfEntity.users", 10)).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[0].user.email", "FOOBAR3@mycorp.com")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[0].user.firstName", "Robert")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[0].user.lastName", "Williams")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[1].user.email", "FOOBAR4@mycorp.com")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[1].user.firstName", "Michael")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[1].user.lastName", "Brown")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[2].user.email", "FOOBAR5@mycorp.com")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[2].user.firstName", "Maria")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[2].user.lastName", "Garcia")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[3].user.email", "FOOBAR11@mycorp.com")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[3].user.firstName", "Lisa")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[3].user.lastName", "White")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[4].user.email", "FOOBAR13@mycorp.com")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[4].user.firstName", "Laura")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[4].user.lastName", "Martin")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[5].user.email", "FOOBAR14@mycorp.com")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[5].user.firstName", "Kevin")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[5].user.lastName", "Thompson")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[6].user.email", "FOOBAR10@mycorp.com")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[6].user.firstName", "Joseph")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[6].user.lastName", "Jackson")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[7].user.email", "FOOBAR1@mycorp.com")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[7].user.firstName", "John")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[7].user.lastName", "Smith")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[8].user.email", "FOOBAR7@mycorp.com")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[8].user.firstName", "Jennifer")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[8].user.lastName", "Martinez")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[9].user.email", "FOOBAR12@mycorp.com")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[9].user.firstName", "James")).
+		Assert(jsonpath.Equal("$.data.usersOfEntity.users[9].user.lastName", "Harris")).
+		End()
+}

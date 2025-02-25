@@ -183,33 +183,41 @@ func (s *CompatService) UsersForEntity(
 	logger := commonsLogger.LoadLoggerFromContext(ctx)
 	userIDToRoles := types.UserIDToRoles{}
 	for _, role := range s.roles {
-		roleMembers, err := s.upstream.Read(ctx, &openfgav1.ReadRequest{
-			StoreId: storeID,
-			TupleKey: &openfgav1.ReadRequestTupleKey{
-				Object:   fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role),
-				Relation: "assignee",
-			},
-			PageSize: wrapperspb.Int32(100),
-		})
-		if err != nil {
-			logger.Error().AnErr("openFGA read error", err).Send()
-			commonsSentry.CaptureError(err, commonsSentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "role": role})
-			return nil, err
-		}
-
-		for _, tuple := range roleMembers.Tuples {
-			user := tuple.Key.User
-			userID := strings.TrimPrefix(user, "user:")
-
-			roleIdRaw := strings.Split(tuple.Key.Object, "/")
-			if len(roleIdRaw) < 3 {
-				logger.Error().Str("role", tuple.Key.Object).Msg("role ID is not in expected format")
-				commonsSentry.CaptureError(errors.New("role ID not in expected format"), commonsSentry.Tags{"role": tuple.Key.Object})
-				continue
+		var continuationToken string
+		for {
+			roleMembers, err := s.upstream.Read(ctx, &openfgav1.ReadRequest{
+				StoreId: storeID,
+				TupleKey: &openfgav1.ReadRequestTupleKey{
+					Object:   fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role),
+					Relation: "assignee",
+				},
+				PageSize:          wrapperspb.Int32(100),
+				ContinuationToken: continuationToken,
+			})
+			if err != nil {
+				logger.Error().AnErr("openFGA read error", err).Send()
+				commonsSentry.CaptureError(err, commonsSentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "role": role})
+				return nil, err
 			}
-			roleID := roleIdRaw[2]
+			for _, tuple := range roleMembers.Tuples {
+				user := tuple.Key.User
+				userID := strings.TrimPrefix(user, "user:")
 
-			userIDToRoles[userID] = append(userIDToRoles[userID], roleID)
+				roleIdRaw := strings.Split(tuple.Key.Object, "/")
+				if len(roleIdRaw) < 3 {
+					logger.Error().Str("role", tuple.Key.Object).Msg("role ID is not in expected format")
+					commonsSentry.CaptureError(errors.New("role ID not in expected format"), commonsSentry.Tags{"role": tuple.Key.Object})
+					continue
+				}
+				roleID := roleIdRaw[2]
+
+				userIDToRoles[userID] = append(userIDToRoles[userID], roleID)
+			}
+
+			continuationToken = roleMembers.ContinuationToken
+			if continuationToken == "" {
+				break
+			}
 		}
 	}
 
@@ -235,33 +243,41 @@ func (s *CompatService) UsersForEntityRolefilter(
 	logger := commonsLogger.LoadLoggerFromContext(ctx)
 	userIDToRoles := types.UserIDToRoles{}
 	for _, role := range s.roles {
-		roleMembers, err := s.upstream.Read(ctx, &openfgav1.ReadRequest{
-			StoreId: storeID,
-			TupleKey: &openfgav1.ReadRequestTupleKey{
-				Object:   fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role),
-				Relation: "assignee",
-			},
-			PageSize: wrapperspb.Int32(100),
-		})
-		if err != nil {
-			logger.Error().AnErr("openFGA read error", err).Send()
-			commonsSentry.CaptureError(err, commonsSentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "role": role})
-			return nil, err
-		}
-
-		for _, tuple := range roleMembers.Tuples {
-			user := tuple.Key.User
-			userID := strings.TrimPrefix(user, "user:")
-
-			roleIdRaw := strings.Split(tuple.Key.Object, "/")
-			if len(roleIdRaw) < 3 {
-				logger.Error().Str("role", tuple.Key.Object).Msg("role ID is not in expected format")
-				commonsSentry.CaptureError(errors.New("role ID not in expected format"), commonsSentry.Tags{"role": tuple.Key.Object})
-				continue
+		var continuationToken string
+		for {
+			roleMembers, err := s.upstream.Read(ctx, &openfgav1.ReadRequest{
+				StoreId: storeID,
+				TupleKey: &openfgav1.ReadRequestTupleKey{
+					Object:   fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role),
+					Relation: "assignee",
+				},
+				PageSize:          wrapperspb.Int32(100),
+				ContinuationToken: continuationToken,
+			})
+			if err != nil {
+				logger.Error().AnErr("openFGA read error", err).Send()
+				commonsSentry.CaptureError(err, commonsSentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "role": role})
+				return nil, err
 			}
-			roleTechnicalName := roleIdRaw[2]
-			if utils.CheckRolesFilter(roleTechnicalName, rolefilter) {
-				userIDToRoles[userID] = append(userIDToRoles[userID], roleTechnicalName)
+			for _, tuple := range roleMembers.Tuples {
+				user := tuple.Key.User
+				userID := strings.TrimPrefix(user, "user:")
+
+				roleIdRaw := strings.Split(tuple.Key.Object, "/")
+				if len(roleIdRaw) < 3 {
+					logger.Error().Str("role", tuple.Key.Object).Msg("role ID is not in expected format")
+					commonsSentry.CaptureError(errors.New("role ID not in expected format"), commonsSentry.Tags{"role": tuple.Key.Object})
+					continue
+				}
+				roleTechnicalName := roleIdRaw[2]
+				if utils.CheckRolesFilter(roleTechnicalName, rolefilter) {
+					userIDToRoles[userID] = append(userIDToRoles[userID], roleTechnicalName)
+				}
+			}
+
+			continuationToken = roleMembers.ContinuationToken
+			if continuationToken == "" {
+				break
 			}
 		}
 	}
@@ -335,26 +351,34 @@ func (s *CompatService) RemoveAccount(ctx context.Context, tenantID string, enti
 	tags := commonsSentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID}
 	var deletes []*openfgav1.TupleKeyWithoutCondition
 	for _, role := range s.roles {
-		assignees, err := s.upstream.Read(ctx, &openfgav1.ReadRequest{
-			StoreId: storeID,
-			TupleKey: &openfgav1.ReadRequestTupleKey{
-				Object:   fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role),
-				Relation: "assignee",
-			},
-			PageSize: wrapperspb.Int32(100),
-		})
-		if err != nil {
-			logger.Error().AnErr("openFGA read error", err).Send()
-			commonsSentry.CaptureError(err, tags)
-			return err
-		}
-
-		for _, assignee := range assignees.Tuples {
-			deletes = append(deletes, &openfgav1.TupleKeyWithoutCondition{
-				Object:   assignee.Key.Object,
-				Relation: assignee.Key.Relation,
-				User:     assignee.Key.User,
+		var continuationToken string
+		for {
+			assignees, err := s.upstream.Read(ctx, &openfgav1.ReadRequest{
+				StoreId: storeID,
+				TupleKey: &openfgav1.ReadRequestTupleKey{
+					Object:   fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role),
+					Relation: "assignee",
+				},
+				PageSize:          wrapperspb.Int32(100),
+				ContinuationToken: continuationToken,
 			})
+			if err != nil {
+				logger.Error().AnErr("openFGA read error", err).Send()
+				commonsSentry.CaptureError(err, tags)
+				return err
+			}
+			for _, assignee := range assignees.Tuples {
+				deletes = append(deletes, &openfgav1.TupleKeyWithoutCondition{
+					Object:   assignee.Key.Object,
+					Relation: assignee.Key.Relation,
+					User:     assignee.Key.User,
+				})
+			}
+
+			continuationToken = assignees.ContinuationToken
+			if continuationToken == "" {
+				break
+			}
 		}
 	}
 
