@@ -12,7 +12,7 @@ require (
 	github.com/openfga/api/proto v0.0.0-20250127102726-f9709139a369
 	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20250121233318-0eae96a39570
 	github.com/openfga/openfga v1.8.6
-	github.com/openmfp/golang-commons v0.140.0
+	github.com/openmfp/golang-commons v0.142.0
 	github.com/pkg/errors v0.9.1
 	github.com/r3labs/diff/v3 v3.0.1
 	github.com/rs/zerolog v1.33.0
@@ -89,7 +89,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
-	golang.org/x/oauth2 v0.26.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
