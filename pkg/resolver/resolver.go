@@ -5,7 +5,7 @@ import (
 	"github.com/openmfp/iam-service/pkg/service"
 )
 
-//go:generate go run github.com/99designs/gqlgen@v0.17.49 generate
+//go:generate go run github.com/99designs/gqlgen@v0.17.72 generate
 
 // This file will not be regenerated automatically.
 //

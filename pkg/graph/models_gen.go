@@ -3,6 +3,7 @@
 package graph
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"strconv"
@@ -49,7 +50,7 @@ func (e SortDirection) String() string {
 	return string(e)
 }
 
-func (e *SortDirection) UnmarshalGQL(v interface{}) error {
+func (e *SortDirection) UnmarshalGQL(v any) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
@@ -64,6 +65,20 @@ func (e *SortDirection) UnmarshalGQL(v interface{}) error {
 
 func (e SortDirection) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *SortDirection) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e SortDirection) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }
 
 type SortableFields string
@@ -88,7 +103,7 @@ func (e SortableFields) String() string {
 	return string(e)
 }
 
-func (e *SortableFields) UnmarshalGQL(v interface{}) error {
+func (e *SortableFields) UnmarshalGQL(v any) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
@@ -103,4 +118,18 @@ func (e *SortableFields) UnmarshalGQL(v interface{}) error {
 
 func (e SortableFields) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *SortableFields) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e SortableFields) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }
