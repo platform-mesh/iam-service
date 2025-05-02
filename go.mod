@@ -26,7 +26,7 @@ require (
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/driver/sqlite v1.5.7
 	gorm.io/gorm v1.25.12
-	k8s.io/utils v0.0.0-20241210054802-24370beab758
+	k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e
 	sigs.k8s.io/yaml v1.4.0
 )
 
