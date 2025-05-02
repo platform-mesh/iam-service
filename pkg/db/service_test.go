@@ -405,7 +405,13 @@ func TestLoadTeamData_WhenSuccessful_ReturnsTeamData(t *testing.T) {
 	loadTeamDataCalls := 0
 
 	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		if filename == "input/user.yaml" {
+		switch filename {
+		case "input/team.yaml":
+			loadTeamDataCalls++
+			return []byte(`team:
+  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+    name: exampleTeam1`), nil
+		case "input/user.yaml":
 			loadUserDataCalls++
 			return []byte(`user:
   - tenant_id: abc123456
@@ -416,11 +422,6 @@ func TestLoadTeamData_WhenSuccessful_ReturnsTeamData(t *testing.T) {
       - group: projectAdmins
         scope: exampleProject
         entity: project`), nil
-		} else if filename == "input/team.yaml" {
-			loadTeamDataCalls++
-			return []byte(`team:
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
-    name: exampleTeam1`), nil
 		}
 
 		return nil, nil
@@ -478,10 +479,11 @@ func TestLoadTeamData_ZeroUser_Error(t *testing.T) {
 	loadTeamDataCalls := 0
 
 	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		if filename == "input/user.yaml" {
+		switch filename {
+		case "input/user.yaml":
 			loadUserDataCalls++
 			return []byte(`user:`), nil
-		} else if filename == "input/team.yaml" {
+		case "input/team.yaml":
 			loadTeamDataCalls++
 			return []byte(`team:
   - tenantId: eCh0yae7ooWaek2iejo8geiqua
@@ -528,7 +530,11 @@ func TestLoadTeamData_ZeroTeams(t *testing.T) {
 	loadTeamDataCalls := 0
 
 	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		if filename == "input/user.yaml" {
+		switch filename {
+		case "input/team.yaml":
+			loadTeamDataCalls++
+			return []byte(`team:`), nil
+		case "input/user.yaml":
 			loadUserDataCalls++
 			return []byte(`user:
   - tenant_id: abc123456
@@ -539,9 +545,6 @@ func TestLoadTeamData_ZeroTeams(t *testing.T) {
       - group: projectAdmins
         scope: exampleProject
         entity: project`), nil
-		} else if filename == "input/team.yaml" {
-			loadTeamDataCalls++
-			return []byte(`team:`), nil
 		}
 
 		return nil, nil
@@ -583,7 +586,13 @@ func TestLoadTeamData_CreateError(t *testing.T) {
 	loadTeamDataCalls := 0
 
 	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		if filename == "input/user.yaml" {
+		switch filename {
+		case "input/team.yaml":
+			loadTeamDataCalls++
+			return []byte(`team:
+  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+    name: exampleTeam1`), nil
+		case "input/user.yaml":
 			loadUserDataCalls++
 			return []byte(`user:
   - tenant_id: abc123456
@@ -594,11 +603,6 @@ func TestLoadTeamData_CreateError(t *testing.T) {
       - group: projectAdmins
         scope: exampleProject
         entity: project`), nil
-		} else if filename == "input/team.yaml" {
-			loadTeamDataCalls++
-			return []byte(`team:
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
-    name: exampleTeam1`), nil
 		}
 
 		return nil, nil
@@ -1161,7 +1165,13 @@ func TestLoadUserData_DBFirstReturnsNil_ReturnsError(t *testing.T) {
 	loadTeamDataCalls := 0
 
 	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		if filename == "input/user.yaml" {
+		switch filename {
+		case "input/team.yaml":
+			loadTeamDataCalls++
+			return []byte(`team:
+  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+    name: exampleTeam1`), nil
+		case "input/user.yaml":
 			loadUserDataCalls++
 			return []byte(`user:
   - tenant_id: abc123456
@@ -1172,11 +1182,6 @@ func TestLoadUserData_DBFirstReturnsNil_ReturnsError(t *testing.T) {
       - group: projectAdmins
         scope: exampleProject
         entity: project`), nil
-		} else if filename == "input/team.yaml" {
-			loadTeamDataCalls++
-			return []byte(`team:
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
-    name: exampleTeam1`), nil
 		}
 
 		return nil, nil

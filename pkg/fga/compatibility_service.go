@@ -21,7 +21,6 @@ import (
 	"github.com/openmfp/iam-service/pkg/db"
 	"github.com/openmfp/iam-service/pkg/fga/middleware/principal"
 	"github.com/openmfp/iam-service/pkg/fga/types"
-	"github.com/openmfp/iam-service/pkg/graph"
 	graphql "github.com/openmfp/iam-service/pkg/graph"
 	"github.com/openmfp/iam-service/pkg/utils"
 )
@@ -34,7 +33,7 @@ func getRoles() []string {
 type Service interface {
 	UsersForEntity(ctx context.Context, tenantID string, entityID string, entityType string) (types.UserIDToRoles, error)
 	UsersForEntityRolefilter(
-		ctx context.Context, tenantID string, entityID string, entityType string, rolefilter []*graph.RoleInput,
+		ctx context.Context, tenantID string, entityID string, entityType string, rolefilter []*graphql.RoleInput,
 	) (types.UserIDToRoles, error)
 	CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, ownerUserID string) error
 	RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) error
@@ -230,7 +229,7 @@ func (s *CompatService) UsersForEntityRolefilter(
 	tenantID string,
 	entityID string,
 	entityType string,
-	rolefilter []*graph.RoleInput,
+	rolefilter []*graphql.RoleInput,
 ) (types.UserIDToRoles, error) {
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.GrantedUsers")
 	defer span.End()

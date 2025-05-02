@@ -268,5 +268,5 @@ func executeKillIstio() {
 	if err != nil {
 		log.Panic().Err(err).Msg("failed to kill istio")
 	}
-	defer res.Body.Close()
+	defer res.Body.Close() //nolint:errcheck
 }

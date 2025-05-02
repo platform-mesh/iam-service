@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 
-	openmfpCtx "github.com/openmfp/golang-commons/context"
-
 	"github.com/openmfp/iam-service/pkg/db"
 	"github.com/openmfp/iam-service/pkg/db/mocks"
 	fgamock "github.com/openmfp/iam-service/pkg/fga/mocks"
@@ -542,9 +540,9 @@ func Test_UsersOfEntity(t *testing.T) {
 		EntityType: "project",
 		EntityID:   "entityId",
 	}
-	var page int = 1
-	var limit int = 10
-	var showInvitees bool = true
+	var page = 1
+	var limit = 10
+	var showInvitees = true
 
 	userIDToRoles := types.UserIDToRoles{
 		"userID123": []string{"owner"},
@@ -609,9 +607,9 @@ func Test_UsersOfEntity_Filter(t *testing.T) {
 		EntityType: "project",
 		EntityID:   "entityId",
 	}
-	var page int = 1
-	var limit int = 10
-	var showInvitees bool = true
+	var page = 1
+	var limit = 10
+	var showInvitees = true
 
 	mockres_UserForEntityRolefilter := types.UserIDToRoles{
 		"userID123": []string{"owner"},
@@ -661,9 +659,9 @@ func Test_UsersOfEntity_FilterAdvanced(t *testing.T) {
 		EntityType: "project",
 		EntityID:   "dolomiten-sync",
 	}
-	var page int = 1
-	var limit int = 10
-	var showInvitees bool = true
+	var page = 1
+	var limit = 10
+	var showInvitees = true
 
 	mockResponseFgaUserIDRoles := types.UserIDToRoles{
 		"usermiID123":  []string{"owner"},
@@ -745,9 +743,9 @@ func Test_UsersOfEntity_FilterAdvanced_Groupfilter(t *testing.T) {
 		EntityType: "project",
 		EntityID:   "dolomiten-sync",
 	}
-	var page int = 1
-	var limit int = 10
-	var showInvitees bool = true
+	var page = 1
+	var limit = 10
+	var showInvitees = true
 
 	mockres_fgaUserRoles_rolesfiltered := types.UserIDToRoles{ // 11
 		"userID123":  []string{"owner"},
@@ -815,9 +813,9 @@ func Test_UsersOfEntity_With_Invitations(t *testing.T) {
 		EntityType: "project",
 		EntityID:   "entityId",
 	}
-	var page int = 0
-	var limit int = -1
-	var showInvitees bool = true
+	var page = 0
+	var limit = -1
+	var showInvitees = true
 
 	userIDToRoles := types.UserIDToRoles{
 		"userID123": []string{"admin"},
@@ -865,9 +863,9 @@ func Test_UsersOfEntity_Errors(t *testing.T) {
 		EntityType: "project",
 		EntityID:   "entityId",
 	}
-	var page int = 1
-	var limit int = 100000
-	var showInvitees bool = true
+	var page = 1
+	var limit = 100000
+	var showInvitees = true
 
 	userIDToRoles := types.UserIDToRoles{
 		"userID123": []string{"admin"},
@@ -1302,7 +1300,7 @@ func TestSearchUsers(t *testing.T) {
 	}{
 		{
 			name:  "Success",
-			ctx:   openmfpCtx.AddTenantToContext(context.TODO(), "tenant1"),
+			ctx:   mfpcontext.AddTenantToContext(context.TODO(), "tenant1"),
 			query: "jo",
 			setupMocks: func(ctx context.Context, db *mocks.DatabaseService) {
 				mockDb.EXPECT().SearchUsers(ctx, "tenant1", "jo").Return(mockUsers, nil).Once()
@@ -1318,19 +1316,19 @@ func TestSearchUsers(t *testing.T) {
 		},
 		{
 			name:      "EmptyTenantIdError",
-			ctx:       openmfpCtx.AddTenantToContext(context.TODO(), ""),
+			ctx:       mfpcontext.AddTenantToContext(context.TODO(), ""),
 			result:    nil,
 			errString: "tenantID must not be empty",
 		},
 		{
 			name:      "EmptyQueryError",
-			ctx:       openmfpCtx.AddTenantToContext(context.TODO(), "tenant1"),
+			ctx:       mfpcontext.AddTenantToContext(context.TODO(), "tenant1"),
 			result:    nil,
 			errString: "query must not be empty",
 		},
 		{
 			name:  "DbError",
-			ctx:   openmfpCtx.AddTenantToContext(context.TODO(), "tenant1"),
+			ctx:   mfpcontext.AddTenantToContext(context.TODO(), "tenant1"),
 			query: "jo",
 			setupMocks: func(ctx context.Context, db *mocks.DatabaseService) {
 				mockDb.EXPECT().SearchUsers(ctx, "tenant1", "jo").
@@ -1380,9 +1378,9 @@ func Test_UsersOfEntity_pagination(t *testing.T) {
 		EntityType: "project",
 		EntityID:   "dolomiten-sync",
 	}
-	var page int = 3
-	var limit int = 10
-	var showInvitees bool = true
+	var page = 3
+	var limit = 10
+	var showInvitees = true
 
 	mockResponse_UsersForEntity := types.UserIDToRoles{
 		"userID123":    []string{"owner"},
@@ -1480,7 +1478,7 @@ func Test_UsersOfEntity_pagination_nils(t *testing.T) {
 		EntityType: "project",
 		EntityID:   "dolomiten-sync",
 	}
-	var showInvitees bool = true
+	var showInvitees = true
 
 	mockResponse_UsersForEntity := types.UserIDToRoles{
 		"userID123":    []string{"owner"},
