@@ -282,8 +282,8 @@ github.com/spf13/pflag v1.0.6/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An
 github.com/spf13/viper v1.20.1 h1:ZMi+z/lvLyPSCoNtFCpqjy0S4kPbirhpTMwl8BkW9X4=
 github.com/spf13/viper v1.20.1/go.mod h1:P9Mdzt1zoHIG8m2eZQinpiBjo6kCmZSKBClNNqjJvu4=
 github.com/steinfletcher/apitest v1.5.10/go.mod h1:cf7Bneo52IIAgpqhP8xaLlzWgAiQ9fHtsDMjeDnZ3so=
-github.com/steinfletcher/apitest v1.5.17 h1:nlrfVNLN/g6T2GxDnjfK+QTeQ2be1SNAt8VkAy5twLQ=
-github.com/steinfletcher/apitest v1.5.17/go.mod h1:mF+KnYaIkuHM0C4JgGzkIIOJAEjo+EA5tTjJ+bHXnQc=
+github.com/steinfletcher/apitest v1.6.0 h1:BvZpQh0DECrDq7nFzDjwQqwXAEc+cykuVD4aUdXvQfA=
+github.com/steinfletcher/apitest v1.6.0/go.mod h1:mF+KnYaIkuHM0C4JgGzkIIOJAEjo+EA5tTjJ+bHXnQc=
 github.com/steinfletcher/apitest-jsonpath v1.7.2 h1:H7Y3f7zwHQ9crUjA36Z/vhE5x8xidGCriJqsDZ4uHgs=
 github.com/steinfletcher/apitest-jsonpath v1.7.2/go.mod h1:FzU2i3ZIyIdF6yBI8a0DZ10gCC6jhiD1yAdU0nCz5Do=
 github.com/stoewer/go-strcase v1.3.0 h1:g0eASXYtp+yvN9fK8sH94oCIk0fau9uV1/ZdJ0AVEzs=
