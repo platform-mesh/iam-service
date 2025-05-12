@@ -12,7 +12,7 @@ require (
 	github.com/openfga/api/proto v0.0.0-20250127102726-f9709139a369
 	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20250121233318-0eae96a39570
 	github.com/openfga/openfga v1.8.6
-	github.com/openmfp/golang-commons v0.147.3
+	github.com/openmfp/golang-commons v0.147.6
 	github.com/pkg/errors v0.9.1
 	github.com/r3labs/diff/v3 v3.0.1
 	github.com/rs/zerolog v1.34.0
