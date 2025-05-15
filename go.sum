@@ -76,8 +76,8 @@ github.com/fsnotify/fsnotify v1.8.0 h1:dAwr6QBTBZIkG8roQaJjGof0pp0EeF+tNV7YBP3F/
 github.com/fsnotify/fsnotify v1.8.0/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
 github.com/fxamacker/cbor/v2 v2.7.0 h1:iM5WgngdRBanHcxugY4JySA0nk1wZorNOpTgCMedv5E=
 github.com/fxamacker/cbor/v2 v2.7.0/go.mod h1:pxXPTn3joSm21Gbwsv0w9OSA2y1HFR9qXEeXQVeNoDQ=
-github.com/getsentry/sentry-go v0.32.0 h1:YKs+//QmwE3DcYtfKRH8/KyOOF/I6Qnx7qYGNHCGmCY=
-github.com/getsentry/sentry-go v0.32.0/go.mod h1:CYNcMMz73YigoHljQRG+qPF+eMq8gG72XcGN/p71BAY=
+github.com/getsentry/sentry-go v0.33.0 h1:YWyDii0KGVov3xOaamOnF0mjOrqSjBqwv48UEzn7QFg=
+github.com/getsentry/sentry-go v0.33.0/go.mod h1:C55omcY9ChRQIUcVcGcs+Zdy4ZpQGvNJ7JYHIoSWOtE=
 github.com/go-chi/chi/v5 v5.2.1 h1:KOIHODQj58PmL80G2Eak4WdvUzjSJSm0vG72crDCqb8=
 github.com/go-chi/chi/v5 v5.2.1/go.mod h1:L2yAIGWB3H+phAw1NxKwWM+7eUH/lU8pOMm5hHcoops=
 github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA=
@@ -221,8 +221,8 @@ github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20250121233318-0eae96a39570 h
 github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20250121233318-0eae96a39570/go.mod h1:xW/ZQnpRIbs9AdeCPhMXt1veWV/VOuQHz1Qubn5YYxU=
 github.com/openfga/openfga v1.8.6 h1:QGYAk4GSZZYoNTwKbC9bjd/7zPWW5/KpmgQfDLP/M1E=
 github.com/openfga/openfga v1.8.6/go.mod h1:VSqaE/XwWRUvgC4t/NFlqfL5noxmDURjuQex3d+1hLU=
-github.com/openmfp/golang-commons v0.147.6 h1:g+QarqAiNYfJrm5AT1pWmUy2WcKZNV2hNcaZxBXr05I=
-github.com/openmfp/golang-commons v0.147.6/go.mod h1:Z7qRKdVZAwyhrgzT8DOUev23Xzcq5idv86cT5AMKeqo=
+github.com/openmfp/golang-commons v0.147.8 h1:MqVXlZJKanUJOVMp1YR7JjXyL5C+ZiZmT/kPEsgzMPw=
+github.com/openmfp/golang-commons v0.147.8/go.mod h1:R4gQLShue5Hw3CThyTv+fv/xXPcQS2cNL/9a97u1hVw=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/pborman/getopt v0.0.0-20170112200414-7148bc3a4c30/go.mod h1:85jBQOZwpVEaDAr341tbn15RS4fCAsIst0qp7i8ex1o=
 github.com/pelletier/go-toml/v2 v2.2.3 h1:YmeHyLY8mFWbdkNWwpr+qIL2bEqT0o95WSdkNHvL12M=
