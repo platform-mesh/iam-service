@@ -9,7 +9,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2
-	github.com/openfga/api/proto v0.0.0-20250127102726-f9709139a369
+	github.com/openfga/api/proto v0.0.0-20250528161632-e53c69cc5531
 	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20250121233318-0eae96a39570
 	github.com/openfga/openfga v1.8.6
 	github.com/openmfp/golang-commons v0.147.8
