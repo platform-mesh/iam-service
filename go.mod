@@ -22,7 +22,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.27
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.61.0
 	go.opentelemetry.io/otel v1.36.0
-	google.golang.org/grpc v1.72.2
+	google.golang.org/grpc v1.73.0
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.30.0
@@ -122,7 +122,7 @@ require (
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250218202821-56aae31c358a // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250324211829-b45e905df463 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250519155744-55703ea1f237 // indirect
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/inf.v0 v0.9.1 // indirect
