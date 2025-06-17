@@ -1,4 +1,4 @@
-module github.com/openmfp/iam-service
+module github.com/platform-mesh/iam-service
 
 go 1.24.3
 
@@ -12,8 +12,8 @@ require (
 	github.com/openfga/api/proto v0.0.0-20250528161632-e53c69cc5531
 	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20250428093642-7aeebe78bbfe
 	github.com/openfga/openfga v1.8.15
-	github.com/openmfp/golang-commons v0.150.2
 	github.com/pkg/errors v0.9.1
+	github.com/platform-mesh/golang-commons v0.0.4
 	github.com/r3labs/diff/v3 v3.0.1
 	github.com/rs/zerolog v1.34.0
 	github.com/steinfletcher/apitest v1.6.0

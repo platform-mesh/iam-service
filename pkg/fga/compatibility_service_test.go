@@ -5,19 +5,19 @@ import (
 	"testing"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
-	"github.com/openmfp/iam-service/pkg/fga/types"
+	"github.com/platform-mesh/iam-service/pkg/fga/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	storeMocks "github.com/openmfp/golang-commons/fga/store/mocks"
+	storeMocks "github.com/platform-mesh/golang-commons/fga/store/mocks"
 
-	dbMocks "github.com/openmfp/iam-service/pkg/db/mocks"
-	"github.com/openmfp/iam-service/pkg/fga/middleware/principal"
-	"github.com/openmfp/iam-service/pkg/fga/mocks"
-	"github.com/openmfp/iam-service/pkg/graph"
+	dbMocks "github.com/platform-mesh/iam-service/pkg/db/mocks"
+	"github.com/platform-mesh/iam-service/pkg/fga/middleware/principal"
+	"github.com/platform-mesh/iam-service/pkg/fga/mocks"
+	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 
 func TestNewCompatClient(t *testing.T) {

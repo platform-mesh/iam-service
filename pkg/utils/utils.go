@@ -3,7 +3,7 @@ package utils
 import (
 	"strings"
 
-	"github.com/openmfp/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 
 func CheckRolesFilter(s string, rolesfilter []*graph.RoleInput) bool {

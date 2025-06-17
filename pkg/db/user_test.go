@@ -15,10 +15,10 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 
-	"github.com/openmfp/golang-commons/logger"
-	"github.com/openmfp/iam-service/pkg/db"
-	"github.com/openmfp/iam-service/pkg/db/mocks"
-	"github.com/openmfp/iam-service/pkg/graph"
+	"github.com/platform-mesh/golang-commons/logger"
+	"github.com/platform-mesh/iam-service/pkg/db"
+	"github.com/platform-mesh/iam-service/pkg/db/mocks"
+	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 
 func getDbCfg() db.ConfigDatabase {

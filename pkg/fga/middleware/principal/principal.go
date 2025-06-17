@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/openmfp/golang-commons/jwt"
+	"github.com/platform-mesh/golang-commons/jwt"
 )
 
 type principalCtxKey struct{}

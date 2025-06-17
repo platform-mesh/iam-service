@@ -7,10 +7,10 @@ import (
 
 	"github.com/agiledragon/gomonkey/v2"
 	"github.com/google/uuid"
-	commonsCtx "github.com/openmfp/golang-commons/context"
-	"github.com/openmfp/golang-commons/jwt"
-	"github.com/openmfp/golang-commons/logger"
-	"github.com/openmfp/iam-service/pkg/db"
+	commonsCtx "github.com/platform-mesh/golang-commons/context"
+	"github.com/platform-mesh/golang-commons/jwt"
+	"github.com/platform-mesh/golang-commons/logger"
+	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
 

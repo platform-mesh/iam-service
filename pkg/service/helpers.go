@@ -8,11 +8,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/openmfp/golang-commons/context/keys"
-	"github.com/openmfp/golang-commons/logger"
-	"github.com/openmfp/iam-service/pkg/db"
-	"github.com/openmfp/iam-service/pkg/graph"
-	"github.com/openmfp/iam-service/pkg/utils"
+	"github.com/platform-mesh/golang-commons/context/keys"
+	"github.com/platform-mesh/golang-commons/logger"
+	"github.com/platform-mesh/iam-service/pkg/db"
+	"github.com/platform-mesh/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/utils"
 )
 
 const MAX_INT = math.MaxInt

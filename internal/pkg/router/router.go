@@ -8,8 +8,8 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-http-utils/headers"
-	"github.com/openmfp/golang-commons/directive"
-	"github.com/openmfp/golang-commons/logger"
+	"github.com/platform-mesh/golang-commons/directive"
+	"github.com/platform-mesh/golang-commons/logger"
 	"github.com/rs/cors"
 	"github.com/vektah/gqlparser/v2/ast"
 	"google.golang.org/grpc"
@@ -20,10 +20,10 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
-	"github.com/openmfp/iam-service/internal/pkg/config"
-	"github.com/openmfp/iam-service/pkg/graph"
-	"github.com/openmfp/iam-service/pkg/resolver"
-	"github.com/openmfp/iam-service/pkg/service"
+	"github.com/platform-mesh/iam-service/internal/pkg/config"
+	"github.com/platform-mesh/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/resolver"
+	"github.com/platform-mesh/iam-service/pkg/service"
 )
 
 func CreateRouter(

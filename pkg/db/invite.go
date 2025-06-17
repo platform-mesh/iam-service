@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"github.com/openmfp/golang-commons/errors"
-	"github.com/openmfp/golang-commons/sentry"
-	"github.com/openmfp/iam-service/pkg/graph"
+	"github.com/platform-mesh/golang-commons/errors"
+	"github.com/platform-mesh/golang-commons/sentry"
+	"github.com/platform-mesh/iam-service/pkg/graph"
 	"gorm.io/gorm"
 )
 

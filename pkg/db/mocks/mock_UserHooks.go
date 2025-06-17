@@ -5,7 +5,7 @@ package mocks
 import (
 	context "context"
 
-	graph "github.com/openmfp/iam-service/pkg/graph"
+	graph "github.com/platform-mesh/iam-service/pkg/graph"
 
 	mock "github.com/stretchr/testify/mock"
 )

@@ -643,7 +643,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "../../graph/openmfp.graphql", Input: `""" Holds additional information about the retrieved data """
+	{Name: "../../graph/schema.graphql", Input: `""" Holds additional information about the retrieved data """
 type PageInfo {
     ownerCount: Int!
     totalCount: Int!
@@ -1116,7 +1116,7 @@ func (ec *executionContext) field_Mutation_assignRoleBindings_argsInput(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 	if tmp, ok := rawArgs["input"]; ok {
-		return ec.unmarshalNChange2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐChange(ctx, tmp)
+		return ec.unmarshalNChange2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐChange(ctx, tmp)
 	}
 
 	var zeroVal []*Change
@@ -1264,7 +1264,7 @@ func (ec *executionContext) field_Mutation_createUser_argsInput(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 	if tmp, ok := rawArgs["input"]; ok {
-		return ec.unmarshalNUserInput2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUserInput(ctx, tmp)
+		return ec.unmarshalNUserInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserInput(ctx, tmp)
 	}
 
 	var zeroVal UserInput
@@ -1315,7 +1315,7 @@ func (ec *executionContext) field_Mutation_deleteInvite_argsInvite(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("invite"))
 	if tmp, ok := rawArgs["invite"]; ok {
-		return ec.unmarshalNInvite2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐInvite(ctx, tmp)
+		return ec.unmarshalNInvite2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐInvite(ctx, tmp)
 	}
 
 	var zeroVal Invite
@@ -1371,7 +1371,7 @@ func (ec *executionContext) field_Mutation_inviteUser_argsInvite(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("invite"))
 	if tmp, ok := rawArgs["invite"]; ok {
-		return ec.unmarshalNInvite2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐInvite(ctx, tmp)
+		return ec.unmarshalNInvite2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐInvite(ctx, tmp)
 	}
 
 	var zeroVal Invite
@@ -1838,7 +1838,7 @@ func (ec *executionContext) field_Query_availableRolesForEntity_argsEntity(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entity"))
 	if tmp, ok := rawArgs["entity"]; ok {
-		return ec.unmarshalNEntityInput2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx, tmp)
+		return ec.unmarshalNEntityInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx, tmp)
 	}
 
 	var zeroVal EntityInput
@@ -1894,7 +1894,7 @@ func (ec *executionContext) field_Query_rolesForUserOfEntity_argsEntity(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entity"))
 	if tmp, ok := rawArgs["entity"]; ok {
-		return ec.unmarshalNEntityInput2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx, tmp)
+		return ec.unmarshalNEntityInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx, tmp)
 	}
 
 	var zeroVal EntityInput
@@ -2225,7 +2225,7 @@ func (ec *executionContext) field_Query_usersOfEntity_argsEntity(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entity"))
 	if tmp, ok := rawArgs["entity"]; ok {
-		return ec.unmarshalNEntityInput2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx, tmp)
+		return ec.unmarshalNEntityInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx, tmp)
 	}
 
 	var zeroVal EntityInput
@@ -2315,7 +2315,7 @@ func (ec *executionContext) field_Query_usersOfEntity_argsRoles(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 	if tmp, ok := rawArgs["roles"]; ok {
-		return ec.unmarshalORoleInput2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRoleInput(ctx, tmp)
+		return ec.unmarshalORoleInput2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleInput(ctx, tmp)
 	}
 
 	var zeroVal []*RoleInput
@@ -2333,7 +2333,7 @@ func (ec *executionContext) field_Query_usersOfEntity_argsSortBy(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("sortBy"))
 	if tmp, ok := rawArgs["sortBy"]; ok {
-		return ec.unmarshalOSortByInput2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortByInput(ctx, tmp)
+		return ec.unmarshalOSortByInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortByInput(ctx, tmp)
 	}
 
 	var zeroVal *SortByInput
@@ -2488,7 +2488,7 @@ func (ec *executionContext) _GrantedUser_user(ctx context.Context, field graphql
 	}
 	res := resTmp.(*User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_GrantedUser_user(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2541,7 +2541,7 @@ func (ec *executionContext) _GrantedUser_roles(ctx context.Context, field graphq
 	}
 	res := resTmp.([]*Role)
 	fc.Result = res
-	return ec.marshalORole2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRoleᚄ(ctx, field.Selections, res)
+	return ec.marshalORole2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_GrantedUser_roles(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2590,7 +2590,7 @@ func (ec *executionContext) _GrantedUserConnection_users(ctx context.Context, fi
 	}
 	res := resTmp.([]*GrantedUser)
 	fc.Result = res
-	return ec.marshalOGrantedUser2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUser(ctx, field.Selections, res)
+	return ec.marshalOGrantedUser2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_GrantedUserConnection_users(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2640,7 +2640,7 @@ func (ec *executionContext) _GrantedUserConnection_pageInfo(ctx context.Context,
 	}
 	res := resTmp.(*PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_GrantedUserConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3312,7 +3312,7 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 		if data, ok := tmp.(*User); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/openmfp/iam-service/pkg/graph.User`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/platform-mesh/iam-service/pkg/graph.User`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3326,7 +3326,7 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 	}
 	res := resTmp.(*User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3666,7 +3666,7 @@ func (ec *executionContext) _Query_usersOfEntity(ctx context.Context, field grap
 		if data, ok := tmp.(*GrantedUserConnection); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/openmfp/iam-service/pkg/graph.GrantedUserConnection`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/platform-mesh/iam-service/pkg/graph.GrantedUserConnection`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3677,7 +3677,7 @@ func (ec *executionContext) _Query_usersOfEntity(ctx context.Context, field grap
 	}
 	res := resTmp.(*GrantedUserConnection)
 	fc.Result = res
-	return ec.marshalOGrantedUserConnection2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUserConnection(ctx, field.Selections, res)
+	return ec.marshalOGrantedUserConnection2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUserConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_usersOfEntity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3761,7 +3761,7 @@ func (ec *executionContext) _Query_rolesForUserOfEntity(ctx context.Context, fie
 		if data, ok := tmp.([]*Role); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/openmfp/iam-service/pkg/graph.Role`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/platform-mesh/iam-service/pkg/graph.Role`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3775,7 +3775,7 @@ func (ec *executionContext) _Query_rolesForUserOfEntity(ctx context.Context, fie
 	}
 	res := resTmp.([]*Role)
 	fc.Result = res
-	return ec.marshalNRole2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx, field.Selections, res)
+	return ec.marshalNRole2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_rolesForUserOfEntity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3861,7 +3861,7 @@ func (ec *executionContext) _Query_availableRolesForEntity(ctx context.Context, 
 		if data, ok := tmp.([]*Role); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/openmfp/iam-service/pkg/graph.Role`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/platform-mesh/iam-service/pkg/graph.Role`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3875,7 +3875,7 @@ func (ec *executionContext) _Query_availableRolesForEntity(ctx context.Context, 
 	}
 	res := resTmp.([]*Role)
 	fc.Result = res
-	return ec.marshalNRole2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx, field.Selections, res)
+	return ec.marshalNRole2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_availableRolesForEntity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3961,7 +3961,7 @@ func (ec *executionContext) _Query_availableRolesForEntityType(ctx context.Conte
 		if data, ok := tmp.([]*Role); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/openmfp/iam-service/pkg/graph.Role`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/platform-mesh/iam-service/pkg/graph.Role`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3975,7 +3975,7 @@ func (ec *executionContext) _Query_availableRolesForEntityType(ctx context.Conte
 	}
 	res := resTmp.([]*Role)
 	fc.Result = res
-	return ec.marshalNRole2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx, field.Selections, res)
+	return ec.marshalNRole2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_availableRolesForEntityType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4061,7 +4061,7 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 		if data, ok := tmp.(*User); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/openmfp/iam-service/pkg/graph.User`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/platform-mesh/iam-service/pkg/graph.User`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4072,7 +4072,7 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(*User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4162,7 +4162,7 @@ func (ec *executionContext) _Query_userByEmail(ctx context.Context, field graphq
 		if data, ok := tmp.(*User); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/openmfp/iam-service/pkg/graph.User`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/platform-mesh/iam-service/pkg/graph.User`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4173,7 +4173,7 @@ func (ec *executionContext) _Query_userByEmail(ctx context.Context, field graphq
 	}
 	res := resTmp.(*User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_userByEmail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4263,7 +4263,7 @@ func (ec *executionContext) _Query_usersConnection(ctx context.Context, field gr
 		if data, ok := tmp.(*UserConnection); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/openmfp/iam-service/pkg/graph.UserConnection`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/platform-mesh/iam-service/pkg/graph.UserConnection`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4277,7 +4277,7 @@ func (ec *executionContext) _Query_usersConnection(ctx context.Context, field gr
 	}
 	res := resTmp.(*UserConnection)
 	fc.Result = res
-	return ec.marshalNUserConnection2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUserConnection(ctx, field.Selections, res)
+	return ec.marshalNUserConnection2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_usersConnection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4338,7 +4338,7 @@ func (ec *executionContext) _Query_searchUsers(ctx context.Context, field graphq
 	}
 	res := resTmp.([]*User)
 	fc.Result = res
-	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_searchUsers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4405,7 +4405,7 @@ func (ec *executionContext) _Query_tenantInfo(ctx context.Context, field graphql
 	}
 	res := resTmp.(*TenantInfo)
 	fc.Result = res
-	return ec.marshalNTenantInfo2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐTenantInfo(ctx, field.Selections, res)
+	return ec.marshalNTenantInfo2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐTenantInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_tenantInfo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4686,7 +4686,7 @@ func (ec *executionContext) _Role_permissions(ctx context.Context, field graphql
 	}
 	res := resTmp.([]*Permission)
 	fc.Result = res
-	return ec.marshalOPermission2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐPermissionᚄ(ctx, field.Selections, res)
+	return ec.marshalOPermission2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐPermissionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Role_permissions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5123,7 +5123,7 @@ func (ec *executionContext) _UserConnection_user(ctx context.Context, field grap
 	}
 	res := resTmp.([]*User)
 	fc.Result = res
-	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUserᚄ(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_UserConnection_user(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5176,7 +5176,7 @@ func (ec *executionContext) _UserConnection_pageInfo(ctx context.Context, field 
 	}
 	res := resTmp.(*PageInfo)
 	fc.Result = res
-	return ec.marshalOPageInfo2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalOPageInfo2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_UserConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -7240,7 +7240,7 @@ func (ec *executionContext) unmarshalInputInvite(ctx context.Context, obj any) (
 			it.Email = data
 		case "entity":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("entity"))
-			data, err := ec.unmarshalNEntityInput2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx, v)
+			data, err := ec.unmarshalNEntityInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7308,14 +7308,14 @@ func (ec *executionContext) unmarshalInputSortByInput(ctx context.Context, obj a
 		switch k {
 		case "field":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
-			data, err := ec.unmarshalNSortableFields2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortableFields(ctx, v)
+			data, err := ec.unmarshalNSortableFields2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortableFields(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Field = data
 		case "direction":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("direction"))
-			data, err := ec.unmarshalNSortDirection2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortDirection(ctx, v)
+			data, err := ec.unmarshalNSortDirection2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortDirection(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -8441,14 +8441,14 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNChange2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐChange(ctx context.Context, v any) ([]*Change, error) {
+func (ec *executionContext) unmarshalNChange2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐChange(ctx context.Context, v any) ([]*Change, error) {
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
 	res := make([]*Change, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalOChange2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐChange(ctx, vSlice[i])
+		res[i], err = ec.unmarshalOChange2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐChange(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -8456,12 +8456,12 @@ func (ec *executionContext) unmarshalNChange2ᚕᚖgithubᚗcomᚋopenmfpᚋiam�
 	return res, nil
 }
 
-func (ec *executionContext) unmarshalNEntityInput2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx context.Context, v any) (EntityInput, error) {
+func (ec *executionContext) unmarshalNEntityInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx context.Context, v any) (EntityInput, error) {
 	res, err := ec.unmarshalInputEntityInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNEntityInput2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx context.Context, v any) (*EntityInput, error) {
+func (ec *executionContext) unmarshalNEntityInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx context.Context, v any) (*EntityInput, error) {
 	res, err := ec.unmarshalInputEntityInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
@@ -8496,12 +8496,12 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) unmarshalNInvite2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐInvite(ctx context.Context, v any) (Invite, error) {
+func (ec *executionContext) unmarshalNInvite2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐInvite(ctx context.Context, v any) (Invite, error) {
 	res, err := ec.unmarshalInputInvite(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *PageInfo) graphql.Marshaler {
+func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *PageInfo) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -8511,7 +8511,7 @@ func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋopenmfpᚋiamᚑs
 	return ec._PageInfo(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNPermission2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐPermission(ctx context.Context, sel ast.SelectionSet, v *Permission) graphql.Marshaler {
+func (ec *executionContext) marshalNPermission2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐPermission(ctx context.Context, sel ast.SelectionSet, v *Permission) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -8521,7 +8521,7 @@ func (ec *executionContext) marshalNPermission2ᚖgithubᚗcomᚋopenmfpᚋiam�
 	return ec._Permission(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNRole2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx context.Context, sel ast.SelectionSet, v []*Role) graphql.Marshaler {
+func (ec *executionContext) marshalNRole2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx context.Context, sel ast.SelectionSet, v []*Role) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8545,7 +8545,7 @@ func (ec *executionContext) marshalNRole2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑse
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalORole2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx, sel, v[i])
+			ret[i] = ec.marshalORole2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -8559,7 +8559,7 @@ func (ec *executionContext) marshalNRole2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑse
 	return ret
 }
 
-func (ec *executionContext) marshalNRole2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx context.Context, sel ast.SelectionSet, v *Role) graphql.Marshaler {
+func (ec *executionContext) marshalNRole2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx context.Context, sel ast.SelectionSet, v *Role) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -8569,23 +8569,23 @@ func (ec *executionContext) marshalNRole2ᚖgithubᚗcomᚋopenmfpᚋiamᚑservi
 	return ec._Role(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNSortDirection2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortDirection(ctx context.Context, v any) (SortDirection, error) {
+func (ec *executionContext) unmarshalNSortDirection2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortDirection(ctx context.Context, v any) (SortDirection, error) {
 	var res SortDirection
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNSortDirection2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortDirection(ctx context.Context, sel ast.SelectionSet, v SortDirection) graphql.Marshaler {
+func (ec *executionContext) marshalNSortDirection2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortDirection(ctx context.Context, sel ast.SelectionSet, v SortDirection) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) unmarshalNSortableFields2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortableFields(ctx context.Context, v any) (SortableFields, error) {
+func (ec *executionContext) unmarshalNSortableFields2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortableFields(ctx context.Context, v any) (SortableFields, error) {
 	var res SortableFields
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNSortableFields2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortableFields(ctx context.Context, sel ast.SelectionSet, v SortableFields) graphql.Marshaler {
+func (ec *executionContext) marshalNSortableFields2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortableFields(ctx context.Context, sel ast.SelectionSet, v SortableFields) graphql.Marshaler {
 	return v
 }
 
@@ -8634,11 +8634,11 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
-func (ec *executionContext) marshalNTenantInfo2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐTenantInfo(ctx context.Context, sel ast.SelectionSet, v TenantInfo) graphql.Marshaler {
+func (ec *executionContext) marshalNTenantInfo2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐTenantInfo(ctx context.Context, sel ast.SelectionSet, v TenantInfo) graphql.Marshaler {
 	return ec._TenantInfo(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTenantInfo2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐTenantInfo(ctx context.Context, sel ast.SelectionSet, v *TenantInfo) graphql.Marshaler {
+func (ec *executionContext) marshalNTenantInfo2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐTenantInfo(ctx context.Context, sel ast.SelectionSet, v *TenantInfo) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -8648,11 +8648,11 @@ func (ec *executionContext) marshalNTenantInfo2ᚖgithubᚗcomᚋopenmfpᚋiam�
 	return ec._TenantInfo(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNUser2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx context.Context, sel ast.SelectionSet, v User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx context.Context, sel ast.SelectionSet, v User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx context.Context, sel ast.SelectionSet, v []*User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx context.Context, sel ast.SelectionSet, v []*User) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8676,7 +8676,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑse
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOUser2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, sel, v[i])
+			ret[i] = ec.marshalOUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -8690,7 +8690,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑse
 	return ret
 }
 
-func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*User) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8714,7 +8714,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑse
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, sel, v[i])
+			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -8734,7 +8734,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑse
 	return ret
 }
 
-func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx context.Context, sel ast.SelectionSet, v *User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx context.Context, sel ast.SelectionSet, v *User) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -8744,11 +8744,11 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋopenmfpᚋiamᚑservi
 	return ec._User(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNUserConnection2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUserConnection(ctx context.Context, sel ast.SelectionSet, v UserConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNUserConnection2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserConnection(ctx context.Context, sel ast.SelectionSet, v UserConnection) graphql.Marshaler {
 	return ec._UserConnection(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUserConnection2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUserConnection(ctx context.Context, sel ast.SelectionSet, v *UserConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNUserConnection2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserConnection(ctx context.Context, sel ast.SelectionSet, v *UserConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -8758,7 +8758,7 @@ func (ec *executionContext) marshalNUserConnection2ᚖgithubᚗcomᚋopenmfpᚋi
 	return ec._UserConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNUserInput2githubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUserInput(ctx context.Context, v any) (UserInput, error) {
+func (ec *executionContext) unmarshalNUserInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserInput(ctx context.Context, v any) (UserInput, error) {
 	res, err := ec.unmarshalInputUserInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -9040,7 +9040,7 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) unmarshalOChange2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐChange(ctx context.Context, v any) (*Change, error) {
+func (ec *executionContext) unmarshalOChange2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐChange(ctx context.Context, v any) (*Change, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -9048,7 +9048,7 @@ func (ec *executionContext) unmarshalOChange2ᚖgithubᚗcomᚋopenmfpᚋiamᚑs
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOGrantedUser2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUser(ctx context.Context, sel ast.SelectionSet, v []*GrantedUser) graphql.Marshaler {
+func (ec *executionContext) marshalOGrantedUser2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUser(ctx context.Context, sel ast.SelectionSet, v []*GrantedUser) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -9075,7 +9075,7 @@ func (ec *executionContext) marshalOGrantedUser2ᚕᚖgithubᚗcomᚋopenmfpᚋi
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOGrantedUser2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUser(ctx, sel, v[i])
+			ret[i] = ec.marshalOGrantedUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUser(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -9089,14 +9089,14 @@ func (ec *executionContext) marshalOGrantedUser2ᚕᚖgithubᚗcomᚋopenmfpᚋi
 	return ret
 }
 
-func (ec *executionContext) marshalOGrantedUser2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUser(ctx context.Context, sel ast.SelectionSet, v *GrantedUser) graphql.Marshaler {
+func (ec *executionContext) marshalOGrantedUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUser(ctx context.Context, sel ast.SelectionSet, v *GrantedUser) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._GrantedUser(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOGrantedUserConnection2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUserConnection(ctx context.Context, sel ast.SelectionSet, v *GrantedUserConnection) graphql.Marshaler {
+func (ec *executionContext) marshalOGrantedUserConnection2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUserConnection(ctx context.Context, sel ast.SelectionSet, v *GrantedUserConnection) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -9119,14 +9119,14 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return res
 }
 
-func (ec *executionContext) marshalOPageInfo2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *PageInfo) graphql.Marshaler {
+func (ec *executionContext) marshalOPageInfo2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *PageInfo) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._PageInfo(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOPermission2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐPermissionᚄ(ctx context.Context, sel ast.SelectionSet, v []*Permission) graphql.Marshaler {
+func (ec *executionContext) marshalOPermission2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐPermissionᚄ(ctx context.Context, sel ast.SelectionSet, v []*Permission) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -9153,7 +9153,7 @@ func (ec *executionContext) marshalOPermission2ᚕᚖgithubᚗcomᚋopenmfpᚋia
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNPermission2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐPermission(ctx, sel, v[i])
+			ret[i] = ec.marshalNPermission2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐPermission(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -9173,7 +9173,7 @@ func (ec *executionContext) marshalOPermission2ᚕᚖgithubᚗcomᚋopenmfpᚋia
 	return ret
 }
 
-func (ec *executionContext) marshalORole2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRoleᚄ(ctx context.Context, sel ast.SelectionSet, v []*Role) graphql.Marshaler {
+func (ec *executionContext) marshalORole2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleᚄ(ctx context.Context, sel ast.SelectionSet, v []*Role) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -9200,7 +9200,7 @@ func (ec *executionContext) marshalORole2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑse
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNRole2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx, sel, v[i])
+			ret[i] = ec.marshalNRole2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -9220,14 +9220,14 @@ func (ec *executionContext) marshalORole2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑse
 	return ret
 }
 
-func (ec *executionContext) marshalORole2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx context.Context, sel ast.SelectionSet, v *Role) graphql.Marshaler {
+func (ec *executionContext) marshalORole2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx context.Context, sel ast.SelectionSet, v *Role) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Role(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalORoleInput2ᚕᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRoleInput(ctx context.Context, v any) ([]*RoleInput, error) {
+func (ec *executionContext) unmarshalORoleInput2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleInput(ctx context.Context, v any) ([]*RoleInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -9237,7 +9237,7 @@ func (ec *executionContext) unmarshalORoleInput2ᚕᚖgithubᚗcomᚋopenmfpᚋi
 	res := make([]*RoleInput, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalORoleInput2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRoleInput(ctx, vSlice[i])
+		res[i], err = ec.unmarshalORoleInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleInput(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -9245,7 +9245,7 @@ func (ec *executionContext) unmarshalORoleInput2ᚕᚖgithubᚗcomᚋopenmfpᚋi
 	return res, nil
 }
 
-func (ec *executionContext) unmarshalORoleInput2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐRoleInput(ctx context.Context, v any) (*RoleInput, error) {
+func (ec *executionContext) unmarshalORoleInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleInput(ctx context.Context, v any) (*RoleInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -9253,7 +9253,7 @@ func (ec *executionContext) unmarshalORoleInput2ᚖgithubᚗcomᚋopenmfpᚋiam�
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOSortByInput2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐSortByInput(ctx context.Context, v any) (*SortByInput, error) {
+func (ec *executionContext) unmarshalOSortByInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortByInput(ctx context.Context, v any) (*SortByInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -9313,7 +9313,7 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋopenmfpᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx context.Context, sel ast.SelectionSet, v *User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx context.Context, sel ast.SelectionSet, v *User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

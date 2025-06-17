@@ -15,24 +15,26 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/playground"
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/openmfp/iam-service/pkg/db"
-	"github.com/openmfp/iam-service/pkg/fga"
-	myresolver "github.com/openmfp/iam-service/pkg/resolver"
 	"github.com/spf13/cobra"
 	"github.com/vektah/gqlparser/v2/ast"
 
-	"github.com/openmfp/golang-commons/logger"
+	"github.com/platform-mesh/iam-service/pkg/db"
+	"github.com/platform-mesh/iam-service/pkg/fga"
+	myresolver "github.com/platform-mesh/iam-service/pkg/resolver"
+
+	"github.com/platform-mesh/golang-commons/logger"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
-	openmfpcontext "github.com/openmfp/golang-commons/context"
-	gormlogger "github.com/openmfp/iam-service/internal/pkg/logger"
-	iamRouter "github.com/openmfp/iam-service/internal/pkg/router"
-	"github.com/openmfp/iam-service/internal/pkg/tenant"
-	"github.com/openmfp/iam-service/pkg/graph"
-	openmfpservice "github.com/openmfp/iam-service/pkg/service"
+	pmcontext "github.com/platform-mesh/golang-commons/context"
+
+	gormlogger "github.com/platform-mesh/iam-service/internal/pkg/logger"
+	iamRouter "github.com/platform-mesh/iam-service/internal/pkg/router"
+	"github.com/platform-mesh/iam-service/internal/pkg/tenant"
+	"github.com/platform-mesh/iam-service/pkg/graph"
+	iamservice "github.com/platform-mesh/iam-service/pkg/service"
 )
 
 func getServeCmd() *cobra.Command {
@@ -67,7 +69,7 @@ func getGormConn(log *logger.Logger, cfg db.ConfigDatabase) (*gorm.DB, error) {
 
 func serveFunc() { // nolint: funlen,cyclop,gocognit
 	appConfig, log := initApp()
-	ctx, _, shutdown := openmfpcontext.StartContext(log, nil, appConfig.ShutdownTimeout)
+	ctx, _, shutdown := pmcontext.StartContext(log, nil, appConfig.ShutdownTimeout)
 	defer shutdown()
 
 	database, err := initDB(appConfig, log)
@@ -108,8 +110,8 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 		}
 	}()
 
-	// create openmfp Resolver
-	svc := openmfpservice.New(database, compatService)
+	// create platform-mesh Resolver
+	svc := iamservice.New(database, compatService)
 	router := iamRouter.CreateRouter(appConfig, svc, log)
 
 	server := &http.Server{

@@ -13,9 +13,9 @@ jobs:
     concurrency:
       group: ${{ github.ref }}
       cancel-in-progress: true
-    uses: openmfp/gha/.github/workflows/pipeline-golang-app.yml@main
+    uses: platform-mesh/.github/.github/workflows/pipeline-golang-app.yml@main
     secrets: inherit
     with:
-      imageTagName: ghcr.io/openmfp/iam-service
+      imageTagName: ghcr.io/platform-mesh/iam-service
       useLocalCoverageConfig: true
       doubleTagging: true

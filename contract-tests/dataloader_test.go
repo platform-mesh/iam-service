@@ -4,14 +4,14 @@ import (
 	"context"
 	"testing"
 
-	"github.com/openmfp/iam-service/pkg/db"
+	"github.com/platform-mesh/iam-service/pkg/db"
 
 	"github.com/stretchr/testify/mock"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
-	"github.com/openmfp/iam-service/cmd"
-	"github.com/openmfp/iam-service/internal/pkg/config"
-	fgamock "github.com/openmfp/iam-service/pkg/fga/mocks"
+	"github.com/platform-mesh/iam-service/cmd"
+	"github.com/platform-mesh/iam-service/internal/pkg/config"
+	fgamock "github.com/platform-mesh/iam-service/pkg/fga/mocks"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"

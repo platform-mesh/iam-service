@@ -14,8 +14,8 @@ import (
 	"gorm.io/gorm"
 	"sigs.k8s.io/yaml"
 
-	"github.com/openmfp/golang-commons/logger"
-	"github.com/openmfp/iam-service/pkg/graph"
+	"github.com/platform-mesh/golang-commons/logger"
+	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 
 const (

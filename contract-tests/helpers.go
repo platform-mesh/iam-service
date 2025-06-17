@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 
-	graphql "github.com/openmfp/iam-service/pkg/graph"
+	graphql "github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/steinfletcher/apitest"
 )
 

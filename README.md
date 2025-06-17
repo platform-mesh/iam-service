@@ -2,8 +2,8 @@
 > This Repository is under construction and not yet ready for public consumption. Please check back later for updates.
 
 
-# openMFP - iam-service
-![Build Status](https://github.com/openmfp/iam-service/actions/workflows/pipeline.yml/badge.svg)
+# Platform Mesh - iam-service
+![Build Status](https://github.com/platform-mesh/iam-service/actions/workflows/pipeline.yml/badge.svg)
 
 ## Local dev
 
@@ -14,7 +14,7 @@ go run ./main.go serve
 
 ## Description
 
-The openMFP iam-service exposes a graphql and a grpc API. The Graphql API is primarily used by user management UIs, while the GRPC API is used to authorize write calls into openfga.
+The Platform Mesh iam-service exposes a graphql and a grpc API. The Graphql API is primarily used by user management UIs, while the GRPC API is used to authorize write calls into openfga.
 
 ## Features
 - backend for frontend API's to manage user data
@@ -33,7 +33,7 @@ If there is no actual implementation for an interface, you can find a no-op impl
 
 ### graph
 
-This package contains the GraphQL models and resolvers as reusable code. The `graph/openmfp.graphql` file contains the schema.
+This package contains the GraphQL models and resolvers as reusable code. The `graph/platform-mesh.graphql` file contains the schema.
 
 ## Getting started
 
@@ -84,12 +84,12 @@ The iam-service requires a installation of go. Checkout the [go.mod](go.mod) for
 
 ## Contributing
 
-Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file in this repository for instructions on how to contribute to openMFP.
+Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file in this repository for instructions on how to contribute to Platform Mesh.
 
 ## Code of Conduct
 
-Please refer to the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) file in this repository informations on the expected Code of Conduct for contributing to openMFP.
+Please refer to the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) file in this repository information on the expected Code of Conduct for contributing to Platform Mesh.
 
 ## Licensing
 
-Copyright 2024 SAP SE or an SAP affiliate company and openMFP contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/openmfp/account-operator).
+Copyright 2024 SAP SE or an SAP affiliate company and Platform Mesh contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/platform-mesh/iam-service).
