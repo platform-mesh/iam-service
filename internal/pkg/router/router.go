@@ -77,10 +77,7 @@ func CreateRouter(
 
 	if appConfig.IsLocal {
 		router.Handle("/", playground.Handler("GraphQL playground", "/query"))
-		router.Handle("/query", gqHandler)
-	} else {
-		router.Handle("/", gqHandler)
 	}
-
+	router.Handle("/query", gqHandler)
 	return router
 }
