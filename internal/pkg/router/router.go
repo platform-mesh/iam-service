@@ -20,6 +20,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
+
 	"github.com/platform-mesh/iam-service/internal/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/resolver"
@@ -77,10 +78,7 @@ func CreateRouter(
 
 	if appConfig.IsLocal {
 		router.Handle("/", playground.Handler("GraphQL playground", "/query"))
-		router.Handle("/query", gqHandler)
-	} else {
-		router.Handle("/", gqHandler)
 	}
-
+	router.Handle("/query", gqHandler)
 	return router
 }

@@ -13,7 +13,6 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/99designs/gqlgen/graphql/playground"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/spf13/cobra"
 	"github.com/vektah/gqlparser/v2/ast"
@@ -135,21 +134,21 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 		Cache: lru.New[string](100),
 	})
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
-
 	go func() {
+		var err error
 		if appConfig.LocalSsl {
-			server.ListenAndServeTLS("../ssl/server.crt", "../ssl/server.key") // nolint: errcheck
+			err = server.ListenAndServeTLS("../ssl/server.crt", "../ssl/server.key")
 		} else {
-			server.ListenAndServe() // nolint: errcheck
+			err = server.ListenAndServe()
+		}
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error().Err(err).Msg("failed to start http server")
 		}
 	}()
 
-	log.Info().Msg("Service started")
-
+	log.Info().Msgf("service started on port: %s", appConfig.Port)
 	if appConfig.IsLocal {
-		log.Info().Msgf("connect to http://localhost:%s/ for GraphQL playground", appConfig.Port)
+		log.Info().Msgf("connect to http://localhost:%s/ for graphQL playground", appConfig.Port)
 	}
 	<-ctx.Done()
 
