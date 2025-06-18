@@ -127,7 +127,6 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 	// create openmfp Resolver
 	svc := openmfpservice.New(database, compatService)
 	router := iamRouter.CreateRouter(appConfig, svc, log, iamRouter.WithAuthorizedDirective(directives.Authorized(openfgaClient, log)))
-
 	server := &http.Server{
 		Addr:         ":" + appConfig.Port,
 		Handler:      router,

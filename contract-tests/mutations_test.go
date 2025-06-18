@@ -77,7 +77,7 @@ func removeUserMutation() apitest.GraphQLRequestBody {
 	return apitest.GraphQLRequestBody{
 		Query: query,
 		Variables: map[string]interface{}{
-			"tenantId": "eCh0yae7ooWaek2iejo8geiqua",
+			"tenantId": "29y87kiy4iakrkbb/test",
 			"email":    "OOD8JOOM2Z@mycorp.com",
 		},
 	}

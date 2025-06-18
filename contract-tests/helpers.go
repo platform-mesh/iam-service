@@ -4,14 +4,15 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 
-	graphql "github.com/openmfp/iam-service/pkg/graph"
 	"github.com/steinfletcher/apitest"
+
+	graphql "github.com/openmfp/iam-service/pkg/graph"
 )
 
 const (
 	iamAdminName      = "AHCAE4EIVI"
 	iamAdminNameToken = "eyJraWQiOiJJdE8xWTZuT0U2NlpWOEtOclBXbG5FOTNmSnMiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJBSENBRTRFSVZJIiwibWFpbCI6InRlc3QudXNlckBzYXAuY29tIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS9pZGVudGl0eS9jbGFpbXMvaWRlbnRpdHlwcm92aWRlciI6Imh0dHBzOi8vc3RzLndpbmRvd3MubmV0LzQyZjc2NzZjLWY0NTUtNDIzYy04MmY2LWRjMmQ5OTc5MWFmNy8iLCJpc3MiOiJodHRwczovL2EtaWFzLXRlbmFudC5hY2NvdW50cy5vbmRlbWFuZC5jb20iLCJsYXN0X25hbWUiOiJVc2VyIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS9jbGFpbXMvYXV0aG5tZXRob2RzcmVmZXJlbmNlcyI6WyJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvYXV0aGVudGljYXRpb25tZXRob2QveDUwOSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vY2xhaW1zL211bHRpcGxlYXV0aG4iXSwic2lkIjoiUy1TUC1iZWI0MThiZS05MWFlLTRjNGUtOWM5Yi0yZGIxNTBjMjFhMzQiLCJhdWQiOiIzZjc2OTM1MS1iMTFmLTRhZmYtYjQ4YS0wYTg4ZjNmMjA3ZjIiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL2lkZW50aXR5L2NsYWltcy90ZW5hbnRpZCI6IjQyZjc2NzZjLWY0NTUtNDIzYy04MmY2LWRjMmQ5OTc5MWFmNyIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vaWRlbnRpdHkvY2xhaW1zL29iamVjdGlkZW50aWZpZXIiOiI0ZWE3YzFmOS04MDVjLTQzZWMtOGY5MC03MTc2OTg4MWFlZDciLCJleHAiOjE2ODg4MzcyNDgsImlhdCI6MTY4ODgzMzY0OCwiZmlyc3RfbmFtZSI6IlRlc3QiLCJqdGkiOiIxMWQ3Y2M2YS02MDVlLTQ1ZTYtYjZjYy03OTcwMzU1MjU4YWEifQo=.WY-YlqlbvCVCK8CnHzr8TRuwvmswPyG-I8GuIGggfuO_i4uv42CQIa9sxijZUQfXvCmd2_x4UhrRzA0cWmiQKvvvVL_UEuWjGFIb7FCYKekmFdvxmyJaQ2UQH6JBQV16ri34Z4Hb01GKQMgl4wM5zwkiTZTThLq0Xj4pNv4A_Y10vp__Qfrgb6Wz-MMuWej0kBEPfhO8oGnK2V0BSFrUUq4jf4MQ8cMwDRQ73LX4y-pdN6SPhQuMIWjYX2JytP-ubMIdsCgHkjosf3HK_ds9GWNyhuAJdUo8XUnvVCy9vUT5UoSvkDUQrHR25MSMZcegmMGBUS5Q0T_40X31kU4JaQ" // nolint: lll,gosec
-	tenantId          = "eCh0yae7ooWaek2iejo8geiqua"
+	tenantId          = "29y87kiy4iakrkbb/test"
 
 	defaultSpiffeeHeaderValue = `By=spiffe://cluster.local/ns/default/sa/default;Hash=afb15b2fa11e07b572fb8cc549a07a71b169bdd818199ab1c2ad90f6f05fb2aa;Subject="";URI=spiffe://cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account` // nolint: lll
 
@@ -129,7 +130,7 @@ func userQuery() apitest.GraphQLRequestBody {
 	return apitest.GraphQLRequestBody{
 		Query: apiTestQuery,
 		Variables: map[string]interface{}{
-			"tenantId": "eCh0yae7ooWaek2iejo8geiqua",
+			"tenantId": "29y87kiy4iakrkbb/test",
 			"userId":   "OOD8JOOM2Z",
 		},
 	}
@@ -148,7 +149,7 @@ func tenantInfoQuery() apitest.GraphQLRequestBody {
 	return apitest.GraphQLRequestBody{
 		Query: query,
 		Variables: map[string]interface{}{
-			"tenantId": "eCh0yae7ooWaek2iejo8geiqua",
+			"tenantId": "29y87kiy4iakrkbb/test",
 		},
 	}
 }
@@ -199,7 +200,7 @@ func usersConnectionMutation() apitest.GraphQLRequestBody {
 	return apitest.GraphQLRequestBody{
 		Query: apiTestQuery,
 		Variables: map[string]interface{}{
-			"tenantId": "eCh0yae7ooWaek2iejo8geiqua",
+			"tenantId": "29y87kiy4iakrkbb/test",
 		},
 	}
 }
@@ -213,7 +214,7 @@ func inviteUserQuery() apitest.GraphQLRequestBody {
 	return apitest.GraphQLRequestBody{
 		Query: apiTestQuery,
 		Variables: map[string]interface{}{
-			"tenantId": "eCh0yae7ooWaek2iejo8geiqua",
+			"tenantId": "29y87kiy4iakrkbb/test",
 			"invite": InviteInput{
 				Email: "invited-admin-member@it.corp",
 				Entity: EntityInput{
@@ -236,7 +237,7 @@ func deleteInviteMutation() apitest.GraphQLRequestBody {
 	return apitest.GraphQLRequestBody{
 		Query: apiTestQuery,
 		Variables: map[string]interface{}{
-			"tenantId": "eCh0yae7ooWaek2iejo8geiqua",
+			"tenantId": "29y87kiy4iakrkbb/test",
 			"invite": InviteInput{
 				Email: "invited-admin-member@it.corp",
 				Entity: EntityInput{

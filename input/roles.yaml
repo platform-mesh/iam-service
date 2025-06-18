@@ -20,4 +20,10 @@
 - displayName: Vault Maintainer
   technicalName: vault_maintainer
   entityType: team
+- displayName: Owner
+  technicalName: owner
+  entityType: account
+- displayName: Member
+  technicalName: member
+  entityType: account
 

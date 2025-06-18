@@ -53,14 +53,20 @@ func extractNestedKeyFromArgs(args map[string]any, paramName string) (string, er
 	return paramValue, nil
 }
 
+var relationMapping = map[string]string{
+	"project_create": "create_core_openmfp_org_accounts",
+}
+
 func Authorized(openfgaClient openfgav1.OpenFGAServiceClient, log *logger.Logger) func(ctx context.Context, obj any, next gqlgen.Resolver, relation string, entityType *string, entityTypeParamName *string, entityParamName string) (res any, err error) {
 	return func(ctx context.Context, obj any, next gqlgen.Resolver, relation string, entityType, entityTypeParamName *string, entityParamName string) (any, error) {
+
+		if mappedRelation, ok := relationMapping[relation]; ok {
+			relation = mappedRelation
+		}
 
 		if openfgaClient == nil {
 			return nil, errors.New("OpenFGAServiceClient is nil. Cannot process request")
 		}
-
-		// tenant to context maybe?
 
 		fieldCtx := gqlgen.GetFieldContext(ctx)
 
@@ -74,19 +80,11 @@ func Authorized(openfgaClient openfgav1.OpenFGAServiceClient, log *logger.Logger
 			return nil, err
 		}
 
-		evaluatedEntityType := ""
-		if entityTypeParamName != nil {
-			evaluatedEntityType, err = extractNestedKeyFromArgs(fieldCtx.Args, *entityTypeParamName)
-			if err != nil {
-				return nil, err
-			}
-		} else if entityType != nil {
-			evaluatedEntityType = *entityType
+		orgIDSplit := strings.Split(orgID, "/")
+		if len(orgIDSplit) != 2 {
+			return nil, fmt.Errorf("invalid tenant id expecting format `cluster/name`")
 		}
-
-		if evaluatedEntityType == "" {
-			return nil, fmt.Errorf("make sure to either provide entityType or entityTypeParamName")
-		}
+		orgName := orgIDSplit[1]
 
 		stores, err := openfgaClient.ListStores(ctx, &openfgav1.ListStoresRequest{})
 		if err != nil {
@@ -95,7 +93,7 @@ func Authorized(openfgaClient openfgav1.OpenFGAServiceClient, log *logger.Logger
 		}
 
 		idx := slices.IndexFunc(stores.Stores, func(store *openfgav1.Store) bool {
-			return store.Name == orgID
+			return store.Name == orgName
 		})
 		if idx == -1 {
 			return nil, fmt.Errorf("store with name %s not found", orgID)
@@ -114,7 +112,7 @@ func Authorized(openfgaClient openfgav1.OpenFGAServiceClient, log *logger.Logger
 			TupleKey: &openfgav1.CheckRequestTupleKey{
 				User:     fmt.Sprintf("user:%s", user.Mail), // FIXME: for now, as the email is not the subject of the token
 				Relation: relation,
-				Object:   fmt.Sprintf("%s:%s", evaluatedEntityType, entityID),
+				Object:   fmt.Sprintf("account:%s", entityID),
 			},
 		}
 

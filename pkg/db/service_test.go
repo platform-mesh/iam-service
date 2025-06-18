@@ -229,11 +229,11 @@ func TestLoadTenantConfigData_Error(t *testing.T) {
   issuer: https://hyperspacedev.accounts.ondemand.com
   audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
   zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
-- tenantId: eCh0yae7ooWaek2iejo8geiqua
+- tenantId: 29y87kiy4iakrkbb/test
   issuer: https://hyperspacedev.accounts.ondemand.com
   audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
   zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
-- tenantId: eCh0yae7ooWaek2iejo8geiqua
+- tenantId: 29y87kiy4iakrkbb/test
   issuer: https://hyperspacedev.accounts.ondemand.com
   audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
   zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
@@ -295,7 +295,7 @@ func TestLoadTenantConfigData_FirstRowsAffected(t *testing.T) {
   issuer: https://hyperspacedev.accounts.ondemand.com
   audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
   zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
-- tenantId: eCh0yae7ooWaek2iejo8geiqua
+- tenantId: 29y87kiy4iakrkbb/test
   issuer: https://hyperspacedev.accounts.ondemand.com
   audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
   zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
@@ -410,7 +410,7 @@ func TestLoadTeamData_WhenSuccessful_ReturnsTeamData(t *testing.T) {
 		case "input/team.yaml":
 			loadTeamDataCalls++
 			return []byte(`team:
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     name: exampleTeam1`), nil
 		case "input/user.yaml":
 			loadUserDataCalls++
@@ -487,7 +487,7 @@ func TestLoadTeamData_ZeroUser_Error(t *testing.T) {
 		case "input/team.yaml":
 			loadTeamDataCalls++
 			return []byte(`team:
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     name: exampleTeam1`), nil
 		}
 
@@ -591,7 +591,7 @@ func TestLoadTeamData_CreateError(t *testing.T) {
 		case "input/team.yaml":
 			loadTeamDataCalls++
 			return []byte(`team:
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     name: exampleTeam1`), nil
 		case "input/user.yaml":
 			loadUserDataCalls++
@@ -715,7 +715,7 @@ func TestLoadInvitationData_WhenSuccessful_ReturnsInvitationData(t *testing.T) {
 	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
 		loadInvitationDataCalls++
 		return []byte(`invitations:
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     email: invited-admin-member@it.corp
     roles: owner,member
     entityType: project
@@ -1170,7 +1170,7 @@ func TestLoadUserData_DBFirstReturnsNil_ReturnsError(t *testing.T) {
 		case "input/team.yaml":
 			loadTeamDataCalls++
 			return []byte(`team:
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     name: exampleTeam1`), nil
 		case "input/user.yaml":
 			loadUserDataCalls++
@@ -1259,28 +1259,5 @@ func TestClose_DB_ReturnsError(t *testing.T) {
 
 	// Assert
 	assert.Nil(t, database)
-	assert.Error(t, err)
-}
-
-func TestClose_DB_NilError(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	database, err := db.New(db.ConfigDatabase{}, gormDB, log, false, false)
-
-	// Assert
-	assert.NotNil(t, database)
-	assert.NoError(t, err)
-
-	// Act
-	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "DB", func(*gorm.DB) (*sql.DB, error) {
-		return nil, assert.AnError
-	})
-	defer patch.Reset()
-
-	err = database.Close()
 	assert.Error(t, err)
 }

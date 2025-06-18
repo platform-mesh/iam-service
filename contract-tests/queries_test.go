@@ -4,11 +4,12 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/openmfp/iam-service/contract-tests/gqlAssertions"
-	graphql "github.com/openmfp/iam-service/pkg/graph"
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/openmfp/iam-service/contract-tests/gqlAssertions"
+	graphql "github.com/openmfp/iam-service/pkg/graph"
 )
 
 type QueriesTestSuite struct {
@@ -27,7 +28,18 @@ func (suite *QueriesTestSuite) TestQuery_AvailableRolesForEntityType() {
 		Expect(suite.T()).
 		Status(http.StatusOK).
 		Assert(gqlAssertions.NoGQLErrors()).
-		Assert(jsonpath.Equal("$.data.availableRolesForEntityType", []interface{}{})).
+		Assert(jsonpath.Equal("$.data.availableRolesForEntityType", []interface{}{
+			map[string]interface{}{
+				"displayName":   "Owner",
+				"technicalName": "owner",
+				"permissions":   nil,
+			},
+			map[string]interface{}{
+				"displayName":   "Member",
+				"technicalName": "member",
+				"permissions":   nil,
+			},
+		})).
 		End()
 
 }
@@ -102,7 +114,7 @@ func userByEmailQuery() apitest.GraphQLRequestBody {
 	return apitest.GraphQLRequestBody{
 		Query: apiTestQuery,
 		Variables: map[string]interface{}{
-			"tenantId": "eCh0yae7ooWaek2iejo8geiqua",
+			"tenantId": "29y87kiy4iakrkbb/test",
 			"email":    "OOD8JOOM2Z@mycorp.com",
 		},
 	}
@@ -145,7 +157,7 @@ func (suite *QueriesTestSuite) TestQuery_TenantInfo() {
 		Expect(suite.T()).
 		Status(http.StatusOK).
 		Assert(gqlAssertions.NoGQLErrors()).
-		Assert(jsonpath.Equal("$.data.tenantInfo.tenantId", "eCh0yae7ooWaek2iejo8geiqua")).
+		Assert(jsonpath.Equal("$.data.tenantInfo.tenantId", "29y87kiy4iakrkbb/test")).
 		End()
 }
 

@@ -1,62 +1,62 @@
 invitations:
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     email: invited-admin-member@it.corp
     roles: owner,member
     entityType: project
     entityId: test
 
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     email: invited-BIXIE-1@it.corp
     roles: member
     entityType: project
     entityId: BIXIEProject
 
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     email: invited-FOOBAR-1@it.corp
     roles: member
     entityType: project
     entityId: FoobarProject
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     email: invited-FOOBAR-2@it.corp
     roles: member
     entityType: project
     entityId: FoobarProject
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     email: invited-FOOBAR-3@it.corp
     roles: member
     entityType: project
     entityId: FoobarProject
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     email: invited-FOOBAR-4@it.corp
     roles: member
     entityType: project
     entityId: FoobarProject
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     email: invited-FOOBAR-5@it.corp
     roles: member
     entityType: project
     entityId: FoobarProject
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     email: invited-FOOBAR-6@it.corp
     roles: member
     entityType: project
     entityId: FoobarProject
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     email: invited-FOOBAR-7@it.corp
     roles: member
     entityType: project
     entityId: FoobarProject
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     email: invited-FOOBAR-8@it.corp
     roles: member
     entityType: project
     entityId: FoobarProject
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     email: invited-FOOBAR-9@it.corp
     roles: member,owner
     entityType: project
     entityId: FoobarProject
-  - tenantId: eCh0yae7ooWaek2iejo8geiqua
+  - tenantId: 29y87kiy4iakrkbb/test
     email: invited-FOOBAR-10@it.corp
     roles: member,owner
     entityType: project
