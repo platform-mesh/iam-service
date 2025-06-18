@@ -7,13 +7,16 @@ import (
 	"net/http"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/resolver"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
 	_ "github.com/joho/godotenv/autoload"
+	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	"github.com/spf13/cobra"
 	"github.com/vektah/gqlparser/v2/ast"
 
@@ -29,6 +32,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	openmfpcontext "github.com/openmfp/golang-commons/context"
 
+	"github.com/openmfp/iam-service/internal/pkg/directives"
 	gormlogger "github.com/openmfp/iam-service/internal/pkg/logger"
 	iamRouter "github.com/openmfp/iam-service/internal/pkg/router"
 	"github.com/openmfp/iam-service/internal/pkg/tenant"
@@ -109,9 +113,20 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 		}
 	}()
 
+	conn, err := grpc.NewClient(appConfig.Openfga.GRPCAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to start grpc server")
+	}
+
+	openfgaClient := openfgav1.NewOpenFGAServiceClient(conn)
+
 	// create openmfp Resolver
 	svc := openmfpservice.New(database, compatService)
-	router := iamRouter.CreateRouter(appConfig, svc, log)
+	router := iamRouter.CreateRouter(appConfig, svc, log, iamRouter.WithAuthorizedDirective(directives.Authorized(openfgaClient, log)))
 
 	server := &http.Server{
 		Addr:         ":" + appConfig.Port,

@@ -26,10 +26,21 @@ import (
 	"github.com/openmfp/iam-service/pkg/service"
 )
 
+type Options func(*graph.Config)
+
+func WithAuthorizedDirective(
+	dir func(ctx context.Context, obj any, next gqlgen.Resolver, relation string, entityType *string, entityTypeParamName *string, entityParamName string) (res any, err error),
+) Options {
+	return func(cfg *graph.Config) {
+		cfg.Directives.Authorized = dir
+	}
+}
+
 func CreateRouter(
 	appConfig config.Config,
 	svc *service.Service,
 	log *logger.Logger,
+	opts ...Options,
 ) *chi.Mux {
 	router := chi.NewRouter()
 
@@ -43,13 +54,6 @@ func CreateRouter(
 		}).Handler)
 	}
 
-	conn, err := grpc.NewClient(appConfig.Openfga.GRPCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatal().Err(err).Msg("unable to establish openfga connection")
-	}
-
-	openfgaClient := openfgav1.NewOpenFGAServiceClient(conn)
-
 	logResolver := logger.StdLogger.ComponentLogger("resolver")
 	gql := graph.Config{
 		Resolvers: resolver.New(svc, logResolver),
@@ -57,8 +61,21 @@ func CreateRouter(
 			PeersOnly: func(ctx context.Context, obj interface{}, next gqlgen.Resolver) (res interface{}, err error) {
 				return next(ctx)
 			},
-			Authorized: directive.Authorized(openfgaClient, log),
 		},
+	}
+
+	for _, opt := range opts {
+		opt(&gql)
+	}
+
+	if gql.Directives.Authorized == nil {
+		conn, err := grpc.NewClient(appConfig.Openfga.GRPCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Fatal().Err(err).Msg("unable to establish openfga connection")
+		}
+
+		openfgaClient := openfgav1.NewOpenFGAServiceClient(conn)
+		gql.Directives.Authorized = directive.Authorized(openfgaClient, log)
 	}
 
 	gqHandler := handler.New(graph.NewExecutableSchema(gql))
