@@ -10,9 +10,9 @@ import (
 
 	"github.com/openmfp/golang-commons/context/keys"
 	"github.com/openmfp/golang-commons/logger"
+	"github.com/openmfp/iam-service/internal/pkg/utils"
 	"github.com/openmfp/iam-service/pkg/db"
 	"github.com/openmfp/iam-service/pkg/graph"
-	"github.com/openmfp/iam-service/pkg/utils"
 )
 
 const MAX_INT = math.MaxInt

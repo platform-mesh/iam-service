@@ -3,8 +3,9 @@ package config
 import (
 	"time"
 
-	"github.com/openmfp/iam-service/pkg/db"
 	"github.com/vrischmann/envconfig"
+
+	"github.com/openmfp/iam-service/pkg/db"
 )
 
 type Config struct {
@@ -20,6 +21,9 @@ type Config struct {
 		EventingEnabled bool   `envconfig:"default=false"`
 		GRPCAddr        string `envconfig:"default=openfga:8081"`
 		ListenAddr      string `envconfig:"default=:8081"`
+	}
+	Istio struct {
+		QuitApi string `envconfig:"default=http://localhost:15020/quitquitquit"`
 	}
 }
 

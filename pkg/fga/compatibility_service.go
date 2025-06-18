@@ -18,11 +18,11 @@ import (
 	commonsLogger "github.com/openmfp/golang-commons/logger"
 	commonsSentry "github.com/openmfp/golang-commons/sentry"
 
+	"github.com/openmfp/iam-service/internal/pkg/utils"
 	"github.com/openmfp/iam-service/pkg/db"
 	"github.com/openmfp/iam-service/pkg/fga/middleware/principal"
 	"github.com/openmfp/iam-service/pkg/fga/types"
 	graphql "github.com/openmfp/iam-service/pkg/graph"
-	"github.com/openmfp/iam-service/pkg/utils"
 )
 
 // TODO: get a list of roles to ask for from the database
