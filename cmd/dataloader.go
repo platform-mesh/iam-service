@@ -22,6 +22,7 @@ func (d *DataLoader) SetDataLoadCmd(cfg config.Config) {
 		Short: "Load Initial Data",
 		Long:  `Loads the initial data into the Database`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+
 			if d.killIstio {
 				defer executeKillIstio(cfg)
 			}
@@ -47,13 +48,7 @@ type DataLoader struct {
 // InitDataLoader is an outer wrapper of the DataLoader constructor that is used in `command.go` init(). Not testable.
 func InitDataLoader(rootCmd *cobra.Command) {
 	cfg, log := initApp() // nolint: typecheck
-
-	database, err := initDB(cfg, log)
-	if err != nil {
-		log.Panic().Err(err).Msg("failed to init a database")
-	}
-
-	NewDataLoader(rootCmd, cfg, log, database)
+	NewDataLoader(rootCmd, cfg, log, nil)
 }
 
 // NewDataLoader is an inner wrapper of the DataLoader constructor which accepts all dependencies as arguments. Testable.
@@ -78,6 +73,14 @@ func NewDataLoader(
 
 // loadDataToDB loads data to the database.
 func (d *DataLoader) loadDataToDB() error {
+	if d.Database == nil {
+		var err error
+		d.Database, err = initDB(d.cfg, d.logger)
+		if err != nil {
+			log.Panic().Err(err).Msg("failed to init a database")
+		}
+	}
+
 	if d.cfg.Database.LocalData.DataPathRoles != "" {
 		err := d.Database.LoadRoleData(d.cfg.Database.LocalData.DataPathRoles)
 		if err != nil {

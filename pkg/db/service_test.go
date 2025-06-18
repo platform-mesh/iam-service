@@ -9,13 +9,14 @@ import (
 
 	"github.com/agiledragon/gomonkey/v2"
 	"github.com/openmfp/golang-commons/logger"
-	"github.com/openmfp/iam-service/pkg/db"
-	"github.com/openmfp/iam-service/pkg/db/mocks"
-	"github.com/openmfp/iam-service/pkg/graph"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+
+	"github.com/openmfp/iam-service/pkg/db"
+	"github.com/openmfp/iam-service/pkg/db/mocks"
+	"github.com/openmfp/iam-service/pkg/graph"
 )
 
 func setupSQLiteDB(t *testing.T) *gorm.DB {

@@ -32,8 +32,10 @@ func (suite *DataLoaderTestSuite) TestLoadData() {
 	// initialize suite fields(fga, db, etc)
 	suite.GqlApiTest(nil, nil, nil)
 	suite.appConfig = config.Config{
-		IsLocal:  false,
-		Database: db.ConfigDatabase{}}
+		IsLocal: false,
+		Database: db.ConfigDatabase{
+			InMemory: true,
+		}}
 
 	suite.appConfig.Database.LocalData.DataPathRoles = "../input/roles.yaml"
 

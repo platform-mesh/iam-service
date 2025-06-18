@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/openmfp/iam-service/contract-tests/fga_test_data"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+
+	"github.com/openmfp/iam-service/contract-tests/fga_test_data"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-jose/go-jose/v4"
@@ -99,6 +100,7 @@ func (s *CommonTestSuite) setupConfig() {
 		s.T().Fatal(err)
 	}
 
+	appConfig.Database.InMemory = true
 	appConfig.Openfga.GRPCAddr = "localhost:8080"
 	appConfig.IsLocal = true
 	appConfig.Database.LocalData.DataPathUser = "../input/user.yaml"

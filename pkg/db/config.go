@@ -1,7 +1,7 @@
 package db
 
 type ConfigDatabase struct {
-	InMemory              bool   `envconfig:"default=true"`
+	InMemory              bool   `envconfig:"default=false"`
 	DSN                   string `envconfig:"optional"`
 	User                  string `envconfig:"default=admin"`
 	Name                  string `envconfig:"default=aname"`

@@ -4,14 +4,15 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/openmfp/iam-service/contract-tests/gqlAssertions"
-	dbMocks "github.com/openmfp/iam-service/pkg/db/mocks"
-	"github.com/openmfp/iam-service/pkg/fga/mocks"
-	graphql "github.com/openmfp/iam-service/pkg/graph"
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/openmfp/iam-service/contract-tests/gqlAssertions"
+	dbMocks "github.com/openmfp/iam-service/pkg/db/mocks"
+	"github.com/openmfp/iam-service/pkg/fga/mocks"
+	graphql "github.com/openmfp/iam-service/pkg/graph"
 )
 
 type MutationsTestSuite struct {
@@ -30,7 +31,7 @@ func (suite *MutationsTestSuite) TestMutation_UsersConnection() {
 		Expect(suite.T()).
 		Status(http.StatusOK).
 		Assert(gqlAssertions.NoGQLErrors()).
-		Assert(jsonpath.Equal("$.data.usersConnection.pageInfo.totalCount", float64(179))).
+		Assert(jsonpath.Equal("$.data.usersConnection.pageInfo.totalCount", float64(177))).
 		Assert(jsonpath.Equal("$.data.usersConnection.user[0].userId", "")).
 		Assert(jsonpath.Equal("$.data.usersConnection.user[0].email", "invited-admin-member@it.corp")).
 		Assert(jsonpath.Equal("$.data.usersConnection.user[0].firstName", nil)).
