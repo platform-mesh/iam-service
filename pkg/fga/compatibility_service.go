@@ -69,6 +69,11 @@ func NewCompatClient(cl openfgav1.OpenFGAServiceClient, db db.Service, fgaEvents
 	}, nil
 }
 
+func (c *CompatService) WithFGAStoreHelper(helper openmfpFga.FGAStoreHelper) *CompatService {
+	c.helper = helper
+	return c
+}
+
 var _ openfgav1.OpenFGAServiceServer = (*CompatService)(nil)
 
 func userIDFromContext(ctx context.Context) (string, error) {

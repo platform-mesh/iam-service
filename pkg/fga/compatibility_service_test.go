@@ -5,12 +5,14 @@ import (
 	"testing"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
-	"github.com/openmfp/iam-service/pkg/fga/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	internalfga "github.com/openmfp/iam-service/internal/pkg/fga"
+	"github.com/openmfp/iam-service/pkg/fga/types"
 
 	storeMocks "github.com/openmfp/golang-commons/fga/store/mocks"
 
@@ -24,7 +26,9 @@ func TestNewCompatClient(t *testing.T) {
 	cl := &mocks.OpenFGAServiceClient{}
 	db := &dbMocks.DatabaseService{}
 	fgaEvents := &mocks.FgaEvents{}
+	fgaStoreHelper := internalfga.NewOpenMFPStoreHelper()
 	s, err := NewCompatClient(cl, db, fgaEvents)
+	s = s.WithFGAStoreHelper(fgaStoreHelper)
 	assert.NoError(t, err)
 	assert.NotNil(t, s)
 }

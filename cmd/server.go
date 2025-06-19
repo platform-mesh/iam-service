@@ -20,6 +20,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vektah/gqlparser/v2/ast"
 
+	internalfga "github.com/openmfp/iam-service/internal/pkg/fga"
 	"github.com/openmfp/iam-service/pkg/db"
 	"github.com/openmfp/iam-service/pkg/fga"
 	myresolver "github.com/openmfp/iam-service/pkg/resolver"
@@ -96,10 +97,13 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 	}
 	log.Info().Str("addr", appConfig.Openfga.ListenAddr).Msg("successfully started grpc listener")
 
+	fgaStoreHelper := internalfga.NewOpenMFPStoreHelper()
+
 	fgaServer, compatService, err := fga.NewFGAServer(appConfig.Openfga.GRPCAddr, database, nil, tr, appConfig.IsLocal)
 	if err != nil {
 		log.Panic().Err(err).Msg("failed to init service")
 	}
+	compatService = compatService.WithFGAStoreHelper(fgaStoreHelper)
 
 	go func() {
 		err := fgaServer.Serve(lis)
@@ -126,7 +130,8 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 
 	// create openmfp Resolver
 	svc := openmfpservice.New(database, compatService)
-	router := iamRouter.CreateRouter(appConfig, svc, log, iamRouter.WithAuthorizedDirective(directives.Authorized(openfgaClient, log)))
+	ad := directives.NewAuthorizedDirective(fgaStoreHelper, openfgaClient)
+	router := iamRouter.CreateRouter(appConfig, svc, log, iamRouter.WithAuthorizedDirective(ad.Authorized))
 	server := &http.Server{
 		Addr:         ":" + appConfig.Port,
 		Handler:      router,
