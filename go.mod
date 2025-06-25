@@ -27,7 +27,7 @@ require (
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.30.0
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
-	sigs.k8s.io/yaml v1.4.0
+	sigs.k8s.io/yaml v1.5.0
 )
 
 require (
@@ -81,6 +81,7 @@ require (
 	go.uber.org/mock v0.5.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
+	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
 	golang.org/x/sync v0.15.0 // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect
