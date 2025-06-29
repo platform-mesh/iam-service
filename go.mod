@@ -3,7 +3,7 @@ module github.com/openmfp/iam-service
 go 1.24.3
 
 require (
-	github.com/99designs/gqlgen v0.17.75
+	github.com/99designs/gqlgen v0.17.76
 	github.com/agiledragon/gomonkey/v2 v2.13.0
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a
 	github.com/go-jose/go-jose/v4 v4.1.1
@@ -19,7 +19,7 @@ require (
 	github.com/steinfletcher/apitest v1.6.0
 	github.com/steinfletcher/apitest-jsonpath v1.7.2
 	github.com/stretchr/testify v1.10.0
-	github.com/vektah/gqlparser/v2 v2.5.29
+	github.com/vektah/gqlparser/v2 v2.5.30
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.62.0
 	go.opentelemetry.io/otel v1.37.0
 	google.golang.org/grpc v1.73.0
@@ -43,7 +43,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
-	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
+	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
 	github.com/google/cel-go v0.25.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
