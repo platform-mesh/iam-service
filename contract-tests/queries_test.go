@@ -146,6 +146,9 @@ func (suite *QueriesTestSuite) TestQuery_TenantInfo() {
 		Status(http.StatusOK).
 		Assert(gqlAssertions.NoGQLErrors()).
 		Assert(jsonpath.Equal("$.data.tenantInfo.tenantId", "29y87kiy4iakrkbb/test")).
+		Assert(jsonpath.Equal("$.data.tenantInfo.subdomain", "")).
+		Assert(jsonpath.Equal("$.data.tenantInfo.emailDomain", "")).
+		Assert(jsonpath.Len("$.data.tenantInfo.emailDomains", 0)).
 		End()
 }
 
