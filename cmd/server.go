@@ -17,6 +17,7 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/vektah/gqlparser/v2/ast"
 
@@ -132,6 +133,21 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 	svc := openmfpservice.New(database, compatService)
 	ad := directives.NewAuthorizedDirective(fgaStoreHelper, openfgaClient)
 	router := iamRouter.CreateRouter(appConfig, svc, log, iamRouter.WithAuthorizedDirective(ad.Authorized))
+	metricsHandler := promhttp.Handler()
+	router.Handle("/metrics", metricsHandler)
+	router.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		_, err := w.Write([]byte("OK"))
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to write response for health check")
+		}
+	})
+	router.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		_, err := w.Write([]byte("OK"))
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to write response for readiness check")
+		}
+	})
+
 	server := &http.Server{
 		Addr:         ":" + appConfig.Port,
 		Handler:      router,
