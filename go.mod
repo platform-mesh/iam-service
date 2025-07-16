@@ -22,7 +22,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.30
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.62.0
 	go.opentelemetry.io/otel v1.37.0
-	google.golang.org/grpc v1.73.0
+	google.golang.org/grpc v1.74.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.30.0
@@ -31,7 +31,7 @@ require (
 )
 
 require (
-	cel.dev/expr v0.23.1 // indirect
+	cel.dev/expr v0.24.0 // indirect
 	github.com/PaesslerAG/gval v1.0.0 // indirect
 	github.com/PaesslerAG/jsonpath v0.1.1 // indirect
 	github.com/Yiling-J/theine-go v0.6.1 // indirect
