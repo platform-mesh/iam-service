@@ -1,4 +1,4 @@
-FROM golang:1.24.4-bullseye as builder
+FROM golang:1.24.5-bullseye as builder
 
 ENV GOSUMDB=off
 RUN git config --global credential.helper store
