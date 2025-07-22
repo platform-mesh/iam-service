@@ -3,7 +3,7 @@ package config
 import (
 	"time"
 
-	"github.com/openmfp/iam-service/pkg/db"
+	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/vrischmann/envconfig"
 )
 

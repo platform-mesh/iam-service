@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
-	commonsCtx "github.com/openmfp/golang-commons/context"
+	commonsCtx "github.com/platform-mesh/golang-commons/context"
 )
 
 type TenantConfiguration struct {

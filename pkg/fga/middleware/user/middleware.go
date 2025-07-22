@@ -12,8 +12,8 @@ import (
 
 	"github.com/go-http-utils/headers"
 	"github.com/go-jose/go-jose/v4"
-	commonsCtx "github.com/openmfp/golang-commons/context"
-	"github.com/openmfp/golang-commons/policy_services"
+	commonsCtx "github.com/platform-mesh/golang-commons/context"
+	"github.com/platform-mesh/golang-commons/policy_services"
 )
 
 // REFACTOR: I am not happy with this...

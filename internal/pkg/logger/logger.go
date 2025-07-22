@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	commonslogger "github.com/openmfp/golang-commons/logger"
+	commonslogger "github.com/platform-mesh/golang-commons/logger"
 	"gorm.io/gorm/logger"
 )
 

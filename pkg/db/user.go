@@ -10,9 +10,9 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/openmfp/golang-commons/sentry"
+	"github.com/platform-mesh/golang-commons/sentry"
 
-	"github.com/openmfp/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 
 // GetUserByID  returns a member by ID

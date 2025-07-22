@@ -3,8 +3,8 @@ package utils_test
 import (
 	"testing"
 
-	"github.com/openmfp/iam-service/pkg/graph"
-	"github.com/openmfp/iam-service/pkg/utils"
+	"github.com/platform-mesh/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/utils"
 )
 
 func TestCheckRolesFilter(t *testing.T) {

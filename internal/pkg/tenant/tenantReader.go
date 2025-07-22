@@ -3,9 +3,9 @@ package tenant
 import (
 	"context"
 
-	"github.com/openmfp/golang-commons/logger"
-	"github.com/openmfp/golang-commons/policy_services"
-	"github.com/openmfp/iam-service/pkg/db"
+	"github.com/platform-mesh/golang-commons/logger"
+	"github.com/platform-mesh/golang-commons/policy_services"
+	"github.com/platform-mesh/iam-service/pkg/db"
 )
 
 type TenantReader struct {

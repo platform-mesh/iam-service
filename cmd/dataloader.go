@@ -17,10 +17,10 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	fgastore "github.com/openmfp/golang-commons/fga/store"
-	"github.com/openmfp/golang-commons/logger"
-	"github.com/openmfp/iam-service/internal/pkg/config"
-	"github.com/openmfp/iam-service/pkg/db"
+	fgastore "github.com/platform-mesh/golang-commons/fga/store"
+	"github.com/platform-mesh/golang-commons/logger"
+	"github.com/platform-mesh/iam-service/internal/pkg/config"
+	"github.com/platform-mesh/iam-service/pkg/db"
 )
 
 // SetDataLoadCmd assigns cobra.Command to the DataLoader.dataLoadCmd field.

@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	commonsLogger "github.com/openmfp/golang-commons/logger"
+	commonsLogger "github.com/platform-mesh/golang-commons/logger"
 )
 
 const (

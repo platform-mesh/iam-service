@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openmfp/golang-commons/context/keys"
-	"github.com/openmfp/iam-service/pkg/db"
-	"github.com/openmfp/iam-service/pkg/graph"
-	"github.com/openmfp/iam-service/pkg/service"
+	"github.com/platform-mesh/golang-commons/context/keys"
+	"github.com/platform-mesh/iam-service/pkg/db"
+	"github.com/platform-mesh/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/service"
 	"github.com/stretchr/testify/assert"
 )
 

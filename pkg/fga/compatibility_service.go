@@ -13,16 +13,16 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	commonsCtx "github.com/openmfp/golang-commons/context"
-	openmfpFga "github.com/openmfp/golang-commons/fga/store"
-	commonsLogger "github.com/openmfp/golang-commons/logger"
-	commonsSentry "github.com/openmfp/golang-commons/sentry"
+	commonsCtx "github.com/platform-mesh/golang-commons/context"
+	pmfga "github.com/platform-mesh/golang-commons/fga/store"
+	commonsLogger "github.com/platform-mesh/golang-commons/logger"
+	commonsSentry "github.com/platform-mesh/golang-commons/sentry"
 
-	"github.com/openmfp/iam-service/pkg/db"
-	"github.com/openmfp/iam-service/pkg/fga/middleware/principal"
-	"github.com/openmfp/iam-service/pkg/fga/types"
-	graphql "github.com/openmfp/iam-service/pkg/graph"
-	"github.com/openmfp/iam-service/pkg/utils"
+	"github.com/platform-mesh/iam-service/pkg/db"
+	"github.com/platform-mesh/iam-service/pkg/fga/middleware/principal"
+	"github.com/platform-mesh/iam-service/pkg/fga/types"
+	graphql "github.com/platform-mesh/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/utils"
 )
 
 // TODO: get a list of roles to ask for from the database
@@ -48,7 +48,7 @@ type UserService interface {
 type CompatService struct {
 	openfgav1.UnimplementedOpenFGAServiceServer
 	upstream openfgav1.OpenFGAServiceClient
-	helper   openmfpFga.FGAStoreHelper
+	helper   pmfga.FGAStoreHelper
 	database db.Service
 	events   FgaEvents
 	roles    []string
@@ -62,7 +62,7 @@ type FgaEvents interface {
 func NewCompatClient(cl openfgav1.OpenFGAServiceClient, db db.Service, fgaEvents FgaEvents) (*CompatService, error) {
 	return &CompatService{
 		upstream: cl,
-		helper:   openmfpFga.New(),
+		helper:   pmfga.New(),
 		database: db,
 		events:   fgaEvents,
 		roles:    getRoles(),

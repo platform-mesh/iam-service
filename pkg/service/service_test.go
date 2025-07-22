@@ -6,17 +6,17 @@ import (
 	"testing"
 
 	"github.com/go-jose/go-jose/v4"
-	mfpcontext "github.com/openmfp/golang-commons/context"
+	mfpcontext "github.com/platform-mesh/golang-commons/context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 
-	"github.com/openmfp/iam-service/pkg/db"
-	"github.com/openmfp/iam-service/pkg/db/mocks"
-	fgamock "github.com/openmfp/iam-service/pkg/fga/mocks"
-	"github.com/openmfp/iam-service/pkg/fga/types"
-	"github.com/openmfp/iam-service/pkg/graph"
-	"github.com/openmfp/iam-service/pkg/service"
+	"github.com/platform-mesh/iam-service/pkg/db"
+	"github.com/platform-mesh/iam-service/pkg/db/mocks"
+	fgamock "github.com/platform-mesh/iam-service/pkg/fga/mocks"
+	"github.com/platform-mesh/iam-service/pkg/fga/types"
+	"github.com/platform-mesh/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/service"
 	"google.golang.org/grpc/status"
 )
 

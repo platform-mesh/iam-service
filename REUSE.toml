@@ -1,9 +1,9 @@
 version = 1
 SPDX-PackageName = "iam-service"
-SPDX-PackageDownloadLocation = "https://github.com/openmfp/iam-service"
+SPDX-PackageDownloadLocation = "https://github.com/platform-mesh/iam-service"
 
 [[annotations]]
 path = "**"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "2024 SAP SE or an SAP affiliate company and openMFP contributors and iam-service contributors."
+SPDX-FileCopyrightText = "2024 SAP SE or an SAP affiliate company and Platform Mesh contributors and iam-service contributors."
 SPDX-License-Identifier = "Apache-2.0"

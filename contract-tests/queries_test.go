@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/openmfp/iam-service/contract-tests/gqlAssertions"
-	graphql "github.com/openmfp/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/contract-tests/gqlAssertions"
+	graphql "github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
 	"github.com/stretchr/testify/suite"

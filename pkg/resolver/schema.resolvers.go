@@ -7,7 +7,7 @@ package resolver
 import (
 	"context"
 
-	"github.com/openmfp/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 
 // InviteUser is the resolver for the inviteUser field.

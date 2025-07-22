@@ -6,16 +6,17 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/openmfp/iam-service/contract-tests/fga_test_data"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+
+	"github.com/platform-mesh/iam-service/contract-tests/fga_test_data"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-jose/go-jose/v4"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	"github.com/openfga/openfga/pkg/server"
-	commonsCtx "github.com/openmfp/golang-commons/context"
-	commonsLogger "github.com/openmfp/golang-commons/logger"
+	commonsCtx "github.com/platform-mesh/golang-commons/context"
+	commonsLogger "github.com/platform-mesh/golang-commons/logger"
 	"github.com/steinfletcher/apitest"
 	"github.com/stretchr/testify/suite"
 	"github.com/vrischmann/envconfig"
@@ -24,13 +25,13 @@ import (
 	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/test/bufconn"
 
-	"github.com/openmfp/iam-service/internal/pkg/config"
-	gormlogger "github.com/openmfp/iam-service/internal/pkg/logger"
-	iamRouter "github.com/openmfp/iam-service/internal/pkg/router"
-	"github.com/openmfp/iam-service/pkg/db"
-	dbMocks "github.com/openmfp/iam-service/pkg/db/mocks"
-	"github.com/openmfp/iam-service/pkg/fga"
-	openmfpservice "github.com/openmfp/iam-service/pkg/service"
+	"github.com/platform-mesh/iam-service/internal/pkg/config"
+	gormlogger "github.com/platform-mesh/iam-service/internal/pkg/logger"
+	iamRouter "github.com/platform-mesh/iam-service/internal/pkg/router"
+	"github.com/platform-mesh/iam-service/pkg/db"
+	dbMocks "github.com/platform-mesh/iam-service/pkg/db/mocks"
+	"github.com/platform-mesh/iam-service/pkg/fga"
+	pmservice "github.com/platform-mesh/iam-service/pkg/service"
 )
 
 type CommonTestSuite struct {
@@ -199,8 +200,8 @@ func (s *CommonTestSuite) getRouter(fgaEventHandler fga.FgaEvents) *chi.Mux {
 		s.T().Fatal(err)
 	}
 
-	// create openmfp Resolver
-	mfpSvc := openmfpservice.New(s.database, compatService)
+	// create platform-mesh Resolver
+	mfpSvc := pmservice.New(s.database, compatService)
 	router := iamRouter.CreateRouter(s.appConfig, mfpSvc, s.logger)
 	return router
 

@@ -13,26 +13,27 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/99designs/gqlgen/graphql/playground"
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/openmfp/iam-service/pkg/db"
-	"github.com/openmfp/iam-service/pkg/fga"
-	myresolver "github.com/openmfp/iam-service/pkg/resolver"
 	"github.com/spf13/cobra"
 	"github.com/vektah/gqlparser/v2/ast"
 
-	"github.com/openmfp/golang-commons/logger"
+	"github.com/platform-mesh/iam-service/pkg/db"
+	"github.com/platform-mesh/iam-service/pkg/fga"
+	myresolver "github.com/platform-mesh/iam-service/pkg/resolver"
+
+	"github.com/platform-mesh/golang-commons/logger"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
-	openmfpcontext "github.com/openmfp/golang-commons/context"
-	gormlogger "github.com/openmfp/iam-service/internal/pkg/logger"
-	iamRouter "github.com/openmfp/iam-service/internal/pkg/router"
-	"github.com/openmfp/iam-service/internal/pkg/tenant"
-	"github.com/openmfp/iam-service/pkg/graph"
-	openmfpservice "github.com/openmfp/iam-service/pkg/service"
+	pmcontext "github.com/platform-mesh/golang-commons/context"
+
+	gormlogger "github.com/platform-mesh/iam-service/internal/pkg/logger"
+	iamRouter "github.com/platform-mesh/iam-service/internal/pkg/router"
+	"github.com/platform-mesh/iam-service/internal/pkg/tenant"
+	"github.com/platform-mesh/iam-service/pkg/graph"
+	iamservice "github.com/platform-mesh/iam-service/pkg/service"
 )
 
 func getServeCmd() *cobra.Command {
@@ -67,7 +68,7 @@ func getGormConn(log *logger.Logger, cfg db.ConfigDatabase) (*gorm.DB, error) {
 
 func serveFunc() { // nolint: funlen,cyclop,gocognit
 	appConfig, log := initApp()
-	ctx, _, shutdown := openmfpcontext.StartContext(log, nil, appConfig.ShutdownTimeout)
+	ctx, _, shutdown := pmcontext.StartContext(log, nil, appConfig.ShutdownTimeout)
 	defer shutdown()
 
 	database, err := initDB(appConfig, log)
@@ -108,8 +109,8 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 		}
 	}()
 
-	// create openmfp Resolver
-	svc := openmfpservice.New(database, compatService)
+	// create platform-mesh Resolver
+	svc := iamservice.New(database, compatService)
 	router := iamRouter.CreateRouter(appConfig, svc, log)
 
 	server := &http.Server{
@@ -133,21 +134,21 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 		Cache: lru.New[string](100),
 	})
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
-
 	go func() {
+		var err error
 		if appConfig.LocalSsl {
-			server.ListenAndServeTLS("../ssl/server.crt", "../ssl/server.key") // nolint: errcheck
+			err = server.ListenAndServeTLS("../ssl/server.crt", "../ssl/server.key")
 		} else {
-			server.ListenAndServe() // nolint: errcheck
+			err = server.ListenAndServe()
+		}
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error().Err(err).Msg("failed to start http server")
 		}
 	}()
 
-	log.Info().Msg("Service started")
-
+	log.Info().Msgf("service started on port: %s", appConfig.Port)
 	if appConfig.IsLocal {
-		log.Info().Msgf("connect to http://localhost:%s/ for GraphQL playground", appConfig.Port)
+		log.Info().Msgf("connect to http://localhost:%s/ for graphQL playground", appConfig.Port)
 	}
 	<-ctx.Done()
 

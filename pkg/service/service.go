@@ -9,16 +9,16 @@ import (
 
 	"fmt"
 
-	fgastore "github.com/openmfp/golang-commons/fga/store"
+	fgastore "github.com/platform-mesh/golang-commons/fga/store"
 
 	"gorm.io/gorm"
 
-	openmfpCtx "github.com/openmfp/golang-commons/context"
-	"github.com/openmfp/golang-commons/sentry"
+	pmctx "github.com/platform-mesh/golang-commons/context"
+	"github.com/platform-mesh/golang-commons/sentry"
 
-	"github.com/openmfp/iam-service/pkg/db"
-	"github.com/openmfp/iam-service/pkg/fga"
-	"github.com/openmfp/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/db"
+	"github.com/platform-mesh/iam-service/pkg/fga"
+	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"go.opentelemetry.io/otel"
 )
@@ -355,7 +355,7 @@ func (s *Service) RemoveFromEntity(ctx context.Context, tenantID string, entityT
 
 func (s *Service) LeaveEntity(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error) {
 
-	token, err := openmfpCtx.GetWebTokenFromContext(ctx)
+	token, err := pmctx.GetWebTokenFromContext(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -484,7 +484,7 @@ func (s *Service) TenantInfo(ctx context.Context, tenantIdInput *string) (*graph
 func (s *Service) SearchUsers(ctx context.Context, query string) ([]*graph.User, error) {
 	logger := setupLogger(ctx)
 
-	tenantID, err := openmfpCtx.GetTenantFromContext(ctx)
+	tenantID, err := pmctx.GetTenantFromContext(ctx)
 	if err != nil {
 		logger.Error().Err(err).Msg("no tenantID found in context")
 		return nil, sentry.SentryError(err)
