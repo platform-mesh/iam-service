@@ -100,6 +100,11 @@ func (r *queryResolver) TenantInfo(ctx context.Context, tenantID *string) (*grap
 	return r.service.TenantInfo(ctx, tenantID)
 }
 
+// UsersByIds is the resolver for the usersByIds field.
+func (r *queryResolver) UsersByIds(ctx context.Context, tenantID string, userIds []string) ([]*graph.User, error) {
+	return r.service.UsersByIds(ctx, tenantID, userIds)
+}
+
 // Mutation returns graph.MutationResolver implementation.
 func (r *Resolver) Mutation() graph.MutationResolver { return &mutationResolver{r} }
 

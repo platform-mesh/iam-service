@@ -1558,3 +1558,76 @@ func Test_UsersOfEntity_pagination_nils(t *testing.T) {
 	assert.Equal(t, 11, guc.PageInfo.OwnerCount)
 
 }
+
+func Test_UsersByIds_Success(t *testing.T) {
+	svc, mockDb, _ := setupService(t)
+	ctx := context.Background()
+	tenantID := "tenant1"
+	userIds := []string{"id1", "id2"}
+
+	expected := []*graph.User{
+		{UserID: "id1"},
+		{UserID: "id2"},
+	}
+
+	mockDb.
+		EXPECT().
+		GetUsersByUserIDs(
+			mock.Anything,
+			tenantID,
+			userIds,
+			0,
+			0,
+			mock.Anything,
+			mock.Anything,
+		).
+		Return(expected, nil).
+		Once()
+
+	users, err := svc.UsersByIds(ctx, tenantID, userIds)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, users)
+}
+
+func Test_UsersByIds_EmptyTenantID(t *testing.T) {
+	svc, _, _ := setupService(t)
+	ctx := context.Background()
+
+	users, err := svc.UsersByIds(ctx, "", []string{"id"})
+	assert.Nil(t, users)
+	assert.EqualError(t, err, "tenantID must not be empty")
+}
+
+func Test_UsersByIds_EmptyUserIds(t *testing.T) {
+	svc, _, _ := setupService(t)
+	ctx := context.Background()
+
+	users, err := svc.UsersByIds(ctx, "tenant1", []string{})
+	assert.Nil(t, users)
+	assert.EqualError(t, err, "userIds must not be empty")
+}
+
+func Test_UsersByIds_DbError(t *testing.T) {
+	svc, mockDb, _ := setupService(t)
+	ctx := context.Background()
+	tenantID := "tenant1"
+	userIds := []string{"id1"}
+
+	mockDb.
+		EXPECT().
+		GetUsersByUserIDs(
+			mock.Anything,
+			tenantID,
+			userIds,
+			0,
+			0,
+			mock.Anything,
+			mock.Anything,
+		).
+		Return(nil, assert.AnError).
+		Once()
+
+	users, err := svc.UsersByIds(ctx, tenantID, userIds)
+	assert.Nil(t, users)
+	assert.EqualError(t, err, assert.AnError.Error())
+}
