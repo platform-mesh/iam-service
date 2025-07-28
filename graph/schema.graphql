@@ -182,14 +182,7 @@ type Query {
     - 'userIds' is an array of user identifiers
     Return value:
     - '[User]' is a list of users with the given identifiers """
-    usersByIds(
-        tenantId: String!,
-        userIds: [String!]!,
-        limit: Int = 0,
-        page: Int = 0,
-        searchTerm: String,
-        sortBy: SortByInput
-    ): [User]! @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
+    usersByIds(tenantId: String!, userIds: [String!]!): [User]! @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
 }
 
 """ Holds the information about a specific user and and a list of roles that should be assigned to the user """
