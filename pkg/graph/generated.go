@@ -89,6 +89,7 @@ type ComplexityRoot struct {
 		TenantInfo                  func(childComplexity int, tenantID *string) int
 		User                        func(childComplexity int, tenantID string, userID string) int
 		UserByEmail                 func(childComplexity int, tenantID string, email string) int
+		UsersByIds                  func(childComplexity int, tenantID string, userIds []string) int
 		UsersConnection             func(childComplexity int, tenantID string, limit *int, page *int) int
 		UsersOfEntity               func(childComplexity int, tenantID string, entity EntityInput, limit *int, page *int, showInvitees *bool, searchTerm *string, roles []*RoleInput, sortBy *SortByInput) int
 	}
@@ -141,6 +142,7 @@ type QueryResolver interface {
 	UsersConnection(ctx context.Context, tenantID string, limit *int, page *int) (*UserConnection, error)
 	SearchUsers(ctx context.Context, query string) ([]*User, error)
 	TenantInfo(ctx context.Context, tenantID *string) (*TenantInfo, error)
+	UsersByIds(ctx context.Context, tenantID string, userIds []string) ([]*User, error)
 }
 
 type executableSchema struct {
@@ -409,6 +411,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.UserByEmail(childComplexity, args["tenantId"].(string), args["email"].(string)), true
+
+	case "Query.usersByIds":
+		if e.complexity.Query.UsersByIds == nil {
+			break
+		}
+
+		args, err := ec.field_Query_usersByIds_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.UsersByIds(childComplexity, args["tenantId"].(string), args["userIds"].([]string)), true
 
 	case "Query.usersConnection":
 		if e.complexity.Query.UsersConnection == nil {
@@ -820,6 +834,14 @@ type Query {
     Return value:
     - 'TenantInfo' is a tenant with the given identifier """
     tenantInfo(tenantId: String): TenantInfo!
+
+    """ Get users by an array of userIds for a specific tenant.
+    Input parameters:
+    - 'tenantId' identifies the tenant where the users belong to
+    - 'userIds' is an array of user identifiers
+    Return value:
+    - '[User]' is a list of users with the given identifiers """
+    usersByIds(tenantId: String!, userIds: [String!]!): [User]! @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
 }
 
 """ Holds the information about a specific user and and a list of roles that should be assigned to the user """
@@ -2074,6 +2096,57 @@ func (ec *executionContext) field_Query_user_argsUserID(
 	}
 
 	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_usersByIds_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_usersByIds_argsTenantID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["tenantId"] = arg0
+	arg1, err := ec.field_Query_usersByIds_argsUserIds(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["userIds"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Query_usersByIds_argsTenantID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["tenantId"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
+	if tmp, ok := rawArgs["tenantId"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_usersByIds_argsUserIds(
+	ctx context.Context,
+	rawArgs map[string]any,
+) ([]string, error) {
+	if _, ok := rawArgs["userIds"]; !ok {
+		var zeroVal []string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("userIds"))
+	if tmp, ok := rawArgs["userIds"]; ok {
+		return ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
+	}
+
+	var zeroVal []string
 	return zeroVal, nil
 }
 
@@ -4436,6 +4509,110 @@ func (ec *executionContext) fieldContext_Query_tenantInfo(ctx context.Context, f
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_tenantInfo_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_usersByIds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_usersByIds(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		directive0 := func(rctx context.Context) (any, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().UsersByIds(rctx, fc.Args["tenantId"].(string), fc.Args["userIds"].([]string))
+		}
+
+		directive1 := func(ctx context.Context) (any, error) {
+			relation, err := ec.unmarshalNString2string(ctx, "project_create")
+			if err != nil {
+				var zeroVal []*User
+				return zeroVal, err
+			}
+			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "tenant")
+			if err != nil {
+				var zeroVal []*User
+				return zeroVal, err
+			}
+			entityParamName, err := ec.unmarshalNString2string(ctx, "tenantId")
+			if err != nil {
+				var zeroVal []*User
+				return zeroVal, err
+			}
+			if ec.directives.Authorized == nil {
+				var zeroVal []*User
+				return zeroVal, errors.New("directive authorized is not implemented")
+			}
+			return ec.directives.Authorized(ctx, nil, directive0, relation, entityType, nil, entityParamName)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*User); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/platform-mesh/iam-service/pkg/graph.User`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*User)
+	fc.Result = res
+	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_usersByIds(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "userId":
+				return ec.fieldContext_User_userId(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "firstName":
+				return ec.fieldContext_User_firstName(ctx, field)
+			case "lastName":
+				return ec.fieldContext_User_lastName(ctx, field)
+			case "invitationOutstanding":
+				return ec.fieldContext_User_invitationOutstanding(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_usersByIds_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -7857,6 +8034,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_tenantInfo(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "usersByIds":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_usersByIds(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}

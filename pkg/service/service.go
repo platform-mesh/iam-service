@@ -45,6 +45,7 @@ type ServiceInterface interface { // nolint: interfacebloat
 	RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error)
 	TenantInfo(ctx context.Context, tenantIdInput *string) (*graph.TenantInfo, error)
 	SearchUsers(ctx context.Context, query string) ([]*graph.User, error)
+	UsersByIds(ctx context.Context, tenantID string, userIds []string) ([]*graph.User, error)
 }
 
 type Service struct {
@@ -500,6 +501,32 @@ func (s *Service) SearchUsers(ctx context.Context, query string) ([]*graph.User,
 	users, err := s.Db.SearchUsers(ctx, tenantID, query)
 	if err != nil {
 		logger.Error().Err(err).Msg("SearchUsers failed")
+		return nil, sentry.SentryError(err)
+	}
+
+	return users, nil
+}
+
+func (s *Service) UsersByIds(
+	ctx context.Context,
+	tenantID string,
+	userIds []string,
+) ([]*graph.User, error) {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.UsersByIds")
+	defer span.End()
+
+	logger := setupLogger(ctx)
+
+	if tenantID == "" {
+		return nil, fmt.Errorf("tenantID must not be empty")
+	}
+	if len(userIds) == 0 {
+		return nil, fmt.Errorf("userIds must not be empty")
+	}
+
+	users, err := s.Db.GetUsersByUserIDs(ctx, tenantID, userIds, 0, 0, nil, nil)
+	if err != nil {
+		logger.Error().Err(err).Msg("UsersByIds failed")
 		return nil, sentry.SentryError(err)
 	}
 

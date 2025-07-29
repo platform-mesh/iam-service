@@ -175,6 +175,14 @@ type Query {
     Return value:
     - 'TenantInfo' is a tenant with the given identifier """
     tenantInfo(tenantId: String): TenantInfo!
+
+    """ Get users by an array of userIds for a specific tenant.
+    Input parameters:
+    - 'tenantId' identifies the tenant where the users belong to
+    - 'userIds' is an array of user identifiers
+    Return value:
+    - '[User]' is a list of users with the given identifiers """
+    usersByIds(tenantId: String!, userIds: [String!]!): [User]! @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
 }
 
 """ Holds the information about a specific user and and a list of roles that should be assigned to the user """
