@@ -14,7 +14,7 @@ require (
 	github.com/openfga/openfga v1.8.15
 	github.com/pkg/errors v0.9.1
 	github.com/platform-mesh/golang-commons v0.0.4
-	github.com/r3labs/diff/v3 v3.0.1
+	github.com/r3labs/diff/v3 v3.0.2
 	github.com/rs/zerolog v1.34.0
 	github.com/steinfletcher/apitest v1.6.0
 	github.com/steinfletcher/apitest-jsonpath v1.7.2
@@ -117,7 +117,7 @@ require (
 	github.com/sosodev/duration v1.3.1 // indirect
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/vrischmann/envconfig v1.4.1
 	go.opentelemetry.io/otel/metric v1.37.0 // indirect
