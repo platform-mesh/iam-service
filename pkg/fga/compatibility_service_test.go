@@ -1307,15 +1307,16 @@ func Test_UsersForEntityRolefilter(t *testing.T) {
 
 			// execute - test different role filters based on test case
 			var roleFilter []*graph.RoleInput
-			if tt.name == "success - user with owner role gets all their roles when filtering for owner" {
+			switch tt.name {
+			case "success - user with owner role gets all their roles when filtering for owner":
 				roleFilter = []*graph.RoleInput{
 					{DisplayName: "Owner", TechnicalName: "owner"},
 				}
-			} else if tt.name == "success - excludes users who don't have filtered role" {
+			case "success - excludes users who don't have filtered role":
 				roleFilter = []*graph.RoleInput{
 					{DisplayName: "Owner", TechnicalName: "owner"},
 				}
-			} else {
+			default:
 				roleFilter = []*graph.RoleInput{
 					{DisplayName: "Member", TechnicalName: "member"},
 				}
