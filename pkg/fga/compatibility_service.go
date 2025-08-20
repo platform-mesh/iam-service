@@ -240,7 +240,8 @@ func (s *CompatService) UsersForEntityRolefilter(
 	}
 
 	logger := commonsLogger.LoadLoggerFromContext(ctx)
-	userIDToRoles := types.UserIDToRoles{}
+
+	allUserIDToRoles := types.UserIDToRoles{}
 	for _, role := range s.roles {
 		var continuationToken string
 		for {
@@ -269,9 +270,7 @@ func (s *CompatService) UsersForEntityRolefilter(
 					continue
 				}
 				roleTechnicalName := roleIdRaw[2]
-				if utils.CheckRolesFilter(roleTechnicalName, rolefilter) {
-					userIDToRoles[userID] = append(userIDToRoles[userID], roleTechnicalName)
-				}
+				allUserIDToRoles[userID] = append(allUserIDToRoles[userID], roleTechnicalName)
 			}
 
 			continuationToken = roleMembers.ContinuationToken
@@ -281,7 +280,17 @@ func (s *CompatService) UsersForEntityRolefilter(
 		}
 	}
 
-	return userIDToRoles, nil
+	filteredUserIDToRoles := make(types.UserIDToRoles, len(allUserIDToRoles))
+	for userID, userRoles := range allUserIDToRoles {
+		for _, userRole := range userRoles {
+			if utils.CheckRolesFilter(userRole, rolefilter) {
+				filteredUserIDToRoles[userID] = userRoles
+				break
+			}
+		}
+	}
+
+	return filteredUserIDToRoles, nil
 }
 
 func (s *CompatService) CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, ownerUserID string) error {

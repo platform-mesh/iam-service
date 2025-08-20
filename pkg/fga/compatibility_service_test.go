@@ -1079,14 +1079,25 @@ func Test_UsersForEntityRolefilter(t *testing.T) {
 		result     types.UserIDToRoles
 	}{
 		{
-			name: "success",
+			name: "success - returns all roles for users who have filtered role",
 			result: types.UserIDToRoles{
-				"alice": []string{"member"},
+				"alice": []string{"member", "vault_maintainer"},
 				"bob":   []string{"member"},
 			},
 			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, mock.Anything).
 					Return("storeId", nil).Once()
+
+				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
+					StoreId: "storeId",
+					TupleKey: &openfgav1.ReadRequestTupleKey{
+						Relation: "assignee",
+						Object:   "role:entityType/entityId/owner",
+					},
+					PageSize: wrapperspb.Int32(100),
+				}).Return(&openfgav1.ReadResponse{
+					Tuples: []*openfgav1.Tuple{},
+				}, nil).Once()
 
 				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
 					StoreId: "storeId",
@@ -1116,7 +1127,7 @@ func Test_UsersForEntityRolefilter(t *testing.T) {
 					StoreId: "storeId",
 					TupleKey: &openfgav1.ReadRequestTupleKey{
 						Relation: "assignee",
-						Object:   "role:entityType/entityId/owner",
+						Object:   "role:entityType/entityId/vault_maintainer",
 					},
 					PageSize: wrapperspb.Int32(100),
 				}).Return(&openfgav1.ReadResponse{
@@ -1124,7 +1135,110 @@ func Test_UsersForEntityRolefilter(t *testing.T) {
 						{
 							Key: &openfgav1.TupleKey{
 								User:   "user:alice",
-								Object: "NOT_VALID_OBJECT",
+								Object: "role:entityType/entityId/vault_maintainer",
+							},
+						},
+					},
+				}, nil).Once()
+			},
+		},
+		{
+			name: "success - user with owner role gets all their roles when filtering for owner",
+			result: types.UserIDToRoles{
+				"charlie": []string{"owner", "member"},
+			},
+			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
+				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, mock.Anything).
+					Return("storeId", nil).Once()
+
+				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
+					StoreId: "storeId",
+					TupleKey: &openfgav1.ReadRequestTupleKey{
+						Relation: "assignee",
+						Object:   "role:entityType/entityId/owner",
+					},
+					PageSize: wrapperspb.Int32(100),
+				}).Return(&openfgav1.ReadResponse{
+					Tuples: []*openfgav1.Tuple{
+						{
+							Key: &openfgav1.TupleKey{
+								User:   "user:charlie",
+								Object: "role:entityType/entityId/owner",
+							},
+						},
+					},
+				}, nil).Once()
+
+				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
+					StoreId: "storeId",
+					TupleKey: &openfgav1.ReadRequestTupleKey{
+						Relation: "assignee",
+						Object:   "role:entityType/entityId/member",
+					},
+					PageSize: wrapperspb.Int32(100),
+				}).Return(&openfgav1.ReadResponse{
+					Tuples: []*openfgav1.Tuple{
+						{
+							Key: &openfgav1.TupleKey{
+								User:   "user:charlie",
+								Object: "role:entityType/entityId/member",
+							},
+						},
+					},
+				}, nil).Once()
+
+				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
+					StoreId: "storeId",
+					TupleKey: &openfgav1.ReadRequestTupleKey{
+						Relation: "assignee",
+						Object:   "role:entityType/entityId/vault_maintainer",
+					},
+					PageSize: wrapperspb.Int32(100),
+				}).Return(&openfgav1.ReadResponse{
+					Tuples: []*openfgav1.Tuple{},
+				}, nil).Once()
+			},
+		},
+		{
+			name: "success - excludes users who don't have filtered role",
+			result: types.UserIDToRoles{
+				"dave": []string{"owner", "vault_maintainer"},
+			},
+			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
+				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, mock.Anything).
+					Return("storeId", nil).Once()
+
+				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
+					StoreId: "storeId",
+					TupleKey: &openfgav1.ReadRequestTupleKey{
+						Relation: "assignee",
+						Object:   "role:entityType/entityId/owner",
+					},
+					PageSize: wrapperspb.Int32(100),
+				}).Return(&openfgav1.ReadResponse{
+					Tuples: []*openfgav1.Tuple{
+						{
+							Key: &openfgav1.TupleKey{
+								User:   "user:dave",
+								Object: "role:entityType/entityId/owner",
+							},
+						},
+					},
+				}, nil).Once()
+
+				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
+					StoreId: "storeId",
+					TupleKey: &openfgav1.ReadRequestTupleKey{
+						Relation: "assignee",
+						Object:   "role:entityType/entityId/member",
+					},
+					PageSize: wrapperspb.Int32(100),
+				}).Return(&openfgav1.ReadResponse{
+					Tuples: []*openfgav1.Tuple{
+						{
+							Key: &openfgav1.TupleKey{
+								User:   "user:eve",
+								Object: "role:entityType/entityId/member",
 							},
 						},
 					},
@@ -1141,7 +1255,7 @@ func Test_UsersForEntityRolefilter(t *testing.T) {
 					Tuples: []*openfgav1.Tuple{
 						{
 							Key: &openfgav1.TupleKey{
-								User:   "user:alice",
+								User:   "user:dave",
 								Object: "role:entityType/entityId/vault_maintainer",
 							},
 						},
@@ -1191,11 +1305,24 @@ func Test_UsersForEntityRolefilter(t *testing.T) {
 				tt.setupMocks(openFGAServiceClientMock, fgaStoreHelperMock)
 			}
 
-			// execute
-			filefilter := []*graph.RoleInput{
-				{DisplayName: "Member", TechnicalName: "member"},
+			// execute - test different role filters based on test case
+			var roleFilter []*graph.RoleInput
+			switch tt.name {
+			case "success - user with owner role gets all their roles when filtering for owner":
+				roleFilter = []*graph.RoleInput{
+					{DisplayName: "Owner", TechnicalName: "owner"},
+				}
+			case "success - excludes users who don't have filtered role":
+				roleFilter = []*graph.RoleInput{
+					{DisplayName: "Owner", TechnicalName: "owner"},
+				}
+			default:
+				roleFilter = []*graph.RoleInput{
+					{DisplayName: "Member", TechnicalName: "member"},
+				}
 			}
-			res, err := s.UsersForEntityRolefilter(context.TODO(), "tenantID", "entityId", "entityType", filefilter)
+
+			res, err := s.UsersForEntityRolefilter(context.TODO(), "tenantID", "entityId", "entityType", roleFilter)
 			assert.Equal(t, tt.error, err)
 			assert.Equal(t, tt.result, res)
 		})
