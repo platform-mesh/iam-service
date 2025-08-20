@@ -280,17 +280,13 @@ func (s *CompatService) UsersForEntityRolefilter(
 		}
 	}
 
-	filteredUserIDToRoles := types.UserIDToRoles{}
+	filteredUserIDToRoles := make(types.UserIDToRoles, len(allUserIDToRoles))
 	for userID, userRoles := range allUserIDToRoles {
-		hasFilteredRole := false
 		for _, userRole := range userRoles {
 			if utils.CheckRolesFilter(userRole, rolefilter) {
-				hasFilteredRole = true
+				filteredUserIDToRoles[userID] = userRoles
 				break
 			}
-		}
-		if hasFilteredRole {
-			filteredUserIDToRoles[userID] = userRoles
 		}
 	}
 
