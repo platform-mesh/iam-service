@@ -1,5 +1,5 @@
 > [!WARNING]
-> This Repository is under construction and not yet ready for public consumption. Please check back later for updates.
+> This Repository is under development and not ready for productive use. It is in an alpha stage. That means APIs and concepts may change on short notice including breaking changes or complete removal of apis.
 
 <!-- trigger -->
 
