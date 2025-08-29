@@ -769,7 +769,7 @@ type Query {
     - 'sortBy' is a field and direction to sort the users by
     Return value:
     - GrantedUserConnection is a list of users and their roles which matches the input parameters"""
-    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false, searchTerm: String, roles: [RoleInput], sortBy: SortByInput): GrantedUserConnection @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
+    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false, searchTerm: String, roles: [RoleInput], sortBy: SortByInput): GrantedUserConnection @authorized(relation: "create", entityParamName: "tenantId", entityType: "core_platform-mesh_io_account")
 
     """ Get all roles that are granted to the user of the referenced entity
     Input parameters:
@@ -778,7 +778,7 @@ type Query {
     - 'userId' is an identifier of the user for which the roles are returned
     Return value:
     - '[Role]' is a list of assigned roles to the user """
-    rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
+    rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @authorized(relation: "create", entityParamName: "tenantId", entityType: "core_platform-mesh_io_account")
 
     """ Get all roles that exist for the referenced entity type
     Input parameters:
@@ -794,7 +794,7 @@ type Query {
     - 'entityType' is a type of entity for which defined roles are returned
     Return value:
     - '[Role]' is a list of roles that exist for the all entities of a certain type """
-    availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
+    availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
 
     """ Get the user by its tenantId and userId.
     Input parameters:
@@ -802,7 +802,7 @@ type Query {
     - 'userId' is an identifier of the user
     Return value:
     - 'User' is a user with the given identifiers """
-    user(tenantId:String!, userId:String!): User  @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
+    user(tenantId:String!, userId:String!): User  @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
 
     """ Get the user by its tenantId and email.
     Input parameters:
@@ -810,7 +810,7 @@ type Query {
     - 'email' is an email of the user
     Return value:
     - 'User' is a user with the given identifiers """
-    userByEmail(tenantId:String!, email:String!): User  @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
+    userByEmail(tenantId:String!, email:String!): User  @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
 
     """ Get all users of the tenant. Supports pagination.
     Input parameters:
@@ -819,7 +819,7 @@ type Query {
     - 'page' holds the current page number
     Return value:
     - 'UserConnection' is a list of users which matches the input parameters """
-    usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
+    usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @authorized(relation: "create", entityParamName: "tenantId", entityType: "core_platform-mesh_io_account")
 
     """ Get all users that match the query.
     Searchable fields are userID, email, firstName, and lastName.
@@ -841,7 +841,7 @@ type Query {
     - 'userIds' is an array of user identifiers
     Return value:
     - '[User]' is a list of users with the given identifiers """
-    usersByIds(tenantId: String!, userIds: [String!]!): [User]! @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
+    usersByIds(tenantId: String!, userIds: [String!]!): [User]! @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
 }
 
 """ Holds the information about a specific user and and a list of roles that should be assigned to the user """
@@ -898,1631 +898,488 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) dir_authorized_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.dir_authorized_argsRelation(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "relation", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["relation"] = arg0
-	arg1, err := ec.dir_authorized_argsEntityType(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "entityType", ec.unmarshalOString2ᚖstring)
 	if err != nil {
 		return nil, err
 	}
 	args["entityType"] = arg1
-	arg2, err := ec.dir_authorized_argsEntityTypeParamName(ctx, rawArgs)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "entityTypeParamName", ec.unmarshalOString2ᚖstring)
 	if err != nil {
 		return nil, err
 	}
 	args["entityTypeParamName"] = arg2
-	arg3, err := ec.dir_authorized_argsEntityParamName(ctx, rawArgs)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "entityParamName", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["entityParamName"] = arg3
 	return args, nil
 }
-func (ec *executionContext) dir_authorized_argsRelation(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["relation"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("relation"))
-	if tmp, ok := rawArgs["relation"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) dir_authorized_argsEntityType(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*string, error) {
-	if _, ok := rawArgs["entityType"]; !ok {
-		var zeroVal *string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityType"))
-	if tmp, ok := rawArgs["entityType"]; ok {
-		return ec.unmarshalOString2ᚖstring(ctx, tmp)
-	}
-
-	var zeroVal *string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) dir_authorized_argsEntityTypeParamName(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*string, error) {
-	if _, ok := rawArgs["entityTypeParamName"]; !ok {
-		var zeroVal *string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityTypeParamName"))
-	if tmp, ok := rawArgs["entityTypeParamName"]; ok {
-		return ec.unmarshalOString2ᚖstring(ctx, tmp)
-	}
-
-	var zeroVal *string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) dir_authorized_argsEntityParamName(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityParamName"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityParamName"))
-	if tmp, ok := rawArgs["entityParamName"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
 
 func (ec *executionContext) dir_tenant_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.dir_tenant_argsPeers(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "peers", ec.unmarshalNBoolean2bool)
 	if err != nil {
 		return nil, err
 	}
 	args["peers"] = arg0
 	return args, nil
-}
-func (ec *executionContext) dir_tenant_argsPeers(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (bool, error) {
-	if _, ok := rawArgs["peers"]; !ok {
-		var zeroVal bool
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("peers"))
-	if tmp, ok := rawArgs["peers"]; ok {
-		return ec.unmarshalNBoolean2bool(ctx, tmp)
-	}
-
-	var zeroVal bool
-	return zeroVal, nil
 }
 
 func (ec *executionContext) dir_user_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.dir_user_argsPeers(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "peers", ec.unmarshalNBoolean2bool)
 	if err != nil {
 		return nil, err
 	}
 	args["peers"] = arg0
 	return args, nil
 }
-func (ec *executionContext) dir_user_argsPeers(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (bool, error) {
-	if _, ok := rawArgs["peers"]; !ok {
-		var zeroVal bool
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("peers"))
-	if tmp, ok := rawArgs["peers"]; ok {
-		return ec.unmarshalNBoolean2bool(ctx, tmp)
-	}
-
-	var zeroVal bool
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Mutation_assignRoleBindings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_assignRoleBindings_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Mutation_assignRoleBindings_argsEntityType(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "entityType", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["entityType"] = arg1
-	arg2, err := ec.field_Mutation_assignRoleBindings_argsEntityID(ctx, rawArgs)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "entityId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["entityId"] = arg2
-	arg3, err := ec.field_Mutation_assignRoleBindings_argsInput(ctx, rawArgs)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNChange2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐChange)
 	if err != nil {
 		return nil, err
 	}
 	args["input"] = arg3
 	return args, nil
 }
-func (ec *executionContext) field_Mutation_assignRoleBindings_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_assignRoleBindings_argsEntityType(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityType"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityType"))
-	if tmp, ok := rawArgs["entityType"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_assignRoleBindings_argsEntityID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityId"))
-	if tmp, ok := rawArgs["entityId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_assignRoleBindings_argsInput(
-	ctx context.Context,
-	rawArgs map[string]any,
-) ([]*Change, error) {
-	if _, ok := rawArgs["input"]; !ok {
-		var zeroVal []*Change
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-	if tmp, ok := rawArgs["input"]; ok {
-		return ec.unmarshalNChange2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐChange(ctx, tmp)
-	}
-
-	var zeroVal []*Change
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Mutation_createAccount_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_createAccount_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Mutation_createAccount_argsEntityType(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "entityType", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["entityType"] = arg1
-	arg2, err := ec.field_Mutation_createAccount_argsEntityID(ctx, rawArgs)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "entityId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["entityId"] = arg2
-	arg3, err := ec.field_Mutation_createAccount_argsOwner(ctx, rawArgs)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "owner", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["owner"] = arg3
 	return args, nil
 }
-func (ec *executionContext) field_Mutation_createAccount_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_createAccount_argsEntityType(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityType"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityType"))
-	if tmp, ok := rawArgs["entityType"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_createAccount_argsEntityID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityId"))
-	if tmp, ok := rawArgs["entityId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_createAccount_argsOwner(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["owner"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("owner"))
-	if tmp, ok := rawArgs["owner"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_createUser_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Mutation_createUser_argsInput(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUserInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserInput)
 	if err != nil {
 		return nil, err
 	}
 	args["input"] = arg1
 	return args, nil
 }
-func (ec *executionContext) field_Mutation_createUser_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_createUser_argsInput(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (UserInput, error) {
-	if _, ok := rawArgs["input"]; !ok {
-		var zeroVal UserInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-	if tmp, ok := rawArgs["input"]; ok {
-		return ec.unmarshalNUserInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserInput(ctx, tmp)
-	}
-
-	var zeroVal UserInput
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Mutation_deleteInvite_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_deleteInvite_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Mutation_deleteInvite_argsInvite(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "invite", ec.unmarshalNInvite2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐInvite)
 	if err != nil {
 		return nil, err
 	}
 	args["invite"] = arg1
 	return args, nil
 }
-func (ec *executionContext) field_Mutation_deleteInvite_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_deleteInvite_argsInvite(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (Invite, error) {
-	if _, ok := rawArgs["invite"]; !ok {
-		var zeroVal Invite
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("invite"))
-	if tmp, ok := rawArgs["invite"]; ok {
-		return ec.unmarshalNInvite2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐInvite(ctx, tmp)
-	}
-
-	var zeroVal Invite
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Mutation_inviteUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_inviteUser_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Mutation_inviteUser_argsInvite(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "invite", ec.unmarshalNInvite2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐInvite)
 	if err != nil {
 		return nil, err
 	}
 	args["invite"] = arg1
-	arg2, err := ec.field_Mutation_inviteUser_argsNotifyByEmail(ctx, rawArgs)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "notifyByEmail", ec.unmarshalNBoolean2bool)
 	if err != nil {
 		return nil, err
 	}
 	args["notifyByEmail"] = arg2
 	return args, nil
 }
-func (ec *executionContext) field_Mutation_inviteUser_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_inviteUser_argsInvite(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (Invite, error) {
-	if _, ok := rawArgs["invite"]; !ok {
-		var zeroVal Invite
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("invite"))
-	if tmp, ok := rawArgs["invite"]; ok {
-		return ec.unmarshalNInvite2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐInvite(ctx, tmp)
-	}
-
-	var zeroVal Invite
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_inviteUser_argsNotifyByEmail(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (bool, error) {
-	if _, ok := rawArgs["notifyByEmail"]; !ok {
-		var zeroVal bool
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("notifyByEmail"))
-	if tmp, ok := rawArgs["notifyByEmail"]; ok {
-		return ec.unmarshalNBoolean2bool(ctx, tmp)
-	}
-
-	var zeroVal bool
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Mutation_leaveEntity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_leaveEntity_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Mutation_leaveEntity_argsEntityType(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "entityType", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["entityType"] = arg1
-	arg2, err := ec.field_Mutation_leaveEntity_argsEntityID(ctx, rawArgs)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "entityId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["entityId"] = arg2
 	return args, nil
-}
-func (ec *executionContext) field_Mutation_leaveEntity_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_leaveEntity_argsEntityType(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityType"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityType"))
-	if tmp, ok := rawArgs["entityType"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_leaveEntity_argsEntityID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityId"))
-	if tmp, ok := rawArgs["entityId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
 }
 
 func (ec *executionContext) field_Mutation_removeAccount_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_removeAccount_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Mutation_removeAccount_argsEntityType(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "entityType", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["entityType"] = arg1
-	arg2, err := ec.field_Mutation_removeAccount_argsEntityID(ctx, rawArgs)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "entityId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["entityId"] = arg2
 	return args, nil
 }
-func (ec *executionContext) field_Mutation_removeAccount_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_removeAccount_argsEntityType(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityType"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityType"))
-	if tmp, ok := rawArgs["entityType"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_removeAccount_argsEntityID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityId"))
-	if tmp, ok := rawArgs["entityId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Mutation_removeFromEntity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_removeFromEntity_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Mutation_removeFromEntity_argsEntityType(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "entityType", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["entityType"] = arg1
-	arg2, err := ec.field_Mutation_removeFromEntity_argsUserID(ctx, rawArgs)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["userId"] = arg2
-	arg3, err := ec.field_Mutation_removeFromEntity_argsEntityID(ctx, rawArgs)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "entityId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["entityId"] = arg3
 	return args, nil
 }
-func (ec *executionContext) field_Mutation_removeFromEntity_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_removeFromEntity_argsEntityType(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityType"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityType"))
-	if tmp, ok := rawArgs["entityType"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_removeFromEntity_argsUserID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["userId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-	if tmp, ok := rawArgs["userId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_removeFromEntity_argsEntityID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityId"))
-	if tmp, ok := rawArgs["entityId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Mutation_removeUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_removeUser_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Mutation_removeUser_argsUserID(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalOString2ᚖstring)
 	if err != nil {
 		return nil, err
 	}
 	args["userId"] = arg1
-	arg2, err := ec.field_Mutation_removeUser_argsEmail(ctx, rawArgs)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalOString2ᚖstring)
 	if err != nil {
 		return nil, err
 	}
 	args["email"] = arg2
 	return args, nil
 }
-func (ec *executionContext) field_Mutation_removeUser_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_removeUser_argsUserID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*string, error) {
-	if _, ok := rawArgs["userId"]; !ok {
-		var zeroVal *string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-	if tmp, ok := rawArgs["userId"]; ok {
-		return ec.unmarshalOString2ᚖstring(ctx, tmp)
-	}
-
-	var zeroVal *string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_removeUser_argsEmail(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*string, error) {
-	if _, ok := rawArgs["email"]; !ok {
-		var zeroVal *string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-	if tmp, ok := rawArgs["email"]; ok {
-		return ec.unmarshalOString2ᚖstring(ctx, tmp)
-	}
-
-	var zeroVal *string
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Query___type_argsName(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "name", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["name"] = arg0
 	return args, nil
 }
-func (ec *executionContext) field_Query___type_argsName(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["name"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-	if tmp, ok := rawArgs["name"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Query_availableRolesForEntityType_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Query_availableRolesForEntityType_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Query_availableRolesForEntityType_argsEntityType(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "entityType", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["entityType"] = arg1
 	return args, nil
 }
-func (ec *executionContext) field_Query_availableRolesForEntityType_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_availableRolesForEntityType_argsEntityType(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityType"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityType"))
-	if tmp, ok := rawArgs["entityType"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Query_availableRolesForEntity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Query_availableRolesForEntity_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Query_availableRolesForEntity_argsEntity(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "entity", ec.unmarshalNEntityInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput)
 	if err != nil {
 		return nil, err
 	}
 	args["entity"] = arg1
 	return args, nil
 }
-func (ec *executionContext) field_Query_availableRolesForEntity_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_availableRolesForEntity_argsEntity(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (EntityInput, error) {
-	if _, ok := rawArgs["entity"]; !ok {
-		var zeroVal EntityInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entity"))
-	if tmp, ok := rawArgs["entity"]; ok {
-		return ec.unmarshalNEntityInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx, tmp)
-	}
-
-	var zeroVal EntityInput
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Query_rolesForUserOfEntity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Query_rolesForUserOfEntity_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Query_rolesForUserOfEntity_argsEntity(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "entity", ec.unmarshalNEntityInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput)
 	if err != nil {
 		return nil, err
 	}
 	args["entity"] = arg1
-	arg2, err := ec.field_Query_rolesForUserOfEntity_argsUserID(ctx, rawArgs)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["userId"] = arg2
 	return args, nil
 }
-func (ec *executionContext) field_Query_rolesForUserOfEntity_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_rolesForUserOfEntity_argsEntity(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (EntityInput, error) {
-	if _, ok := rawArgs["entity"]; !ok {
-		var zeroVal EntityInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entity"))
-	if tmp, ok := rawArgs["entity"]; ok {
-		return ec.unmarshalNEntityInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx, tmp)
-	}
-
-	var zeroVal EntityInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_rolesForUserOfEntity_argsUserID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["userId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-	if tmp, ok := rawArgs["userId"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Query_searchUsers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Query_searchUsers_argsQuery(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "query", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["query"] = arg0
 	return args, nil
 }
-func (ec *executionContext) field_Query_searchUsers_argsQuery(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["query"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("query"))
-	if tmp, ok := rawArgs["query"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Query_tenantInfo_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Query_tenantInfo_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalOString2ᚖstring)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
 	return args, nil
 }
-func (ec *executionContext) field_Query_tenantInfo_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal *string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalOString2ᚖstring(ctx, tmp)
-	}
-
-	var zeroVal *string
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Query_userByEmail_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Query_userByEmail_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Query_userByEmail_argsEmail(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["email"] = arg1
 	return args, nil
 }
-func (ec *executionContext) field_Query_userByEmail_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_userByEmail_argsEmail(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["email"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-	if tmp, ok := rawArgs["email"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Query_user_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Query_user_argsUserID(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["userId"] = arg1
 	return args, nil
 }
-func (ec *executionContext) field_Query_user_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_user_argsUserID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["userId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-	if tmp, ok := rawArgs["userId"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Query_usersByIds_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Query_usersByIds_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Query_usersByIds_argsUserIds(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "userIds", ec.unmarshalNString2ᚕstringᚄ)
 	if err != nil {
 		return nil, err
 	}
 	args["userIds"] = arg1
 	return args, nil
 }
-func (ec *executionContext) field_Query_usersByIds_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_usersByIds_argsUserIds(
-	ctx context.Context,
-	rawArgs map[string]any,
-) ([]string, error) {
-	if _, ok := rawArgs["userIds"]; !ok {
-		var zeroVal []string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("userIds"))
-	if tmp, ok := rawArgs["userIds"]; ok {
-		return ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
-	}
-
-	var zeroVal []string
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Query_usersConnection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Query_usersConnection_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Query_usersConnection_argsLimit(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := ec.field_Query_usersConnection_argsPage(ctx, rawArgs)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOInt2ᚖint)
 	if err != nil {
 		return nil, err
 	}
 	args["page"] = arg2
 	return args, nil
 }
-func (ec *executionContext) field_Query_usersConnection_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_usersConnection_argsLimit(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*int, error) {
-	if _, ok := rawArgs["limit"]; !ok {
-		var zeroVal *int
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
-	if tmp, ok := rawArgs["limit"]; ok {
-		return ec.unmarshalOInt2ᚖint(ctx, tmp)
-	}
-
-	var zeroVal *int
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_usersConnection_argsPage(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*int, error) {
-	if _, ok := rawArgs["page"]; !ok {
-		var zeroVal *int
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
-	if tmp, ok := rawArgs["page"]; ok {
-		return ec.unmarshalOInt2ᚖint(ctx, tmp)
-	}
-
-	var zeroVal *int
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field_Query_usersOfEntity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Query_usersOfEntity_argsTenantID(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
 	args["tenantId"] = arg0
-	arg1, err := ec.field_Query_usersOfEntity_argsEntity(ctx, rawArgs)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "entity", ec.unmarshalNEntityInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput)
 	if err != nil {
 		return nil, err
 	}
 	args["entity"] = arg1
-	arg2, err := ec.field_Query_usersOfEntity_argsLimit(ctx, rawArgs)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg2
-	arg3, err := ec.field_Query_usersOfEntity_argsPage(ctx, rawArgs)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOInt2ᚖint)
 	if err != nil {
 		return nil, err
 	}
 	args["page"] = arg3
-	arg4, err := ec.field_Query_usersOfEntity_argsShowInvitees(ctx, rawArgs)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "showInvitees", ec.unmarshalOBoolean2ᚖbool)
 	if err != nil {
 		return nil, err
 	}
 	args["showInvitees"] = arg4
-	arg5, err := ec.field_Query_usersOfEntity_argsSearchTerm(ctx, rawArgs)
+	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "searchTerm", ec.unmarshalOString2ᚖstring)
 	if err != nil {
 		return nil, err
 	}
 	args["searchTerm"] = arg5
-	arg6, err := ec.field_Query_usersOfEntity_argsRoles(ctx, rawArgs)
+	arg6, err := graphql.ProcessArgField(ctx, rawArgs, "roles", ec.unmarshalORoleInput2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleInput)
 	if err != nil {
 		return nil, err
 	}
 	args["roles"] = arg6
-	arg7, err := ec.field_Query_usersOfEntity_argsSortBy(ctx, rawArgs)
+	arg7, err := graphql.ProcessArgField(ctx, rawArgs, "sortBy", ec.unmarshalOSortByInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortByInput)
 	if err != nil {
 		return nil, err
 	}
 	args["sortBy"] = arg7
 	return args, nil
 }
-func (ec *executionContext) field_Query_usersOfEntity_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_usersOfEntity_argsEntity(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (EntityInput, error) {
-	if _, ok := rawArgs["entity"]; !ok {
-		var zeroVal EntityInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entity"))
-	if tmp, ok := rawArgs["entity"]; ok {
-		return ec.unmarshalNEntityInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐEntityInput(ctx, tmp)
-	}
-
-	var zeroVal EntityInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_usersOfEntity_argsLimit(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*int, error) {
-	if _, ok := rawArgs["limit"]; !ok {
-		var zeroVal *int
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
-	if tmp, ok := rawArgs["limit"]; ok {
-		return ec.unmarshalOInt2ᚖint(ctx, tmp)
-	}
-
-	var zeroVal *int
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_usersOfEntity_argsPage(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*int, error) {
-	if _, ok := rawArgs["page"]; !ok {
-		var zeroVal *int
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
-	if tmp, ok := rawArgs["page"]; ok {
-		return ec.unmarshalOInt2ᚖint(ctx, tmp)
-	}
-
-	var zeroVal *int
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_usersOfEntity_argsShowInvitees(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*bool, error) {
-	if _, ok := rawArgs["showInvitees"]; !ok {
-		var zeroVal *bool
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("showInvitees"))
-	if tmp, ok := rawArgs["showInvitees"]; ok {
-		return ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
-	}
-
-	var zeroVal *bool
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_usersOfEntity_argsSearchTerm(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*string, error) {
-	if _, ok := rawArgs["searchTerm"]; !ok {
-		var zeroVal *string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("searchTerm"))
-	if tmp, ok := rawArgs["searchTerm"]; ok {
-		return ec.unmarshalOString2ᚖstring(ctx, tmp)
-	}
-
-	var zeroVal *string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_usersOfEntity_argsRoles(
-	ctx context.Context,
-	rawArgs map[string]any,
-) ([]*RoleInput, error) {
-	if _, ok := rawArgs["roles"]; !ok {
-		var zeroVal []*RoleInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
-	if tmp, ok := rawArgs["roles"]; ok {
-		return ec.unmarshalORoleInput2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleInput(ctx, tmp)
-	}
-
-	var zeroVal []*RoleInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_usersOfEntity_argsSortBy(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*SortByInput, error) {
-	if _, ok := rawArgs["sortBy"]; !ok {
-		var zeroVal *SortByInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("sortBy"))
-	if tmp, ok := rawArgs["sortBy"]; ok {
-		return ec.unmarshalOSortByInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortByInput(ctx, tmp)
-	}
-
-	var zeroVal *SortByInput
-	return zeroVal, nil
-}
 
 func (ec *executionContext) field___Directive_args_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field___Directive_args_argsIncludeDeprecated(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "includeDeprecated", ec.unmarshalOBoolean2ᚖbool)
 	if err != nil {
 		return nil, err
 	}
 	args["includeDeprecated"] = arg0
 	return args, nil
-}
-func (ec *executionContext) field___Directive_args_argsIncludeDeprecated(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*bool, error) {
-	if _, ok := rawArgs["includeDeprecated"]; !ok {
-		var zeroVal *bool
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("includeDeprecated"))
-	if tmp, ok := rawArgs["includeDeprecated"]; ok {
-		return ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
-	}
-
-	var zeroVal *bool
-	return zeroVal, nil
 }
 
 func (ec *executionContext) field___Field_args_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field___Field_args_argsIncludeDeprecated(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "includeDeprecated", ec.unmarshalOBoolean2ᚖbool)
 	if err != nil {
 		return nil, err
 	}
 	args["includeDeprecated"] = arg0
 	return args, nil
-}
-func (ec *executionContext) field___Field_args_argsIncludeDeprecated(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*bool, error) {
-	if _, ok := rawArgs["includeDeprecated"]; !ok {
-		var zeroVal *bool
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("includeDeprecated"))
-	if tmp, ok := rawArgs["includeDeprecated"]; ok {
-		return ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
-	}
-
-	var zeroVal *bool
-	return zeroVal, nil
 }
 
 func (ec *executionContext) field___Type_enumValues_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field___Type_enumValues_argsIncludeDeprecated(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "includeDeprecated", ec.unmarshalOBoolean2bool)
 	if err != nil {
 		return nil, err
 	}
 	args["includeDeprecated"] = arg0
 	return args, nil
-}
-func (ec *executionContext) field___Type_enumValues_argsIncludeDeprecated(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (bool, error) {
-	if _, ok := rawArgs["includeDeprecated"]; !ok {
-		var zeroVal bool
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("includeDeprecated"))
-	if tmp, ok := rawArgs["includeDeprecated"]; ok {
-		return ec.unmarshalOBoolean2bool(ctx, tmp)
-	}
-
-	var zeroVal bool
-	return zeroVal, nil
 }
 
 func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field___Type_fields_argsIncludeDeprecated(ctx, rawArgs)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "includeDeprecated", ec.unmarshalOBoolean2bool)
 	if err != nil {
 		return nil, err
 	}
 	args["includeDeprecated"] = arg0
 	return args, nil
-}
-func (ec *executionContext) field___Type_fields_argsIncludeDeprecated(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (bool, error) {
-	if _, ok := rawArgs["includeDeprecated"]; !ok {
-		var zeroVal bool
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("includeDeprecated"))
-	if tmp, ok := rawArgs["includeDeprecated"]; ok {
-		return ec.unmarshalOBoolean2bool(ctx, tmp)
-	}
-
-	var zeroVal bool
-	return zeroVal, nil
 }
 
 // endregion ***************************** args.gotpl *****************************
@@ -3707,12 +2564,12 @@ func (ec *executionContext) _Query_usersOfEntity(ctx context.Context, field grap
 		}
 
 		directive1 := func(ctx context.Context) (any, error) {
-			relation, err := ec.unmarshalNString2string(ctx, "project_create")
+			relation, err := ec.unmarshalNString2string(ctx, "create")
 			if err != nil {
 				var zeroVal *GrantedUserConnection
 				return zeroVal, err
 			}
-			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "tenant")
+			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "core_platform-mesh_io_account")
 			if err != nil {
 				var zeroVal *GrantedUserConnection
 				return zeroVal, err
@@ -3802,12 +2659,12 @@ func (ec *executionContext) _Query_rolesForUserOfEntity(ctx context.Context, fie
 		}
 
 		directive1 := func(ctx context.Context) (any, error) {
-			relation, err := ec.unmarshalNString2string(ctx, "project_create")
+			relation, err := ec.unmarshalNString2string(ctx, "create")
 			if err != nil {
 				var zeroVal []*Role
 				return zeroVal, err
 			}
-			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "tenant")
+			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "core_platform-mesh_io_account")
 			if err != nil {
 				var zeroVal []*Role
 				return zeroVal, err
@@ -4002,12 +2859,12 @@ func (ec *executionContext) _Query_availableRolesForEntityType(ctx context.Conte
 		}
 
 		directive1 := func(ctx context.Context) (any, error) {
-			relation, err := ec.unmarshalNString2string(ctx, "project_create")
+			relation, err := ec.unmarshalNString2string(ctx, "create")
 			if err != nil {
 				var zeroVal []*Role
 				return zeroVal, err
 			}
-			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "tenant")
+			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "core_platform-mesh_io_account")
 			if err != nil {
 				var zeroVal []*Role
 				return zeroVal, err
@@ -4102,12 +2959,12 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 		}
 
 		directive1 := func(ctx context.Context) (any, error) {
-			relation, err := ec.unmarshalNString2string(ctx, "project_create")
+			relation, err := ec.unmarshalNString2string(ctx, "create")
 			if err != nil {
 				var zeroVal *User
 				return zeroVal, err
 			}
-			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "tenant")
+			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "core_platform-mesh_io_account")
 			if err != nil {
 				var zeroVal *User
 				return zeroVal, err
@@ -4203,12 +3060,12 @@ func (ec *executionContext) _Query_userByEmail(ctx context.Context, field graphq
 		}
 
 		directive1 := func(ctx context.Context) (any, error) {
-			relation, err := ec.unmarshalNString2string(ctx, "project_create")
+			relation, err := ec.unmarshalNString2string(ctx, "create")
 			if err != nil {
 				var zeroVal *User
 				return zeroVal, err
 			}
-			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "tenant")
+			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "core_platform-mesh_io_account")
 			if err != nil {
 				var zeroVal *User
 				return zeroVal, err
@@ -4304,12 +3161,12 @@ func (ec *executionContext) _Query_usersConnection(ctx context.Context, field gr
 		}
 
 		directive1 := func(ctx context.Context) (any, error) {
-			relation, err := ec.unmarshalNString2string(ctx, "project_create")
+			relation, err := ec.unmarshalNString2string(ctx, "create")
 			if err != nil {
 				var zeroVal *UserConnection
 				return zeroVal, err
 			}
-			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "tenant")
+			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "core_platform-mesh_io_account")
 			if err != nil {
 				var zeroVal *UserConnection
 				return zeroVal, err
@@ -4534,12 +3391,12 @@ func (ec *executionContext) _Query_usersByIds(ctx context.Context, field graphql
 		}
 
 		directive1 := func(ctx context.Context) (any, error) {
-			relation, err := ec.unmarshalNString2string(ctx, "project_create")
+			relation, err := ec.unmarshalNString2string(ctx, "create")
 			if err != nil {
 				var zeroVal []*User
 				return zeroVal, err
 			}
-			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "tenant")
+			entityType, err := ec.unmarshalOString2ᚖstring(ctx, "core_platform-mesh_io_account")
 			if err != nil {
 				var zeroVal []*User
 				return zeroVal, err
@@ -8631,6 +7488,7 @@ func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (
 }
 
 func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.SelectionSet, v bool) graphql.Marshaler {
+	_ = sel
 	res := graphql.MarshalBoolean(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -8671,6 +7529,7 @@ func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (str
 }
 
 func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	_ = sel
 	res := graphql.MarshalID(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -8686,6 +7545,7 @@ func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, 
 }
 
 func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	_ = sel
 	res := graphql.MarshalInt(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -8794,6 +7654,7 @@ func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) 
 }
 
 func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	_ = sel
 	res := graphql.MarshalString(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -9016,6 +7877,7 @@ func (ec *executionContext) unmarshalN__DirectiveLocation2string(ctx context.Con
 }
 
 func (ec *executionContext) marshalN__DirectiveLocation2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	_ = sel
 	res := graphql.MarshalString(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -9204,6 +8066,7 @@ func (ec *executionContext) unmarshalN__TypeKind2string(ctx context.Context, v a
 }
 
 func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	_ = sel
 	res := graphql.MarshalString(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -9219,6 +8082,8 @@ func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v any) (
 }
 
 func (ec *executionContext) marshalOBoolean2bool(ctx context.Context, sel ast.SelectionSet, v bool) graphql.Marshaler {
+	_ = sel
+	_ = ctx
 	res := graphql.MarshalBoolean(v)
 	return res
 }
@@ -9235,6 +8100,8 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	if v == nil {
 		return graphql.Null
 	}
+	_ = sel
+	_ = ctx
 	res := graphql.MarshalBoolean(*v)
 	return res
 }
@@ -9314,6 +8181,8 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	if v == nil {
 		return graphql.Null
 	}
+	_ = sel
+	_ = ctx
 	res := graphql.MarshalInt(*v)
 	return res
 }
@@ -9508,6 +8377,8 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	if v == nil {
 		return graphql.Null
 	}
+	_ = sel
+	_ = ctx
 	res := graphql.MarshalString(*v)
 	return res
 }
