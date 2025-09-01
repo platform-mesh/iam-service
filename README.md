@@ -15,11 +15,11 @@ go run ./main.go serve
 
 ## Description
 
-The Platform Mesh iam-service exposes a graphql and a grpc API. The Graphql API is primarily used by user management UIs, while the GRPC API is used to authorize write calls into openfga.
+The Platform Mesh iam-service exposes a graphql and a grpc API. The Graphql API is primarily used by user management UIs, while the GRPC API is used to authorize write calls into OpenFGA.
 
 ## Features
-- backend for frontend API's to manage user data
-- write GRPC API to validate write requests into the FGA schema
+- Backend for frontend API's to manage user data
+- Write GRPC API to validate write requests into the FGA schema
 
 ## Architecture overview
 `iam-service`has 2 base layers

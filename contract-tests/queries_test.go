@@ -58,11 +58,6 @@ func (suite *QueriesTestSuite) TestQuery_AvailableRolesForEntity() {
 					"technicalName": "vault_maintainer",
 					"permissions":   nil,
 				},
-				map[string]interface{}{
-					"displayName":   "Admin",
-					"technicalName": "admin",
-					"permissions":   nil,
-				},
 			},
 		)).
 		End()

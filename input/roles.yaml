@@ -7,9 +7,6 @@
 - displayName: Vault Maintainer
   technicalName: vault_maintainer
   entityType: project
-- displayName: Admin
-  technicalName: admin
-  entityType: project
 
 - displayName: Owner
   technicalName: owner
