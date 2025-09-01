@@ -551,7 +551,14 @@ func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string,
 			}
 		}
 
-		for _, r := range s.roles {
+		rolesForEntity, err := s.database.GetRolesForEntity(ctx, entityType, "")
+		if err != nil {
+			logger.Error().Str("entityType", entityType).AnErr("GetRolesForEntity", err).Send()
+			commonsSentry.CaptureError(err, tags)
+			return err
+		}
+
+		for _, r := range rolesForEntity {
 			_, err = s.upstream.Write(ctx, &openfgav1.WriteRequest{
 				StoreId:              storeID,
 				AuthorizationModelId: modelID,
@@ -559,8 +566,8 @@ func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string,
 					TupleKeys: []*openfgav1.TupleKey{
 						{
 							Object:   fmt.Sprintf("%s:%s", entityType, entityID),
-							Relation: r,
-							User:     fmt.Sprintf("role:%s/%s/%s#assignee", entityType, entityID, r),
+							Relation: r.TechnicalName,
+							User:     fmt.Sprintf("role:%s/%s/%s#assignee", entityType, entityID, r.TechnicalName),
 						},
 					},
 				},

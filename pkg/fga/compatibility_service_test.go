@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
+	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/platform-mesh/iam-service/pkg/fga/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -774,20 +775,29 @@ func TestAssignRoleBindings(t *testing.T) {
 	tc := []struct {
 		name       string
 		ctx        context.Context
-		setupMocks func(context.Context, *mocks.OpenFGAServiceClient, *storeMocks.FGAStoreHelper)
+		setupMocks func(context.Context, *mocks.OpenFGAServiceClient, *storeMocks.FGAStoreHelper, *dbMocks.DatabaseService)
 		error      error
 	}{
 		{
 			// success case assigns role "member"
 			name: "success",
 			ctx:  context.TODO(),
-			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
+			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper, dbMock *dbMocks.DatabaseService) {
+				dbMock.EXPECT().
+					GetRolesForEntity(mock.Anything, mock.Anything, "").
+					Return([]db.Role{
+						{TechnicalName: "owner", EntityType: "entityType"},
+						{TechnicalName: "member", EntityType: "entityType"},
+						{TechnicalName: "vault_maintainer", EntityType: "entityType"},
+					}, nil).Once()
+
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("storeId", nil).Once()
 
 				helper.EXPECT().GetModelIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("modelId", nil).Once()
 
+				// previous user roles
 				client.EXPECT().ListObjects(mock.Anything, &openfgav1.ListObjectsRequest{
 					StoreId:              "storeId",
 					AuthorizationModelId: "modelId",
@@ -875,19 +885,47 @@ func TestAssignRoleBindings(t *testing.T) {
 			},
 		},
 		{
-			name:  "get_store_id_for_tenant_ERROR",
+			name:  "GetStoreIDForTenant_ERROR",
 			ctx:   context.TODO(),
 			error: assert.AnError,
-			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
+			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper, dbMock *dbMocks.DatabaseService) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("", assert.AnError).Once()
 			},
 		},
 		{
-			name:  "get_model_id_for_tenant_ERROR",
+			name:  "GetRolesForEntity_ERROR",
 			ctx:   context.TODO(),
 			error: assert.AnError,
-			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
+			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper, dbMock *dbMocks.DatabaseService) {
+				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
+					Return("storeId", nil).Once()
+
+				helper.EXPECT().GetModelIDForTenant(mock.Anything, mock.Anything, "tenantID").
+					Return("modelId", nil).Once()
+
+				client.EXPECT().ListObjects(mock.Anything, &openfgav1.ListObjectsRequest{
+					StoreId:              "storeId",
+					AuthorizationModelId: "modelId",
+					Type:                 "role",
+					Relation:             "assignee",
+					User:                 "user:alice",
+				}).Return(&openfgav1.ListObjectsResponse{
+					Objects: []string{},
+				}, nil).Once()
+
+				client.EXPECT().Write(mock.Anything, mock.Anything).Return(nil, nil).Once()
+
+				helper.EXPECT().IsDuplicateWriteError(mock.Anything).Return(false).Once()
+				dbMock.EXPECT().GetRolesForEntity(mock.Anything, mock.Anything, "").
+					Return(nil, assert.AnError).Once()
+			},
+		},
+		{
+			name:  "GetModelIDForTenant_ERROR",
+			ctx:   context.TODO(),
+			error: assert.AnError,
+			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper, dbMock *dbMocks.DatabaseService) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("storeId", nil).Once()
 
@@ -896,10 +934,10 @@ func TestAssignRoleBindings(t *testing.T) {
 			},
 		},
 		{
-			name:  "list_objects_ERROR",
+			name:  "ListObjects_ERROR",
 			ctx:   context.TODO(),
 			error: assert.AnError,
-			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
+			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper, dbMock *dbMocks.DatabaseService) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("storeId", nil).Once()
 
@@ -914,7 +952,7 @@ func TestAssignRoleBindings(t *testing.T) {
 			name:  "success",
 			ctx:   context.TODO(),
 			error: assert.AnError,
-			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
+			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper, dbMock *dbMocks.DatabaseService) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("storeId", nil).Once()
 
@@ -945,15 +983,17 @@ func TestAssignRoleBindings(t *testing.T) {
 			// setup service
 			openFGAServiceClientMock := &mocks.OpenFGAServiceClient{}
 			fgaStoreHelperMock := &storeMocks.FGAStoreHelper{}
+			dbMock := &dbMocks.DatabaseService{}
 			s := CompatService{
 				upstream: openFGAServiceClientMock,
 				helper:   fgaStoreHelperMock,
+				database: dbMock,
 				roles:    getRoles(),
 			}
 
 			// setup mocks
 			if tt.setupMocks != nil {
-				tt.setupMocks(tt.ctx, openFGAServiceClientMock, fgaStoreHelperMock)
+				tt.setupMocks(tt.ctx, openFGAServiceClientMock, fgaStoreHelperMock, dbMock)
 			}
 
 			// execute
@@ -1071,7 +1111,7 @@ func TestRemoveFromEntity(t *testing.T) {
 	}
 }
 
-func Test_UsersForEntityRolefilter(t *testing.T) {
+func TestUsersForEntityRolefilter(t *testing.T) {
 	tc := []struct {
 		name       string
 		setupMocks func(*mocks.OpenFGAServiceClient, *storeMocks.FGAStoreHelper)

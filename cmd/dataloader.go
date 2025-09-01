@@ -30,7 +30,7 @@ func (d *DataLoader) SetDataLoadCmd() {
 	d.dataLoadCmd = &cobra.Command{
 		Use:   "dataload",
 		Short: "Load Initial Data",
-		Long:  `Loads the initial data into the Database`,
+		Long:  "Loads the initial data into the Database",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
 
