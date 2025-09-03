@@ -986,6 +986,7 @@ func Test_RolesForUserOfEntity_Success(t *testing.T) {
 		TechnicalName: "admin",
 	}
 	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).Return([]*db.Role{role}, nil).Once()
+	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "admin").Return([]*graph.Permission{}, nil).Once()
 
 	// Act
 	roles, err := service.RolesForUserOfEntity(ctx, tenantID, graph.EntityInput{
@@ -1077,7 +1078,7 @@ func Test_RolesForUserOfEntity_UnableToGetTechnicalRoleNames(t *testing.T) {
 }
 
 func Test_AvailableRolesForEntity_Success(t *testing.T) {
-	service, mockDb, _ := setupService(t)
+	service, mockDb, mockFga := setupService(t)
 	ctx := context.Background()
 
 	tenantID := "tenantID123"
@@ -1098,6 +1099,8 @@ func Test_AvailableRolesForEntity_Success(t *testing.T) {
 		},
 	}
 	mockDb.EXPECT().GetRolesForEntity(mock.Anything, mock.Anything, mock.Anything).Return(mockRoles, nil).Once()
+	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entity.EntityType, "admin").Return([]*graph.Permission{}, nil).Once()
+	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entity.EntityType, "user").Return([]*graph.Permission{}, nil).Once()
 
 	// Act
 	roles, err := service.AvailableRolesForEntity(ctx, tenantID, entity)
@@ -1128,7 +1131,7 @@ func Test_AvailableRolesForEntity_Error(t *testing.T) {
 	assert.Nil(t, roles)
 }
 func Test_Service_AvailableRolesForEntityType(t *testing.T) {
-	service, mockDb, _ := setupService(t)
+	service, mockDb, mockFga := setupService(t)
 	ctx := context.Background()
 
 	tenantID := "tenantID123"
@@ -1146,6 +1149,8 @@ func Test_Service_AvailableRolesForEntityType(t *testing.T) {
 		},
 	}
 	mockDb.EXPECT().GetRolesForEntity(mock.Anything, mock.Anything, mock.Anything).Return(mockRoles, nil).Once()
+	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "admin").Return([]*graph.Permission{}, nil).Once()
+	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "user").Return([]*graph.Permission{}, nil).Once()
 
 	// Act
 	roles, err := service.AvailableRolesForEntityType(ctx, tenantID, entityType)

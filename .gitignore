@@ -7,3 +7,4 @@ coverage.out
 
 __debug_bin*
 .env-dataloader
+.go-version

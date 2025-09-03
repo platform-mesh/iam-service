@@ -388,9 +388,17 @@ func (s *Service) RolesForUserOfEntity(ctx context.Context, tenantID string,
 
 			var grantedRolesForUser []*graph.Role
 			for _, role := range roles {
+				permissions, err := s.Fga.GetPermissionsForRole(ctx, tenantID, entity.EntityType, role.TechnicalName)
+				if err != nil {
+					logger.Error().Err(err).Str("roleTechnicalName", role.TechnicalName).Msg("unable to get permissions for role")
+					// TODO decide continue without permissions rather than failing completely
+					permissions = []*graph.Permission{}
+				}
+
 				grantedRolesForUser = append(grantedRolesForUser, &graph.Role{
 					DisplayName:   role.DisplayName,
 					TechnicalName: role.TechnicalName,
+					Permissions:   permissions,
 				})
 			}
 
@@ -404,16 +412,17 @@ func (s *Service) RolesForUserOfEntity(ctx context.Context, tenantID string,
 func (s *Service) AvailableRolesForEntity(ctx context.Context, tenantID string, entity graph.EntityInput) ([]*graph.Role, error) {
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.AvailableRolesForEntity")
 	defer span.End()
-	return s.getRolesForEntity(ctx, entity.EntityType, entity.EntityID)
+	return s.getRolesForEntity(ctx, tenantID, entity.EntityType, entity.EntityID)
 }
 
 func (s *Service) AvailableRolesForEntityType(ctx context.Context, tenantID string, entityType string) ([]*graph.Role, error) {
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.AvailableRolesForEntityType")
 	defer span.End()
-	return s.getRolesForEntity(ctx, entityType, "")
+	return s.getRolesForEntity(ctx, tenantID, entityType, "")
 }
 
-func (s *Service) getRolesForEntity(ctx context.Context, entityType string, entityID string) ([]*graph.Role, error) {
+func (s *Service) getRolesForEntity(ctx context.Context, tenantID string, entityType string, entityID string) ([]*graph.Role, error) {
+	logger := setupLogger(ctx)
 	roles, err := s.Db.GetRolesForEntity(ctx, entityType, entityID)
 	if err != nil {
 		return nil, err
@@ -421,9 +430,17 @@ func (s *Service) getRolesForEntity(ctx context.Context, entityType string, enti
 
 	returnRoles := make([]*graph.Role, len(roles))
 	for i, role := range roles {
+		permissions, err := s.Fga.GetPermissionsForRole(ctx, tenantID, entityType, role.TechnicalName)
+		if err != nil {
+			logger.Error().Err(err).Str("roleTechnicalName", role.TechnicalName).Msg("unable to get permissions for role")
+			// TODO decide to continue without permissions rather than failing completely
+			permissions = []*graph.Permission{}
+		}
+
 		returnRoles[i] = &graph.Role{
 			DisplayName:   role.DisplayName,
 			TechnicalName: role.TechnicalName,
+			Permissions:   permissions,
 		}
 	}
 

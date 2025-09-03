@@ -9,6 +9,8 @@ import (
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	"github.com/r3labs/diff/v3"
 	"go.opentelemetry.io/otel"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -39,6 +41,7 @@ type Service interface {
 	RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) error
 	AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graphql.Change) error
 	RemoveFromEntity(ctx context.Context, tenantID string, entityType string, entityID string, userID string) error
+	GetPermissionsForRole(ctx context.Context, tenantID string, entityType string, roleTechnicalName string) ([]*graphql.Permission, error)
 }
 
 type UserService interface {
@@ -604,4 +607,79 @@ func (s *CompatService) RemoveFromEntity(ctx context.Context, tenantID string, e
 	}
 
 	return err
+}
+
+func (s *CompatService) GetPermissionsForRole(ctx context.Context, tenantID string, entityType string, roleTechnicalName string) ([]*graphql.Permission, error) {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.GetPermissionsForRole")
+	defer span.End()
+
+	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	modelResponse, err := s.upstream.ReadAuthorizationModels(ctx, &openfgav1.ReadAuthorizationModelsRequest{
+		StoreId: storeID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(modelResponse.AuthorizationModels) == 0 {
+		return []*graphql.Permission{}, nil
+	}
+
+	model := modelResponse.AuthorizationModels[0]
+	var permissions []*graphql.Permission
+
+	for _, typeDef := range model.TypeDefinitions {
+		if typeDef.Type == entityType {
+			for relationName, relationDef := range typeDef.Relations {
+				// skip relations that are not permissions (relations typically start with lowercase). 
+				// TODO find a better way how we compare for roles
+				if relationName == "parent" ||
+					relationName == "vault_maintainer" ||
+					relationName == "owner" ||
+					relationName == "member" {
+					continue
+				}
+
+				if s.roleHasPermission(relationDef, roleTechnicalName) {
+					permissions = append(permissions, &graphql.Permission{
+						DisplayName: s.formatPermissionDisplayName(relationName),
+						Relation:    relationName,
+					})
+				}
+			}
+			break
+		}
+	}
+
+	return permissions, nil
+}
+
+func (s *CompatService) roleHasPermission(relationDef *openfgav1.Userset, roleTechnicalName string) bool {
+	if relationDef.GetUnion() != nil {
+		for _, child := range relationDef.GetUnion().Child {
+			if child.GetComputedUserset() != nil {
+				if child.GetComputedUserset().Relation == roleTechnicalName {
+					return true
+				}
+			}
+		}
+	} else if relationDef.GetComputedUserset() != nil {
+		return relationDef.GetComputedUserset().Relation == roleTechnicalName
+	}
+
+	return false
+}
+
+// formatPermissionDisplayName convert snake_case to Title Case
+func (s *CompatService) formatPermissionDisplayName(relation string) string {
+	caser := cases.Title(language.English)
+	words := strings.Split(relation, "_")
+	for i, word := range words {
+		words[i] = caser.String(word)
+	}
+	return strings.Join(words, " ")
 }
