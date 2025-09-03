@@ -1314,9 +1314,10 @@ func Test_RolesForUserOfEntity_MultipleRoles(t *testing.T) {
 	// Find admin role
 	var adminRole, memberRole *graph.Role
 	for _, role := range roles {
-		if role.TechnicalName == "admin" {
+		switch role.TechnicalName {
+		case "admin":
 			adminRole = role
-		} else if role.TechnicalName == "member" {
+		case "member":
 			memberRole = role
 		}
 	}
