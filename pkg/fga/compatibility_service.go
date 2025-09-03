@@ -239,7 +239,8 @@ func (s *CompatService) UsersForEntityRolefilter(
 	}
 
 	logger := commonsLogger.LoadLoggerFromContext(ctx)
-	userIDToRoles := types.UserIDToRoles{}
+
+	allUserIDToRoles := types.UserIDToRoles{}
 	for _, role := range s.roles {
 		var continuationToken string
 		for {
@@ -268,9 +269,7 @@ func (s *CompatService) UsersForEntityRolefilter(
 					continue
 				}
 				roleTechnicalName := roleIdRaw[2]
-				if utils.CheckRolesFilter(roleTechnicalName, rolefilter) {
-					userIDToRoles[userID] = append(userIDToRoles[userID], roleTechnicalName)
-				}
+				allUserIDToRoles[userID] = append(allUserIDToRoles[userID], roleTechnicalName)
 			}
 
 			continuationToken = roleMembers.ContinuationToken
@@ -280,7 +279,17 @@ func (s *CompatService) UsersForEntityRolefilter(
 		}
 	}
 
-	return userIDToRoles, nil
+	filteredUserIDToRoles := make(types.UserIDToRoles, len(allUserIDToRoles))
+	for userID, userRoles := range allUserIDToRoles {
+		for _, userRole := range userRoles {
+			if utils.CheckRolesFilter(userRole, rolefilter) {
+				filteredUserIDToRoles[userID] = userRoles
+				break
+			}
+		}
+	}
+
+	return filteredUserIDToRoles, nil
 }
 
 func (s *CompatService) CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, ownerUserID string) error {
@@ -541,7 +550,14 @@ func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string,
 			}
 		}
 
-		for _, r := range s.roles {
+		rolesForEntity, err := s.database.GetRolesForEntity(ctx, entityType, "")
+		if err != nil {
+			logger.Error().Str("entityType", entityType).AnErr("GetRolesForEntity", err).Send()
+			commonsSentry.CaptureError(err, tags)
+			return err
+		}
+
+		for _, r := range rolesForEntity {
 			_, err = s.upstream.Write(ctx, &openfgav1.WriteRequest{
 				StoreId:              storeID,
 				AuthorizationModelId: modelID,
@@ -549,8 +565,8 @@ func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string,
 					TupleKeys: []*openfgav1.TupleKey{
 						{
 							Object:   fmt.Sprintf("%s:%s", entityType, entityID),
-							Relation: r,
-							User:     fmt.Sprintf("role:%s/%s/%s#assignee", entityType, entityID, r),
+							Relation: r.TechnicalName,
+							User:     fmt.Sprintf("role:%s/%s/%s#assignee", entityType, entityID, r.TechnicalName),
 						},
 					},
 				},

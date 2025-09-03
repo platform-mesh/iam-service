@@ -110,7 +110,7 @@ type Query {
     - 'sortBy' is a field and direction to sort the users by
     Return value:
     - GrantedUserConnection is a list of users and their roles which matches the input parameters"""
-    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false, searchTerm: String, roles: [RoleInput], sortBy: SortByInput): GrantedUserConnection @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
+    usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false, searchTerm: String, roles: [RoleInput], sortBy: SortByInput): GrantedUserConnection @authorized(relation: "create", entityParamName: "tenantId", entityType: "core_platform-mesh_io_account")
 
     """ Get all roles that are granted to the user of the referenced entity
     Input parameters:
@@ -119,7 +119,7 @@ type Query {
     - 'userId' is an identifier of the user for which the roles are returned
     Return value:
     - '[Role]' is a list of assigned roles to the user """
-    rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
+    rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @authorized(relation: "create", entityParamName: "tenantId", entityType: "core_platform-mesh_io_account")
 
     """ Get all roles that exist for the referenced entity type
     Input parameters:
@@ -135,7 +135,7 @@ type Query {
     - 'entityType' is a type of entity for which defined roles are returned
     Return value:
     - '[Role]' is a list of roles that exist for the all entities of a certain type """
-    availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
+    availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
 
     """ Get the user by its tenantId and userId.
     Input parameters:
@@ -143,7 +143,7 @@ type Query {
     - 'userId' is an identifier of the user
     Return value:
     - 'User' is a user with the given identifiers """
-    user(tenantId:String!, userId:String!): User  @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
+    user(tenantId:String!, userId:String!): User  @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
 
     """ Get the user by its tenantId and email.
     Input parameters:
@@ -151,7 +151,7 @@ type Query {
     - 'email' is an email of the user
     Return value:
     - 'User' is a user with the given identifiers """
-    userByEmail(tenantId:String!, email:String!): User  @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
+    userByEmail(tenantId:String!, email:String!): User  @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
 
     """ Get all users of the tenant. Supports pagination.
     Input parameters:
@@ -160,7 +160,7 @@ type Query {
     - 'page' holds the current page number
     Return value:
     - 'UserConnection' is a list of users which matches the input parameters """
-    usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @authorized(relation: "project_create", entityParamName: "tenantId", entityType: "tenant")
+    usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @authorized(relation: "create", entityParamName: "tenantId", entityType: "core_platform-mesh_io_account")
 
     """ Get all users that match the query.
     Searchable fields are userID, email, firstName, and lastName.
@@ -182,7 +182,7 @@ type Query {
     - 'userIds' is an array of user identifiers
     Return value:
     - '[User]' is a list of users with the given identifiers """
-    usersByIds(tenantId: String!, userIds: [String!]!): [User]! @authorized(relation: "project_create", entityType: "tenant", entityParamName: "tenantId")
+    usersByIds(tenantId: String!, userIds: [String!]!): [User]! @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
 }
 
 """ Holds the information about a specific user and and a list of roles that should be assigned to the user """

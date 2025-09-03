@@ -101,21 +101,21 @@ func (suite *DataLoaderTestSuite) TestLoadData() {
 	assert.Equal(suite.T(), readResponse.Tuples[0].Key, &openfgav1.TupleKey{
 		User:     "role:tenant/tenant1/viewer#assignee",
 		Relation: "member",
-		Object:   "tenant:tenant1",
+		Object:   "core_platform-mesh_io_account:tenant1",
 	})
 	assert.Equal(suite.T(), readResponse.Tuples[1].Key, &openfgav1.TupleKey{
 		User:     "role:tenant/tenant1/external_viewer#assignee",
 		Relation: "external_member",
-		Object:   "tenant:tenant1",
+		Object:   "core_platform-mesh_io_account:tenant1",
 	})
 	assert.Equal(suite.T(), readResponse.Tuples[2].Key, &openfgav1.TupleKey{
 		User:     "role:tenant/tenant2/viewer#assignee",
 		Relation: "member",
-		Object:   "tenant:tenant2",
+		Object:   "core_platform-mesh_io_account:tenant2",
 	})
 	assert.Equal(suite.T(), readResponse.Tuples[3].Key, &openfgav1.TupleKey{
 		User:     "role:tenant/tenant2/external_viewer#assignee",
 		Relation: "external_member",
-		Object:   "tenant:tenant2",
+		Object:   "core_platform-mesh_io_account:tenant2",
 	})
 }
