@@ -982,11 +982,15 @@ func Test_RolesForUserOfEntity_Success(t *testing.T) {
 	}
 	mockFga.EXPECT().UsersForEntity(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(userIDToRoles, nil).Once()
 	role := &db.Role{
-		DisplayName:   "admin",
+		DisplayName:   "Admin",
 		TechnicalName: "admin",
 	}
+	expectedPermissions := []*graph.Permission{
+		{DisplayName: "Create Project", Relation: "create_project"},
+		{DisplayName: "Delete Project", Relation: "delete_project"},
+	}
 	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).Return([]*db.Role{role}, nil).Once()
-	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "admin").Return([]*graph.Permission{}, nil).Once()
+	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "admin").Return(expectedPermissions, nil).Once()
 
 	// Act
 	roles, err := service.RolesForUserOfEntity(ctx, tenantID, graph.EntityInput{
@@ -998,8 +1002,9 @@ func Test_RolesForUserOfEntity_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, roles)
 	assert.Len(t, roles, 1)
-	assert.Equal(t, "admin", roles[0].DisplayName)
+	assert.Equal(t, "Admin", roles[0].DisplayName)
 	assert.Equal(t, "admin", roles[0].TechnicalName)
+	assert.ElementsMatch(t, expectedPermissions, roles[0].Permissions)
 }
 
 func Test_RolesForUserOfEntity_UserNotFound(t *testing.T) {
@@ -1049,6 +1054,39 @@ func Test_RolesForUserOfEntity_Error(t *testing.T) {
 	assert.Nil(t, roles)
 }
 
+func Test_RolesForUserOfEntity_GetPermissionsForRoleError(t *testing.T) {
+	service, mockDb, mockFga := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityID := "entityID"
+	userID := "userID123"
+
+	userIDToRoles := types.UserIDToRoles{
+		userID: []string{"admin"},
+	}
+	mockFga.EXPECT().UsersForEntity(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(userIDToRoles, nil).Once()
+	role := &db.Role{
+		DisplayName:   "Admin",
+		TechnicalName: "admin",
+	}
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).Return([]*db.Role{role}, nil).Once()
+	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "admin").Return(nil, errors.New("permissions error")).Once()
+
+	roles, err := service.RolesForUserOfEntity(ctx, tenantID, graph.EntityInput{
+		EntityType: entityType,
+		EntityID:   entityID,
+	}, userID)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, roles)
+	assert.Len(t, roles, 1)
+	assert.Equal(t, "Admin", roles[0].DisplayName)
+	assert.Equal(t, "admin", roles[0].TechnicalName)
+	assert.Empty(t, roles[0].Permissions) // empty permissions when error occurs
+}
+
 func Test_RolesForUserOfEntity_UnableToGetTechnicalRoleNames(t *testing.T) {
 	service, mockDb, mockFga := setupService(t)
 	ctx := context.Background()
@@ -1090,17 +1128,25 @@ func Test_AvailableRolesForEntity_Success(t *testing.T) {
 	// mock
 	mockRoles := []db.Role{
 		{
-			DisplayName:   "admin",
+			DisplayName:   "Admin",
 			TechnicalName: "admin",
 		},
 		{
-			DisplayName:   "user",
+			DisplayName:   "User",
 			TechnicalName: "user",
 		},
 	}
+	adminPermissions := []*graph.Permission{
+		{DisplayName: "Create Project", Relation: "create_project"},
+		{DisplayName: "Delete Project", Relation: "delete_project"},
+	}
+	userPermissions := []*graph.Permission{
+		{DisplayName: "View Project", Relation: "view_project"},
+	}
+	
 	mockDb.EXPECT().GetRolesForEntity(mock.Anything, mock.Anything, mock.Anything).Return(mockRoles, nil).Once()
-	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entity.EntityType, "admin").Return([]*graph.Permission{}, nil).Once()
-	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entity.EntityType, "user").Return([]*graph.Permission{}, nil).Once()
+	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entity.EntityType, "admin").Return(adminPermissions, nil).Once()
+	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entity.EntityType, "user").Return(userPermissions, nil).Once()
 
 	// Act
 	roles, err := service.AvailableRolesForEntity(ctx, tenantID, entity)
@@ -1108,6 +1154,17 @@ func Test_AvailableRolesForEntity_Success(t *testing.T) {
 	// asserts
 	assert.NoError(t, err)
 	assert.NotNil(t, roles)
+	assert.Len(t, roles, 2)
+	
+	// Check admin role
+	assert.Equal(t, "Admin", roles[0].DisplayName)
+	assert.Equal(t, "admin", roles[0].TechnicalName)
+	assert.ElementsMatch(t, adminPermissions, roles[0].Permissions)
+	
+	// Check user role
+	assert.Equal(t, "User", roles[1].DisplayName)
+	assert.Equal(t, "user", roles[1].TechnicalName)
+	assert.ElementsMatch(t, userPermissions, roles[1].Permissions)
 }
 
 func Test_AvailableRolesForEntity_Error(t *testing.T) {
@@ -1140,17 +1197,25 @@ func Test_Service_AvailableRolesForEntityType(t *testing.T) {
 	// mock
 	mockRoles := []db.Role{
 		{
-			DisplayName:   "admin",
+			DisplayName:   "Admin",
 			TechnicalName: "admin",
 		},
 		{
-			DisplayName:   "user",
+			DisplayName:   "User",
 			TechnicalName: "user",
 		},
 	}
+	adminPermissions := []*graph.Permission{
+		{DisplayName: "Manage Users", Relation: "manage_users"},
+		{DisplayName: "View Analytics", Relation: "view_analytics"},
+	}
+	userPermissions := []*graph.Permission{
+		{DisplayName: "View Content", Relation: "view_content"},
+	}
+	
 	mockDb.EXPECT().GetRolesForEntity(mock.Anything, mock.Anything, mock.Anything).Return(mockRoles, nil).Once()
-	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "admin").Return([]*graph.Permission{}, nil).Once()
-	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "user").Return([]*graph.Permission{}, nil).Once()
+	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "admin").Return(adminPermissions, nil).Once()
+	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "user").Return(userPermissions, nil).Once()
 
 	// Act
 	roles, err := service.AvailableRolesForEntityType(ctx, tenantID, entityType)
@@ -1159,11 +1224,112 @@ func Test_Service_AvailableRolesForEntityType(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, roles)
 	assert.Equal(t, len(mockRoles), len(roles))
-	for i, role := range roles {
-		assert.Equal(t, mockRoles[i].DisplayName, role.DisplayName)
-		assert.Equal(t, mockRoles[i].TechnicalName, role.TechnicalName)
-	}
+	
+	// Check admin role
+	assert.Equal(t, "Admin", roles[0].DisplayName)
+	assert.Equal(t, "admin", roles[0].TechnicalName)
+	assert.ElementsMatch(t, adminPermissions, roles[0].Permissions)
+	
+	// Check user role
+	assert.Equal(t, "User", roles[1].DisplayName)
+	assert.Equal(t, "user", roles[1].TechnicalName)
+	assert.ElementsMatch(t, userPermissions, roles[1].Permissions)
 }
+
+func Test_AvailableRolesForEntity_GetPermissionsForRoleError(t *testing.T) {
+	service, mockDb, mockFga := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entity := graph.EntityInput{
+		EntityType: "project",
+		EntityID:   "entityId",
+	}
+
+	// mock
+	mockRoles := []db.Role{
+		{
+			DisplayName:   "Admin",
+			TechnicalName: "admin",
+		},
+	}
+	
+	mockDb.EXPECT().GetRolesForEntity(mock.Anything, mock.Anything, mock.Anything).Return(mockRoles, nil).Once()
+	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entity.EntityType, "admin").Return(nil, errors.New("permissions error")).Once()
+
+	// Act
+	roles, err := service.AvailableRolesForEntity(ctx, tenantID, entity)
+
+	// asserts
+	assert.NoError(t, err) // Service handles the error gracefully and continues
+	assert.NotNil(t, roles)
+	assert.Len(t, roles, 1)
+	assert.Equal(t, "Admin", roles[0].DisplayName)
+	assert.Equal(t, "admin", roles[0].TechnicalName)
+	assert.Empty(t, roles[0].Permissions) // Empty permissions when error occurs
+}
+
+func Test_RolesForUserOfEntity_MultipleRoles(t *testing.T) {
+	service, mockDb, mockFga := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entityType := "project"
+	entityID := "entityID"
+	userID := "userID123"
+
+	// mock
+	userIDToRoles := types.UserIDToRoles{
+		userID: []string{"admin", "member"},
+	}
+	mockFga.EXPECT().UsersForEntity(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(userIDToRoles, nil).Once()
+	
+	dbRoles := []*db.Role{
+		{DisplayName: "Admin", TechnicalName: "admin"},
+		{DisplayName: "Member", TechnicalName: "member"},
+	}
+	adminPermissions := []*graph.Permission{
+		{DisplayName: "Create Project", Relation: "create_project"},
+		{DisplayName: "Delete Project", Relation: "delete_project"},
+	}
+	memberPermissions := []*graph.Permission{
+		{DisplayName: "View Project", Relation: "view_project"},
+	}
+	
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).Return(dbRoles, nil).Once()
+	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "admin").Return(adminPermissions, nil).Once()
+	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "member").Return(memberPermissions, nil).Once()
+
+	// Act
+	roles, err := service.RolesForUserOfEntity(ctx, tenantID, graph.EntityInput{
+		EntityType: entityType,
+		EntityID:   entityID,
+	}, userID)
+
+	// asserts
+	assert.NoError(t, err)
+	assert.NotNil(t, roles)
+	assert.Len(t, roles, 2)
+	
+	// Find admin role
+	var adminRole, memberRole *graph.Role
+	for _, role := range roles {
+		if role.TechnicalName == "admin" {
+			adminRole = role
+		} else if role.TechnicalName == "member" {
+			memberRole = role
+		}
+	}
+	
+	assert.NotNil(t, adminRole)
+	assert.Equal(t, "Admin", adminRole.DisplayName)
+	assert.ElementsMatch(t, adminPermissions, adminRole.Permissions)
+	
+	assert.NotNil(t, memberRole)
+	assert.Equal(t, "Member", memberRole.DisplayName)
+	assert.ElementsMatch(t, memberPermissions, memberRole.Permissions)
+}
+
 func Test_CreateAccount_Success(t *testing.T) {
 	service, _, mockFga := setupService(t)
 	ctx := context.Background()

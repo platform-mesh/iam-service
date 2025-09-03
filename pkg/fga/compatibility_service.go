@@ -27,10 +27,6 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/utils"
 )
 
-// TODO: get a list of roles to ask for from the database
-func getRoles() []string {
-	return []string{"owner", "member", "vault_maintainer"}
-}
 
 type Service interface {
 	UsersForEntity(ctx context.Context, tenantID string, entityID string, entityType string) (types.UserIDToRoles, error)
@@ -68,7 +64,7 @@ func NewCompatClient(cl openfgav1.OpenFGAServiceClient, db db.Service, fgaEvents
 		helper:   pmfga.New(),
 		database: db,
 		events:   fgaEvents,
-		roles:    getRoles(),
+		roles:    types.AllRoleStrings(),
 	}, nil
 }
 
@@ -609,6 +605,8 @@ func (s *CompatService) RemoveFromEntity(ctx context.Context, tenantID string, e
 	return err
 }
 
+const ParentEntry = "parent"
+
 func (s *CompatService) GetPermissionsForRole(ctx context.Context, tenantID string, entityType string, roleTechnicalName string) ([]*graphql.Permission, error) {
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.GetPermissionsForRole")
 	defer span.End()
@@ -635,18 +633,14 @@ func (s *CompatService) GetPermissionsForRole(ctx context.Context, tenantID stri
 	for _, typeDef := range model.TypeDefinitions {
 		if typeDef.Type == entityType {
 			for relationName, relationDef := range typeDef.Relations {
-				// skip relations that are not permissions (relations typically start with lowercase). 
-				// TODO find a better way how we compare for roles
-				if relationName == "parent" ||
-					relationName == "vault_maintainer" ||
-					relationName == "owner" ||
-					relationName == "member" {
+				// skip relations that are not permissions
+				if relationName == ParentEntry || types.ParseRole(relationName) != types.Invalid {
 					continue
 				}
 
 				if s.roleHasPermission(relationDef, roleTechnicalName) {
 					permissions = append(permissions, &graphql.Permission{
-						DisplayName: s.formatPermissionDisplayName(relationName),
+						DisplayName: s.formatStakeToTitle(relationName),
 						Relation:    relationName,
 					})
 				}
@@ -659,23 +653,22 @@ func (s *CompatService) GetPermissionsForRole(ctx context.Context, tenantID stri
 }
 
 func (s *CompatService) roleHasPermission(relationDef *openfgav1.Userset, roleTechnicalName string) bool {
-	if relationDef.GetUnion() != nil {
-		for _, child := range relationDef.GetUnion().Child {
-			if child.GetComputedUserset() != nil {
-				if child.GetComputedUserset().Relation == roleTechnicalName {
-					return true
-				}
+	union := relationDef.GetUnion()
+	if union != nil {
+		for _, child := range union.Child {
+			computedUserset := child.GetComputedUserset()
+			if computedUserset != nil && computedUserset.Relation == roleTechnicalName {
+				return true
 			}
 		}
-	} else if relationDef.GetComputedUserset() != nil {
-		return relationDef.GetComputedUserset().Relation == roleTechnicalName
+		return false
 	}
 
-	return false
+	computedUserset := relationDef.GetComputedUserset()
+	return computedUserset != nil && computedUserset.Relation == roleTechnicalName
 }
 
-// formatPermissionDisplayName convert snake_case to Title Case
-func (s *CompatService) formatPermissionDisplayName(relation string) string {
+func (s *CompatService) formatStakeToTitle(relation string) string {
 	caser := cases.Title(language.English)
 	words := strings.Split(relation, "_")
 	for i, word := range words {
