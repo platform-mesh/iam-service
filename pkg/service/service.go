@@ -433,7 +433,6 @@ func (s *Service) getRolesForEntity(ctx context.Context, tenantID string, entity
 		permissions, err := s.Fga.GetPermissionsForRole(ctx, tenantID, entityType, role.TechnicalName)
 		if err != nil {
 			logger.Error().Err(err).Str("roleTechnicalName", role.TechnicalName).Msg("unable to get permissions for role")
-			// TODO decide to continue without permissions rather than failing completely
 			permissions = []*graph.Permission{}
 		}
 

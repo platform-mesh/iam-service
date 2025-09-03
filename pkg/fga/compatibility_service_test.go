@@ -1333,7 +1333,6 @@ func TestGetPermissionsForRole(t *testing.T) {
 
 	for _, tt := range tc {
 		t.Run(tt.name, func(t *testing.T) {
-			// setup service
 			openFGAServiceClientMock := &mocks.OpenFGAServiceClient{}
 			fgaStoreHelperMock := &storeMocks.FGAStoreHelper{}
 			s := CompatService{
@@ -1342,12 +1341,10 @@ func TestGetPermissionsForRole(t *testing.T) {
 				roles:    types.AllRoleStrings(),
 			}
 
-			// setup mocks
 			if tt.setupMocks != nil {
 				tt.setupMocks(openFGAServiceClientMock, fgaStoreHelperMock)
 			}
 
-			// execute
 			res, err := s.GetPermissionsForRole(context.TODO(), "tenantID", "team", tt.roleTechnicalName)
 			assert.Equal(t, tt.error, err)
 			if tt.result == nil {
