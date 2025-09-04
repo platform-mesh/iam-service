@@ -353,7 +353,7 @@ func TestUsersForEntity(t *testing.T) {
 					StoreId: "storeId",
 					TupleKey: &openfgav1.ReadRequestTupleKey{
 						Relation: "assignee",
-						Object:   "role:entityType/entityId/owner",
+						Object:   "role:entityType/entityId/member",
 					},
 					PageSize: wrapperspb.Int32(100),
 				}).Return(nil, assert.AnError).Once()
@@ -1546,7 +1546,7 @@ func TestUsersForEntityRolefilter(t *testing.T) {
 		{
 			name: "success - user with owner role gets all their roles when filtering for owner",
 			result: types.UserIDToRoles{
-				"charlie": []string{"owner", "member"},
+				"charlie": []string{"member", "owner"},
 			},
 			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, mock.Anything).
@@ -1603,7 +1603,7 @@ func TestUsersForEntityRolefilter(t *testing.T) {
 		{
 			name: "success - excludes users who don't have filtered role",
 			result: types.UserIDToRoles{
-				"dave": []string{"owner", "vault_maintainer"},
+				"dave": []string{"vault_maintainer", "owner"},
 			},
 			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, mock.Anything).
@@ -1683,7 +1683,7 @@ func TestUsersForEntityRolefilter(t *testing.T) {
 					StoreId: "storeId",
 					TupleKey: &openfgav1.ReadRequestTupleKey{
 						Relation: "assignee",
-						Object:   "role:entityType/entityId/owner",
+						Object:   "role:entityType/entityId/member",
 					},
 					PageSize: wrapperspb.Int32(100),
 				}).Return(nil, assert.AnError).Once()
