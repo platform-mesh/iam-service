@@ -724,9 +724,7 @@ func TestRemoveAccount(t *testing.T) {
 					},
 				}, nil).Once()
 
-				client.EXPECT().Read(ctx, mock.Anything).Return(&openfgav1.ReadResponse{}, nil).Once()
-
-				client.EXPECT().Read(ctx, mock.Anything).Return(&openfgav1.ReadResponse{}, nil).Once()
+				client.EXPECT().Read(ctx, mock.Anything).Return(&openfgav1.ReadResponse{}, nil).Times(2)
 
 				client.EXPECT().Write(ctx, mock.Anything).Return(nil, nil).Once()
 
@@ -987,6 +985,7 @@ func TestAssignRoleBindings(t *testing.T) {
 			s := CompatService{
 				upstream: openFGAServiceClientMock,
 				helper:   fgaStoreHelperMock,
+				database: dbMock,
 				roles:    types.AllRoleStrings(),
 			}
 
