@@ -718,17 +718,17 @@ func TestRemoveAccount(t *testing.T) {
 					Tuples: []*openfgav1.Tuple{{
 						Key: &openfgav1.TupleKey{
 							User:     "user:alice",
-							Object:   "role:entitytype/entityID/owner",
+							Object:   "role:entitytype/entityID/member",
 							Relation: "assignee",
 						}},
 					},
 				}, nil).Once()
 
+				client.EXPECT().Read(ctx, mock.Anything).Return(&openfgav1.ReadResponse{}, nil).Once()
+
+				client.EXPECT().Read(ctx, mock.Anything).Return(&openfgav1.ReadResponse{}, nil).Once()
+
 				client.EXPECT().Write(ctx, mock.Anything).Return(nil, nil).Once()
-
-				client.EXPECT().Read(ctx, mock.Anything).Return(&openfgav1.ReadResponse{}, nil).Once()
-
-				client.EXPECT().Read(ctx, mock.Anything).Return(&openfgav1.ReadResponse{}, nil).Once()
 
 				client.EXPECT().Write(ctx, &openfgav1.WriteRequest{
 					StoreId:              "storeId",
@@ -736,8 +736,8 @@ func TestRemoveAccount(t *testing.T) {
 					Deletes: &openfgav1.WriteRequestDeletes{
 						TupleKeys: []*openfgav1.TupleKeyWithoutCondition{
 							{
-								User:     "role:entitytype/entityID/owner#assignee",
-								Relation: "owner",
+								User:     "role:entitytype/entityID/member#assignee",
+								Relation: "member",
 								Object:   "entitytype:entityID",
 							},
 						},
