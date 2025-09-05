@@ -125,6 +125,67 @@ func (_c *Service_CreateAccount_Call) RunAndReturn(run func(context.Context, str
 	return _c
 }
 
+// GetPermissionsForRole provides a mock function with given fields: ctx, tenantID, entityType, roleTechnicalName
+func (_m *Service) GetPermissionsForRole(ctx context.Context, tenantID string, entityType string, roleTechnicalName string) ([]*graph.Permission, error) {
+	ret := _m.Called(ctx, tenantID, entityType, roleTechnicalName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPermissionsForRole")
+	}
+
+	var r0 []*graph.Permission
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) ([]*graph.Permission, error)); ok {
+		return rf(ctx, tenantID, entityType, roleTechnicalName)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) []*graph.Permission); ok {
+		r0 = rf(ctx, tenantID, entityType, roleTechnicalName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*graph.Permission)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = rf(ctx, tenantID, entityType, roleTechnicalName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Service_GetPermissionsForRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPermissionsForRole'
+type Service_GetPermissionsForRole_Call struct {
+	*mock.Call
+}
+
+// GetPermissionsForRole is a helper method to define mock.On call
+//   - ctx context.Context
+//   - tenantID string
+//   - entityType string
+//   - roleTechnicalName string
+func (_e *Service_Expecter) GetPermissionsForRole(ctx interface{}, tenantID interface{}, entityType interface{}, roleTechnicalName interface{}) *Service_GetPermissionsForRole_Call {
+	return &Service_GetPermissionsForRole_Call{Call: _e.mock.On("GetPermissionsForRole", ctx, tenantID, entityType, roleTechnicalName)}
+}
+
+func (_c *Service_GetPermissionsForRole_Call) Run(run func(ctx context.Context, tenantID string, entityType string, roleTechnicalName string)) *Service_GetPermissionsForRole_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string))
+	})
+	return _c
+}
+
+func (_c *Service_GetPermissionsForRole_Call) Return(_a0 []*graph.Permission, _a1 error) *Service_GetPermissionsForRole_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Service_GetPermissionsForRole_Call) RunAndReturn(run func(context.Context, string, string, string) ([]*graph.Permission, error)) *Service_GetPermissionsForRole_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RemoveAccount provides a mock function with given fields: ctx, tenantID, entityType, entityID
 func (_m *Service) RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) error {
 	ret := _m.Called(ctx, tenantID, entityType, entityID)
