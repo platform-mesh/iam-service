@@ -684,7 +684,7 @@ func (s *CompatService) roleHasPermission(relationDef *openfgav1.Userset, roleTe
 	return computedUserset != nil && computedUserset.Relation == roleTechnicalName
 }
 
-func (s *CompatService) formatStakeToTitle(relation string) string {
+func (s *CompatService) formatSnakeToTitle(relation string) string {
 	caser := cases.Title(language.English)
 	words := strings.Split(relation, "_")
 	for i, word := range words {
