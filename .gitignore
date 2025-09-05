@@ -1,6 +1,5 @@
 .idea
 bin
-coverage.out
 .env
 .DS_Store
 .vscode/launch.json
@@ -8,3 +7,4 @@ coverage.out
 __debug_bin*
 .env-dataloader
 .go-version
+*.out*

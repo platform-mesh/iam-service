@@ -656,7 +656,7 @@ func (s *CompatService) GetPermissionsForRole(ctx context.Context, tenantID stri
 
 				if s.roleHasPermission(relationDef, roleTechnicalName) {
 					permissions = append(permissions, &graphql.Permission{
-						DisplayName: s.formatStakeToTitle(relationName),
+						DisplayName: s.formatSnakeToTitle(relationName),
 						Relation:    relationName,
 					})
 				}

@@ -1465,7 +1465,7 @@ func Test_formatPermissionDisplayName(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
-			result := s.formatStakeToTitle(tc.input)
+			result := s.formatSnakeToTitle(tc.input)
 			assert.Equal(t, tc.expected, result)
 		})
 	}
