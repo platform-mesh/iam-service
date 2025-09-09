@@ -10,12 +10,11 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/platform-mesh/iam-service/contract-tests/fga_test_data"
+	internalfga "github.com/platform-mesh/iam-service/internal/pkg/fga"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-jose/go-jose/v4"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	"github.com/openfga/openfga/pkg/server"
-	commonsCtx "github.com/platform-mesh/golang-commons/context"
 	commonsLogger "github.com/platform-mesh/golang-commons/logger"
 	"github.com/steinfletcher/apitest"
 	"github.com/stretchr/testify/suite"
@@ -64,9 +63,7 @@ func (s *CommonTestSuite) TearDownTest() {
 
 type Middleware = func(http.Handler) http.Handler
 
-func (s *CommonTestSuite) GqlApiTest(
-	middleware *Middleware, userHooksMock *dbMocks.UserHooks, mockFgaEvents fga.FgaEvents,
-) *apitest.Request {
+func (s *CommonTestSuite) GqlApiTest(userHooksMock *dbMocks.UserHooks, mockFgaEvents fga.FgaEvents) *apitest.Request {
 
 	s.SetupLogger()
 
@@ -100,6 +97,7 @@ func (s *CommonTestSuite) setupConfig() {
 		s.T().Fatal(err)
 	}
 
+	appConfig.Database.InMemory = true
 	appConfig.Openfga.GRPCAddr = "localhost:8080"
 	appConfig.IsLocal = true
 	appConfig.Database.LocalData.DataPathUser = "../input/user.yaml"
@@ -157,7 +155,10 @@ func (s *CommonTestSuite) setupGrpcServer() {
 	openfgav1.RegisterOpenFGAServiceServer(grpcServer, s.openfgaServer)
 
 	go func() {
-		grpcServer.Serve(lis) //nolint:all
+		err := grpcServer.Serve(lis)
+		if err != nil {
+			panic(err)
+		}
 	}()
 
 	conn, err := grpc.NewClient("",
@@ -195,29 +196,17 @@ func (s *CommonTestSuite) setupDB(hooks db.UserHooks) {
 
 func (s *CommonTestSuite) getRouter(fgaEventHandler fga.FgaEvents) *chi.Mux {
 
+	fgaStoreHelper := internalfga.NewOpenMFPStoreHelper()
+
 	compatService, err := fga.NewCompatClient(openfgav1.NewOpenFGAServiceClient(s.conn), s.database, fgaEventHandler)
 	if err != nil {
 		s.T().Fatal(err)
 	}
+	compatService = compatService.WithFGAStoreHelper(fgaStoreHelper)
 
-	// create platform-mesh Resolver
+	// create openmfp Resolver
 	mfpSvc := pmservice.New(s.database, compatService)
 	router := iamRouter.CreateRouter(s.appConfig, mfpSvc, s.logger)
 	return router
 
-}
-
-func getUserInjection(token, spiffe string) Middleware { // nolint: unparam
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-			ctx := commonsCtx.AddWebTokenToContext(r.Context(), token, []jose.SignatureAlgorithm{jose.RS256})
-			ctx = commonsCtx.AddTenantToContext(ctx, tenantId)
-			if spiffe != "" {
-				ctx = commonsCtx.AddSpiffeToContext(ctx, spiffe)
-			}
-
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
 }

@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/platform-mesh/golang-commons/logger"
+
 	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 
@@ -83,6 +84,7 @@ var _ Service = (*Database)(nil)
 
 // New returns an initialized Database struct
 func New(cfg ConfigDatabase, dbConn *gorm.DB, logger *logger.Logger, migrate bool, isLocal bool) (*Database, error) {
+	logger.Info().Msg("Initializing Database")
 	db, err := dbConn.DB()
 	if err != nil {
 		return nil, errors.Wrap(err, connectToDbError)
@@ -139,23 +141,23 @@ func New(cfg ConfigDatabase, dbConn *gorm.DB, logger *logger.Logger, migrate boo
 	if isLocal { // nolint: nestif
 		users, err := database.LoadUserData(cfg.LocalData.DataPathUser)
 		if err != nil {
-			logger.Error().Err(err).Str("filePath", cfg.LocalData.DataPathUser).Msg("failed to load user data")
+			logger.Error().Err(err).Msg("failed to load user data")
 		}
 		err = database.LoadInvitationData(cfg.LocalData.DataPathInvitations)
 		if err != nil {
-			logger.Error().Err(err).Str("filePath", cfg.LocalData.DataPathInvitations).Msg("failed to load invitation data")
+			logger.Error().Err(err).Msg("failed to load invitation data")
 		}
 		err = database.LoadTeamData(cfg.LocalData.DataPathTeam, users)
 		if err != nil {
-			logger.Error().Err(err).Str("filePath", cfg.LocalData.DataPathTeam).Msg("failed to load team data")
+			logger.Error().Err(err).Msg("failed to load team data")
 		}
 		err = database.LoadTenantConfigData(cfg.LocalData.DataPathTenantConfiguration)
 		if err != nil {
-			logger.Error().Err(err).Str("filePath", cfg.LocalData.DataPathTenantConfiguration).Msg("failed to load tenant config data")
+			logger.Error().Err(err).Msg("failed to load tenant config data")
 		}
 		err = database.LoadRoleData(cfg.LocalData.DataPathRoles)
 		if err != nil {
-			logger.Error().Err(err).Str("filePath", cfg.LocalData.DataPathRoles).Msg("failed to load role data")
+			logger.Error().Err(err).Msg("failed to load role data")
 		}
 	}
 

@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
-	pmfga "github.com/platform-mesh/golang-commons/fga/store"
-	commonslogger "github.com/platform-mesh/golang-commons/logger"
+	openmfpFga "github.com/platform-mesh/golang-commons/fga/store"
+	commonsLogger "github.com/platform-mesh/golang-commons/logger"
 	"github.com/platform-mesh/iam-service/pkg/db"
 	"go.opentelemetry.io/otel"
 )
@@ -18,13 +18,13 @@ type InviteManger interface {
 }
 
 type FGALoginHandler interface {
-	HandleLogin(ctx context.Context, logger *commonslogger.Logger, tenantID string, userId string, userEmail string) error
+	HandleLogin(ctx context.Context, logger *commonsLogger.Logger, tenantID string, userId string, userEmail string) error
 }
 
 type FGAEventer struct {
 	FGALoginHandler
 	upstream     openfgav1.OpenFGAServiceClient
-	helper       pmfga.FGAStoreHelper
+	helper       openmfpFga.FGAStoreHelper
 	inviteManger InviteManger
 }
 
@@ -39,7 +39,7 @@ func WithOpenFGAClient(cl openfgav1.OpenFGAServiceClient) FGAEventerOption {
 func NewFGAEventer(
 	client openfgav1.OpenFGAServiceClient,
 	inviteManager InviteManger,
-	helper pmfga.FGAStoreHelper,
+	helper openmfpFga.FGAStoreHelper,
 	opts ...FGAEventerOption,
 ) (*FGAEventer, error) {
 	fgaEventer := &FGAEventer{
@@ -56,7 +56,7 @@ func NewFGAEventer(
 }
 
 // HandleLogin Handles the login event whenever a user logs into the portal. This makes sure that the user gets the appropriate tenant role
-func (s *FGAEventer) HandleLogin(ctx context.Context, logger *commonslogger.Logger,
+func (s *FGAEventer) HandleLogin(ctx context.Context, logger *commonsLogger.Logger,
 	tenantID string, userId string, userEmail string) error {
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.handleLogin")
 	defer span.End()
@@ -112,7 +112,7 @@ func (s *FGAEventer) HandleLogin(ctx context.Context, logger *commonslogger.Logg
 	return s.inviteManger.DeleteInvitesForEmail(ctx, tenantID, userEmail)
 }
 
-func (s *FGAEventer) writeInvites(ctx context.Context, logger *commonslogger.Logger,
+func (s *FGAEventer) writeInvites(ctx context.Context, logger *commonsLogger.Logger,
 	storeID string, modelID string, userEmail string, userId string, invites []db.Invite) error {
 	for _, invite := range invites {
 		var tupleKeys []*openfgav1.TupleKey

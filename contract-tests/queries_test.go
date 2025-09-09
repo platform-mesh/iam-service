@@ -4,11 +4,12 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/platform-mesh/iam-service/contract-tests/gqlAssertions"
-	graphql "github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/platform-mesh/iam-service/contract-tests/gqlAssertions"
+	graphql "github.com/platform-mesh/iam-service/pkg/graph"
 )
 
 type QueriesTestSuite struct {
@@ -20,47 +21,54 @@ func TestContractTestSuite(t *testing.T) {
 }
 
 func (suite *QueriesTestSuite) TestQuery_AvailableRolesForEntityType() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
+	suite.GqlApiTest(nil, nil).
 		GraphQLRequest(availableRolesForEntityTypeQuery()).
 		Expect(suite.T()).
 		Status(http.StatusOK).
 		Assert(gqlAssertions.NoGQLErrors()).
-		Assert(jsonpath.Equal("$.data.availableRolesForEntityType", []any{})).
+		Assert(jsonpath.Equal("$.data.availableRolesForEntityType", []interface{}{
+			map[string]interface{}{
+				"displayName":   "Owner",
+				"technicalName": "owner",
+				"permissions":   nil,
+			},
+			map[string]interface{}{
+				"displayName":   "Member",
+				"technicalName": "member",
+				"permissions":   nil,
+			},
+		})).
 		End()
 
 }
 
 func (suite *QueriesTestSuite) TestQuery_AvailableRolesForEntity() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
+	suite.GqlApiTest(nil, nil).
 		GraphQLRequest(availableRolesForEntityQuery()).
 		Expect(suite.T()).
 		Status(http.StatusOK).
 		Assert(gqlAssertions.NoGQLErrors()).
 		Assert(jsonpath.Equal(
 			"$.data.availableRolesForEntity",
-			[]any{
-				map[string]any{
+			[]interface{}{
+				map[string]interface{}{
 					"displayName":   "Owner",
 					"technicalName": "owner",
-					"permissions": []any{
-						map[string]any{
-							"displayName": "Member Manage",
-							"relation":    "member_manage",
-						},
-					},
+					"permissions":   nil,
 				},
-				map[string]any{
+				map[string]interface{}{
 					"displayName":   "Member",
 					"technicalName": "member",
 					"permissions":   nil,
 				},
-				map[string]any{
+				map[string]interface{}{
 					"displayName":   "Vault Maintainer",
 					"technicalName": "vault_maintainer",
+					"permissions":   nil,
+				},
+				map[string]interface{}{
+					"displayName":   "Admin",
+					"technicalName": "admin",
 					"permissions":   nil,
 				},
 			},
@@ -69,9 +77,7 @@ func (suite *QueriesTestSuite) TestQuery_AvailableRolesForEntity() {
 }
 
 func (suite *QueriesTestSuite) TestQuery_User() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
+	suite.GqlApiTest(nil, nil).
 		GraphQLRequest(userQuery()).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -101,17 +107,15 @@ func userByEmailQuery() apitest.GraphQLRequestBody {
 
 	return apitest.GraphQLRequestBody{
 		Query: apiTestQuery,
-		Variables: map[string]any{
-			"tenantId": "eCh0yae7ooWaek2iejo8geiqua",
+		Variables: map[string]interface{}{
+			"tenantId": "29y87kiy4iakrkbb/test",
 			"email":    "OOD8JOOM2Z@mycorp.com",
 		},
 	}
 }
 
 func (suite *QueriesTestSuite) TestQuery_UserByEmail() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
+	suite.GqlApiTest(nil, nil).
 		GraphQLRequest(userByEmailQuery()).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -125,9 +129,7 @@ func (suite *QueriesTestSuite) TestQuery_UserByEmail() {
 }
 
 func (suite *QueriesTestSuite) TestQuery_InviteUser() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
+	suite.GqlApiTest(nil, nil).
 		GraphQLRequest(inviteUserQuery()).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -138,21 +140,20 @@ func (suite *QueriesTestSuite) TestQuery_InviteUser() {
 
 // Test TenantInfo
 func (suite *QueriesTestSuite) TestQuery_TenantInfo() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
+	suite.GqlApiTest(nil, nil).
 		GraphQLRequest(tenantInfoQuery()).
 		Expect(suite.T()).
 		Status(http.StatusOK).
 		Assert(gqlAssertions.NoGQLErrors()).
-		Assert(jsonpath.Equal("$.data.tenantInfo.tenantId", "eCh0yae7ooWaek2iejo8geiqua")).
+		Assert(jsonpath.Equal("$.data.tenantInfo.tenantId", "29y87kiy4iakrkbb/test")).
+		Assert(jsonpath.Equal("$.data.tenantInfo.subdomain", "")).
+		Assert(jsonpath.Equal("$.data.tenantInfo.emailDomain", "")).
+		Assert(jsonpath.Len("$.data.tenantInfo.emailDomains", 0)).
 		End()
 }
 
 func (suite *QueriesTestSuite) TestQuery_RolesForUserOfEntity() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
+	suite.GqlApiTest(nil, nil).
 		GraphQLRequest(rolesForUserOfEntityQuery(tenantId, "test", "project", iamAdminName)).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -166,9 +167,7 @@ func (suite *QueriesTestSuite) TestQuery_RolesForUserOfEntity() {
 
 // Test usersOfEntity
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filterSearchtermAndRoles() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
+	suite.GqlApiTest(nil, nil).
 		GraphQLRequest(usersOfEntity_filterSearchtermAndRoles_Query(tenantId)).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -181,9 +180,7 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filterSearchtermAndRoles(
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_BOB_and_Owner() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
+	suite.GqlApiTest(nil, nil).
 		GraphQLRequest(usersOfEntity_filter_BOB_and_Owner_Query(tenantId)).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -197,10 +194,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_BOB_and_Owner() {
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_BIXIE() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFiltered(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     1,
 			"limit":    10,
@@ -224,10 +219,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_BIXIE() {
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_BIXIE_p2() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFiltered(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     2,
 			"limit":    10,
@@ -249,10 +242,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_BIXIE_p2() {
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_BIXIE_p2_invitees() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFiltered(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     2,
 			"limit":    10,
@@ -274,9 +265,7 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_BIXIE_p2_invitees(
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filterRoles() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
+	suite.GqlApiTest(nil, nil).
 		GraphQLRequest(usersOfEntity_filterRoles_Query(tenantId)).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -286,10 +275,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filterRoles() {
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_invitees() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFiltered(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     2,
 			"limit":    10,
@@ -311,10 +298,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_invitees
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p3_invitees() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFiltered(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     3,
 			"limit":    10,
@@ -336,10 +321,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p3_invitees
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFiltered(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     1,
 			"limit":    10,
@@ -361,10 +344,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1() {
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1_owners() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFiltered(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     1,
 			"limit":    10,
@@ -391,10 +372,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1_owners()
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_owners() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFiltered(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     2,
 			"limit":    10,
@@ -421,10 +400,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_owners()
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_owners_invitees() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFiltered(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     2,
 			"limit":    10,
@@ -451,10 +428,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_owners_i
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1_owners_asc() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFilteredSortby(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFilteredSortby(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     1,
 			"limit":    10,
@@ -507,10 +482,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1_owners_a
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_owners_asc() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFilteredSortby(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFilteredSortby(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     2,
 			"limit":    10,
@@ -545,10 +518,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_owners_a
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_owners_desc() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFilteredSortby(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFilteredSortby(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     2,
 			"limit":    10,
@@ -583,10 +554,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p2_owners_d
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1_owners_desc() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFilteredSortby(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFilteredSortby(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     1,
 			"limit":    10,
@@ -639,10 +608,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1_owners_d
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1_owners_Desc() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFilteredSortby(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFilteredSortby(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     1,
 			"limit":    10,
@@ -664,10 +631,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_FOOBAR_p1_owners_D
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_p2_owners_invitees() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFiltered(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFiltered(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     2,
 			"limit":    10,
@@ -694,10 +659,8 @@ func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_filter_p2_owners_invitees
 }
 
 func (suite *QueriesTestSuite) TestQuery_UsersOfEntity_FGA_pagination() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(usersOfEntityFilteredSortby(map[string]any{
+	suite.GqlApiTest(nil, nil).
+		GraphQLRequest(usersOfEntityFilteredSortby(map[string]interface{}{
 			"tenantId": tenantId,
 			"page":     1,
 			"limit":    10,

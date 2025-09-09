@@ -2,6 +2,8 @@ package fga_test_data
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	"github.com/openfga/language/pkg/go/transformer"
@@ -25,10 +27,17 @@ type fgaRelations struct {
 	} `yaml:"tuples"`
 }
 
-func GetOpenfgaServer(ctx context.Context, tenantId string, input FgaData) (*server.Server, error) {
+func GetOpenfgaServer(ctx context.Context, orgID string, input FgaData) (*server.Server, error) {
 	openfgaServer := server.MustNewServerWithOpts(server.WithDatastore(memory.New()))
+
+	orgIDSplit := strings.Split(orgID, "/")
+	if len(orgIDSplit) != 2 {
+		return nil, fmt.Errorf("invalid tenant id expecting format `cluster/name`")
+	}
+	orgName := orgIDSplit[1]
+
 	storeRes, err := openfgaServer.CreateStore(ctx, &openfgav1.CreateStoreRequest{
-		Name: "tenant-" + tenantId,
+		Name: orgName,
 	})
 	if err != nil {
 		return nil, err

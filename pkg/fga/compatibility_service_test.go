@@ -15,6 +15,7 @@ import (
 
 	storeMocks "github.com/platform-mesh/golang-commons/fga/store/mocks"
 
+	internalfga "github.com/platform-mesh/iam-service/internal/pkg/fga"
 	dbMocks "github.com/platform-mesh/iam-service/pkg/db/mocks"
 	"github.com/platform-mesh/iam-service/pkg/fga/middleware/principal"
 	"github.com/platform-mesh/iam-service/pkg/fga/mocks"
@@ -25,7 +26,9 @@ func TestNewCompatClient(t *testing.T) {
 	cl := &mocks.OpenFGAServiceClient{}
 	db := &dbMocks.DatabaseService{}
 	fgaEvents := &mocks.FgaEvents{}
+	fgaStoreHelper := internalfga.NewOpenMFPStoreHelper()
 	s, err := NewCompatClient(cl, db, fgaEvents)
+	s = s.WithFGAStoreHelper(fgaStoreHelper)
 	assert.NoError(t, err)
 	assert.NotNil(t, s)
 }
@@ -119,8 +122,7 @@ func TestWrite(t *testing.T) {
 					Once()
 
 				fgaStoreHelperMock.EXPECT().IsDuplicateWriteError(mock.Anything).
-					Return(true).
-					Once()
+					Return(true)
 			},
 			error: nil,
 		},
@@ -429,7 +431,7 @@ func TestCreateAccount(t *testing.T) {
 					},
 				}).Return(nil, nil).Once()
 
-				helper.EXPECT().IsDuplicateWriteError(mock.Anything).Return(false).Twice()
+				helper.EXPECT().IsDuplicateWriteError(mock.Anything).Return(false)
 			},
 		},
 		{
@@ -912,9 +914,9 @@ func TestAssignRoleBindings(t *testing.T) {
 					Objects: []string{},
 				}, nil).Once()
 
-				client.EXPECT().Write(mock.Anything, mock.Anything).Return(nil, nil).Once()
+				client.EXPECT().Write(mock.Anything, mock.Anything).Return(nil, nil)
 
-				helper.EXPECT().IsDuplicateWriteError(mock.Anything).Return(false).Once()
+				helper.EXPECT().IsDuplicateWriteError(mock.Anything).Return(false)
 				dbMock.EXPECT().GetRolesForEntity(mock.Anything, mock.Anything, "").
 					Return(nil, assert.AnError).Once()
 			},
@@ -972,7 +974,7 @@ func TestAssignRoleBindings(t *testing.T) {
 
 				client.EXPECT().Write(mock.Anything, mock.Anything).Return(nil, assert.AnError).Once()
 
-				helper.EXPECT().IsDuplicateWriteError(mock.Anything).Return(false).Once()
+				helper.EXPECT().IsDuplicateWriteError(mock.Anything).Return(false)
 			},
 		},
 	}
@@ -1081,7 +1083,7 @@ func TestRemoveFromEntity(t *testing.T) {
 
 				client.EXPECT().Write(mock.Anything, mock.Anything).Return(nil, assert.AnError).Once()
 
-				helper.EXPECT().IsDuplicateWriteError(assert.AnError).Return(false).Once()
+				helper.EXPECT().IsDuplicateWriteError(assert.AnError).Return(false)
 			},
 		},
 	}
@@ -1111,14 +1113,14 @@ func TestRemoveFromEntity(t *testing.T) {
 
 func TestGetPermissionsForRole(t *testing.T) {
 	tc := []struct {
-		name             string
+		name              string
 		roleTechnicalName string
-		setupMocks       func(*mocks.OpenFGAServiceClient, *storeMocks.FGAStoreHelper)
-		error            error
-		result           []*graph.Permission
+		setupMocks        func(*mocks.OpenFGAServiceClient, *storeMocks.FGAStoreHelper)
+		error             error
+		result            []*graph.Permission
 	}{
 		{
-			name:             "success_owner_role",
+			name:              "success_owner_role",
 			roleTechnicalName: "owner",
 			result: []*graph.Permission{
 				{DisplayName: "Delete Vault", Relation: "delete_vault"},
@@ -1189,7 +1191,7 @@ func TestGetPermissionsForRole(t *testing.T) {
 			},
 		},
 		{
-			name:             "success_member_role",
+			name:              "success_member_role",
 			roleTechnicalName: "member",
 			result: []*graph.Permission{
 				{DisplayName: "Delete Vault", Relation: "delete_vault"},
@@ -1253,9 +1255,9 @@ func TestGetPermissionsForRole(t *testing.T) {
 			},
 		},
 		{
-			name:             "success_no_permissions",
+			name:              "success_no_permissions",
 			roleTechnicalName: "vault_maintainer",
-			result: nil,
+			result:            nil,
 			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("storeId", nil).Once()
@@ -1299,9 +1301,9 @@ func TestGetPermissionsForRole(t *testing.T) {
 			},
 		},
 		{
-			name:             "success_empty_model",
+			name:              "success_empty_model",
 			roleTechnicalName: "owner",
-			result:           []*graph.Permission{},
+			result:            []*graph.Permission{},
 			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("storeId", nil).Once()
@@ -1314,9 +1316,9 @@ func TestGetPermissionsForRole(t *testing.T) {
 			},
 		},
 		{
-			name:             "success_no_matching_entity_type",
+			name:              "success_no_matching_entity_type",
 			roleTechnicalName: "owner",
-			result:           nil,
+			result:            nil,
 			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("storeId", nil).Once()
@@ -1346,18 +1348,18 @@ func TestGetPermissionsForRole(t *testing.T) {
 			},
 		},
 		{
-			name:             "get_store_id_error",
+			name:              "get_store_id_error",
 			roleTechnicalName: "owner",
-			error:            assert.AnError,
+			error:             assert.AnError,
 			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("", assert.AnError).Once()
 			},
 		},
 		{
-			name:             "read_authorization_models_error",
+			name:              "read_authorization_models_error",
 			roleTechnicalName: "owner",
-			error:            assert.AnError,
+			error:             assert.AnError,
 			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("storeId", nil).Once()
