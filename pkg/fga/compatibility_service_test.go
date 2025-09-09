@@ -5,17 +5,17 @@ import (
 	"testing"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
-	"github.com/platform-mesh/iam-service/pkg/db"
-	"github.com/platform-mesh/iam-service/pkg/fga/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	internalfga "github.com/platform-mesh/iam-service/internal/pkg/fga"
+	"github.com/platform-mesh/iam-service/pkg/fga/types"
+
 	storeMocks "github.com/platform-mesh/golang-commons/fga/store/mocks"
 
-	internalfga "github.com/platform-mesh/iam-service/internal/pkg/fga"
 	dbMocks "github.com/platform-mesh/iam-service/pkg/db/mocks"
 	"github.com/platform-mesh/iam-service/pkg/fga/middleware/principal"
 	"github.com/platform-mesh/iam-service/pkg/fga/mocks"
@@ -122,7 +122,8 @@ func TestWrite(t *testing.T) {
 					Once()
 
 				fgaStoreHelperMock.EXPECT().IsDuplicateWriteError(mock.Anything).
-					Return(true)
+					Return(true).
+					Once()
 			},
 			error: nil,
 		},
@@ -243,7 +244,7 @@ func TestWrite(t *testing.T) {
 			s := CompatService{
 				upstream: openFGAServiceClientMock,
 				helper:   fgaStoreHelperMock,
-				roles:    types.AllRoleStrings(),
+				roles:    getRoles(),
 			}
 
 			// setup mocks
@@ -355,7 +356,7 @@ func TestUsersForEntity(t *testing.T) {
 					StoreId: "storeId",
 					TupleKey: &openfgav1.ReadRequestTupleKey{
 						Relation: "assignee",
-						Object:   "role:entityType/entityId/member",
+						Object:   "role:entityType/entityId/owner",
 					},
 					PageSize: wrapperspb.Int32(100),
 				}).Return(nil, assert.AnError).Once()
@@ -370,7 +371,7 @@ func TestUsersForEntity(t *testing.T) {
 			s := CompatService{
 				upstream: openFGAServiceClientMock,
 				helper:   fgaStoreHelperMock,
-				roles:    types.AllRoleStrings(),
+				roles:    getRoles(),
 			}
 
 			// setup mocks
@@ -431,7 +432,7 @@ func TestCreateAccount(t *testing.T) {
 					},
 				}).Return(nil, nil).Once()
 
-				helper.EXPECT().IsDuplicateWriteError(mock.Anything).Return(false)
+				helper.EXPECT().IsDuplicateWriteError(mock.Anything).Return(false).Twice()
 			},
 		},
 		{
@@ -520,7 +521,7 @@ func TestCreateAccount(t *testing.T) {
 			s := CompatService{
 				upstream: openFGAServiceClientMock,
 				helper:   fgaStoreHelperMock,
-				roles:    types.AllRoleStrings(),
+				roles:    getRoles(),
 			}
 
 			// setup mocks
@@ -720,15 +721,17 @@ func TestRemoveAccount(t *testing.T) {
 					Tuples: []*openfgav1.Tuple{{
 						Key: &openfgav1.TupleKey{
 							User:     "user:alice",
-							Object:   "role:entitytype/entityID/member",
+							Object:   "role:entitytype/entityID/owner",
 							Relation: "assignee",
 						}},
 					},
 				}, nil).Once()
 
-				client.EXPECT().Read(ctx, mock.Anything).Return(&openfgav1.ReadResponse{}, nil).Times(2)
-
 				client.EXPECT().Write(ctx, mock.Anything).Return(nil, nil).Once()
+
+				client.EXPECT().Read(ctx, mock.Anything).Return(&openfgav1.ReadResponse{}, nil).Once()
+
+				client.EXPECT().Read(ctx, mock.Anything).Return(&openfgav1.ReadResponse{}, nil).Once()
 
 				client.EXPECT().Write(ctx, &openfgav1.WriteRequest{
 					StoreId:              "storeId",
@@ -736,8 +739,8 @@ func TestRemoveAccount(t *testing.T) {
 					Deletes: &openfgav1.WriteRequestDeletes{
 						TupleKeys: []*openfgav1.TupleKeyWithoutCondition{
 							{
-								User:     "role:entitytype/entityID/member#assignee",
-								Relation: "member",
+								User:     "role:entitytype/entityID/owner#assignee",
+								Relation: "owner",
 								Object:   "entitytype:entityID",
 							},
 						},
@@ -756,7 +759,7 @@ func TestRemoveAccount(t *testing.T) {
 			s := CompatService{
 				upstream: openFGAServiceClientMock,
 				helper:   fgaStoreHelperMock,
-				roles:    types.AllRoleStrings(),
+				roles:    getRoles(),
 			}
 
 			// setup mocks
@@ -775,29 +778,20 @@ func TestAssignRoleBindings(t *testing.T) {
 	tc := []struct {
 		name       string
 		ctx        context.Context
-		setupMocks func(context.Context, *mocks.OpenFGAServiceClient, *storeMocks.FGAStoreHelper, *dbMocks.DatabaseService)
+		setupMocks func(context.Context, *mocks.OpenFGAServiceClient, *storeMocks.FGAStoreHelper)
 		error      error
 	}{
 		{
 			// success case assigns role "member"
 			name: "success",
 			ctx:  context.TODO(),
-			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper, dbMock *dbMocks.DatabaseService) {
-				dbMock.EXPECT().
-					GetRolesForEntity(mock.Anything, mock.Anything, "").
-					Return([]db.Role{
-						{TechnicalName: "owner", EntityType: "entityType"},
-						{TechnicalName: "member", EntityType: "entityType"},
-						{TechnicalName: "vault_maintainer", EntityType: "entityType"},
-					}, nil).Once()
-
+			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("storeId", nil).Once()
 
 				helper.EXPECT().GetModelIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("modelId", nil).Once()
 
-				// previous user roles
 				client.EXPECT().ListObjects(mock.Anything, &openfgav1.ListObjectsRequest{
 					StoreId:              "storeId",
 					AuthorizationModelId: "modelId",
@@ -885,47 +879,19 @@ func TestAssignRoleBindings(t *testing.T) {
 			},
 		},
 		{
-			name:  "GetStoreIDForTenant_ERROR",
+			name:  "get_store_id_for_tenant_ERROR",
 			ctx:   context.TODO(),
 			error: assert.AnError,
-			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper, dbMock *dbMocks.DatabaseService) {
+			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("", assert.AnError).Once()
 			},
 		},
 		{
-			name:  "GetRolesForEntity_ERROR",
+			name:  "get_model_id_for_tenant_ERROR",
 			ctx:   context.TODO(),
 			error: assert.AnError,
-			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper, dbMock *dbMocks.DatabaseService) {
-				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
-					Return("storeId", nil).Once()
-
-				helper.EXPECT().GetModelIDForTenant(mock.Anything, mock.Anything, "tenantID").
-					Return("modelId", nil).Once()
-
-				client.EXPECT().ListObjects(mock.Anything, &openfgav1.ListObjectsRequest{
-					StoreId:              "storeId",
-					AuthorizationModelId: "modelId",
-					Type:                 "role",
-					Relation:             "assignee",
-					User:                 "user:alice",
-				}).Return(&openfgav1.ListObjectsResponse{
-					Objects: []string{},
-				}, nil).Once()
-
-				client.EXPECT().Write(mock.Anything, mock.Anything).Return(nil, nil)
-
-				helper.EXPECT().IsDuplicateWriteError(mock.Anything).Return(false)
-				dbMock.EXPECT().GetRolesForEntity(mock.Anything, mock.Anything, "").
-					Return(nil, assert.AnError).Once()
-			},
-		},
-		{
-			name:  "GetModelIDForTenant_ERROR",
-			ctx:   context.TODO(),
-			error: assert.AnError,
-			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper, dbMock *dbMocks.DatabaseService) {
+			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("storeId", nil).Once()
 
@@ -934,10 +900,10 @@ func TestAssignRoleBindings(t *testing.T) {
 			},
 		},
 		{
-			name:  "ListObjects_ERROR",
+			name:  "list_objects_ERROR",
 			ctx:   context.TODO(),
 			error: assert.AnError,
-			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper, dbMock *dbMocks.DatabaseService) {
+			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("storeId", nil).Once()
 
@@ -952,7 +918,7 @@ func TestAssignRoleBindings(t *testing.T) {
 			name:  "success",
 			ctx:   context.TODO(),
 			error: assert.AnError,
-			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper, dbMock *dbMocks.DatabaseService) {
+			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
 					Return("storeId", nil).Once()
 
@@ -974,7 +940,7 @@ func TestAssignRoleBindings(t *testing.T) {
 
 				client.EXPECT().Write(mock.Anything, mock.Anything).Return(nil, assert.AnError).Once()
 
-				helper.EXPECT().IsDuplicateWriteError(mock.Anything).Return(false)
+				helper.EXPECT().IsDuplicateWriteError(mock.Anything).Return(false).Once()
 			},
 		},
 	}
@@ -983,17 +949,15 @@ func TestAssignRoleBindings(t *testing.T) {
 			// setup service
 			openFGAServiceClientMock := &mocks.OpenFGAServiceClient{}
 			fgaStoreHelperMock := &storeMocks.FGAStoreHelper{}
-			dbMock := &dbMocks.DatabaseService{}
 			s := CompatService{
 				upstream: openFGAServiceClientMock,
 				helper:   fgaStoreHelperMock,
-				database: dbMock,
-				roles:    types.AllRoleStrings(),
+				roles:    getRoles(),
 			}
 
 			// setup mocks
 			if tt.setupMocks != nil {
-				tt.setupMocks(tt.ctx, openFGAServiceClientMock, fgaStoreHelperMock, dbMock)
+				tt.setupMocks(tt.ctx, openFGAServiceClientMock, fgaStoreHelperMock)
 			}
 
 			// execute
@@ -1083,7 +1047,7 @@ func TestRemoveFromEntity(t *testing.T) {
 
 				client.EXPECT().Write(mock.Anything, mock.Anything).Return(nil, assert.AnError).Once()
 
-				helper.EXPECT().IsDuplicateWriteError(assert.AnError).Return(false)
+				helper.EXPECT().IsDuplicateWriteError(assert.AnError).Return(false).Once()
 			},
 		},
 	}
@@ -1096,7 +1060,7 @@ func TestRemoveFromEntity(t *testing.T) {
 			s := CompatService{
 				upstream: openFGAServiceClientMock,
 				helper:   fgaStoreHelperMock,
-				roles:    types.AllRoleStrings(),
+				roles:    getRoles(),
 			}
 
 			// setup mocks
@@ -1111,369 +1075,7 @@ func TestRemoveFromEntity(t *testing.T) {
 	}
 }
 
-func TestGetPermissionsForRole(t *testing.T) {
-	tc := []struct {
-		name              string
-		roleTechnicalName string
-		setupMocks        func(*mocks.OpenFGAServiceClient, *storeMocks.FGAStoreHelper)
-		error             error
-		result            []*graph.Permission
-	}{
-		{
-			name:              "success_owner_role",
-			roleTechnicalName: "owner",
-			result: []*graph.Permission{
-				{DisplayName: "Delete Vault", Relation: "delete_vault"},
-				{DisplayName: "Create Vault", Relation: "create_vault"},
-			},
-			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
-				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
-					Return("storeId", nil).Once()
-
-				client.EXPECT().ReadAuthorizationModels(mock.Anything, &openfgav1.ReadAuthorizationModelsRequest{
-					StoreId: "storeId",
-				}).Return(&openfgav1.ReadAuthorizationModelsResponse{
-					AuthorizationModels: []*openfgav1.AuthorizationModel{
-						{
-							TypeDefinitions: []*openfgav1.TypeDefinition{
-								{
-									Type: "team",
-									Relations: map[string]*openfgav1.Userset{
-										"create_vault": {
-											Userset: &openfgav1.Userset_ComputedUserset{
-												ComputedUserset: &openfgav1.ObjectRelation{
-													Relation: "owner",
-												},
-											},
-										},
-										"delete_vault": {
-											Userset: &openfgav1.Userset_Union{
-												Union: &openfgav1.Usersets{
-													Child: []*openfgav1.Userset{
-														{
-															Userset: &openfgav1.Userset_ComputedUserset{
-																ComputedUserset: &openfgav1.ObjectRelation{
-																	Relation: "owner",
-																},
-															},
-														},
-														{
-															Userset: &openfgav1.Userset_ComputedUserset{
-																ComputedUserset: &openfgav1.ObjectRelation{
-																	Relation: "member",
-																},
-															},
-														},
-													},
-												},
-											},
-										},
-										"owner": {
-											Userset: &openfgav1.Userset_ComputedUserset{
-												ComputedUserset: &openfgav1.ObjectRelation{
-													Relation: "owner",
-												},
-											},
-										},
-										"parent": {
-											Userset: &openfgav1.Userset_ComputedUserset{
-												ComputedUserset: &openfgav1.ObjectRelation{
-													Relation: "parent",
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				}, nil).Once()
-			},
-		},
-		{
-			name:              "success_member_role",
-			roleTechnicalName: "member",
-			result: []*graph.Permission{
-				{DisplayName: "Delete Vault", Relation: "delete_vault"},
-				{DisplayName: "Create Vault", Relation: "create_vault"},
-			},
-			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
-				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
-					Return("storeId", nil).Once()
-
-				client.EXPECT().ReadAuthorizationModels(mock.Anything, &openfgav1.ReadAuthorizationModelsRequest{
-					StoreId: "storeId",
-				}).Return(&openfgav1.ReadAuthorizationModelsResponse{
-					AuthorizationModels: []*openfgav1.AuthorizationModel{
-						{
-							TypeDefinitions: []*openfgav1.TypeDefinition{
-								{
-									Type: "team",
-									Relations: map[string]*openfgav1.Userset{
-										"create_vault": {
-											Userset: &openfgav1.Userset_ComputedUserset{
-												ComputedUserset: &openfgav1.ObjectRelation{
-													Relation: "member",
-												},
-											},
-										},
-										"delete_vault": {
-											Userset: &openfgav1.Userset_Union{
-												Union: &openfgav1.Usersets{
-													Child: []*openfgav1.Userset{
-														{
-															Userset: &openfgav1.Userset_ComputedUserset{
-																ComputedUserset: &openfgav1.ObjectRelation{
-																	Relation: "owner",
-																},
-															},
-														},
-														{
-															Userset: &openfgav1.Userset_ComputedUserset{
-																ComputedUserset: &openfgav1.ObjectRelation{
-																	Relation: "member",
-																},
-															},
-														},
-													},
-												},
-											},
-										},
-										"member": {
-											Userset: &openfgav1.Userset_ComputedUserset{
-												ComputedUserset: &openfgav1.ObjectRelation{
-													Relation: "member",
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				}, nil).Once()
-			},
-		},
-		{
-			name:              "success_no_permissions",
-			roleTechnicalName: "vault_maintainer",
-			result:            nil,
-			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
-				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
-					Return("storeId", nil).Once()
-
-				client.EXPECT().ReadAuthorizationModels(mock.Anything, &openfgav1.ReadAuthorizationModelsRequest{
-					StoreId: "storeId",
-				}).Return(&openfgav1.ReadAuthorizationModelsResponse{
-					AuthorizationModels: []*openfgav1.AuthorizationModel{
-						{
-							TypeDefinitions: []*openfgav1.TypeDefinition{
-								{
-									Type: "team",
-									Relations: map[string]*openfgav1.Userset{
-										"create_vault": {
-											Userset: &openfgav1.Userset_ComputedUserset{
-												ComputedUserset: &openfgav1.ObjectRelation{
-													Relation: "owner",
-												},
-											},
-										},
-										"parent": {
-											Userset: &openfgav1.Userset_ComputedUserset{
-												ComputedUserset: &openfgav1.ObjectRelation{
-													Relation: "parent",
-												},
-											},
-										},
-										"vault_maintainer": {
-											Userset: &openfgav1.Userset_ComputedUserset{
-												ComputedUserset: &openfgav1.ObjectRelation{
-													Relation: "vault_maintainer",
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				}, nil).Once()
-			},
-		},
-		{
-			name:              "success_empty_model",
-			roleTechnicalName: "owner",
-			result:            []*graph.Permission{},
-			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
-				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
-					Return("storeId", nil).Once()
-
-				client.EXPECT().ReadAuthorizationModels(mock.Anything, &openfgav1.ReadAuthorizationModelsRequest{
-					StoreId: "storeId",
-				}).Return(&openfgav1.ReadAuthorizationModelsResponse{
-					AuthorizationModels: []*openfgav1.AuthorizationModel{},
-				}, nil).Once()
-			},
-		},
-		{
-			name:              "success_no_matching_entity_type",
-			roleTechnicalName: "owner",
-			result:            nil,
-			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
-				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
-					Return("storeId", nil).Once()
-
-				client.EXPECT().ReadAuthorizationModels(mock.Anything, &openfgav1.ReadAuthorizationModelsRequest{
-					StoreId: "storeId",
-				}).Return(&openfgav1.ReadAuthorizationModelsResponse{
-					AuthorizationModels: []*openfgav1.AuthorizationModel{
-						{
-							TypeDefinitions: []*openfgav1.TypeDefinition{
-								{
-									Type: "project",
-									Relations: map[string]*openfgav1.Userset{
-										"create_vault": {
-											Userset: &openfgav1.Userset_ComputedUserset{
-												ComputedUserset: &openfgav1.ObjectRelation{
-													Relation: "owner",
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				}, nil).Once()
-			},
-		},
-		{
-			name:              "get_store_id_error",
-			roleTechnicalName: "owner",
-			error:             assert.AnError,
-			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
-				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
-					Return("", assert.AnError).Once()
-			},
-		},
-		{
-			name:              "read_authorization_models_error",
-			roleTechnicalName: "owner",
-			error:             assert.AnError,
-			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
-				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, "tenantID").
-					Return("storeId", nil).Once()
-
-				client.EXPECT().ReadAuthorizationModels(mock.Anything, &openfgav1.ReadAuthorizationModelsRequest{
-					StoreId: "storeId",
-				}).Return(nil, assert.AnError).Once()
-			},
-		},
-	}
-
-	for _, tt := range tc {
-		t.Run(tt.name, func(t *testing.T) {
-			openFGAServiceClientMock := &mocks.OpenFGAServiceClient{}
-			fgaStoreHelperMock := &storeMocks.FGAStoreHelper{}
-			s := CompatService{
-				upstream: openFGAServiceClientMock,
-				helper:   fgaStoreHelperMock,
-				roles:    types.AllRoleStrings(),
-			}
-
-			if tt.setupMocks != nil {
-				tt.setupMocks(openFGAServiceClientMock, fgaStoreHelperMock)
-			}
-
-			res, err := s.GetPermissionsForRole(context.TODO(), "tenantID", "team", tt.roleTechnicalName)
-			assert.Equal(t, tt.error, err)
-			if tt.result == nil {
-				assert.Nil(t, res)
-			} else {
-				assert.ElementsMatch(t, tt.result, res)
-			}
-		})
-	}
-}
-
-func Test_roleHasPermission(t *testing.T) {
-	s := &CompatService{}
-
-	t.Run("union_with_computed_userset_match", func(t *testing.T) {
-		relationDef := &openfgav1.Userset{
-			Userset: &openfgav1.Userset_Union{
-				Union: &openfgav1.Usersets{
-					Child: []*openfgav1.Userset{
-						{
-							Userset: &openfgav1.Userset_ComputedUserset{
-								ComputedUserset: &openfgav1.ObjectRelation{
-									Relation: "owner",
-								},
-							},
-						},
-						{
-							Userset: &openfgav1.Userset_ComputedUserset{
-								ComputedUserset: &openfgav1.ObjectRelation{
-									Relation: "member",
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-
-		assert.True(t, s.roleHasPermission(relationDef, "owner"))
-		assert.True(t, s.roleHasPermission(relationDef, "member"))
-		assert.False(t, s.roleHasPermission(relationDef, "vault_maintainer"))
-	})
-
-	t.Run("single_computed_userset_match", func(t *testing.T) {
-		relationDef := &openfgav1.Userset{
-			Userset: &openfgav1.Userset_ComputedUserset{
-				ComputedUserset: &openfgav1.ObjectRelation{
-					Relation: "owner",
-				},
-			},
-		}
-
-		assert.True(t, s.roleHasPermission(relationDef, "owner"))
-		assert.False(t, s.roleHasPermission(relationDef, "member"))
-	})
-
-	t.Run("no_match", func(t *testing.T) {
-		relationDef := &openfgav1.Userset{
-			Userset: &openfgav1.Userset_This{},
-		}
-
-		assert.False(t, s.roleHasPermission(relationDef, "owner"))
-	})
-}
-
-func Test_formatPermissionDisplayName(t *testing.T) {
-	s := &CompatService{}
-
-	testCases := []struct {
-		input    string
-		expected string
-	}{
-		{"create_vault", "Create Vault"},
-		{"delete_vault", "Delete Vault"},
-		{"view_secrets", "View Secrets"},
-		{"manage_users", "Manage Users"},
-		{"single", "Single"},
-		{"already_formatted", "Already Formatted"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.input, func(t *testing.T) {
-			result := s.formatSnakeToTitle(tc.input)
-			assert.Equal(t, tc.expected, result)
-		})
-	}
-}
-
-func TestUsersForEntityRolefilter(t *testing.T) {
+func Test_UsersForEntityRolefilter(t *testing.T) {
 	tc := []struct {
 		name       string
 		setupMocks func(*mocks.OpenFGAServiceClient, *storeMocks.FGAStoreHelper)
@@ -1481,25 +1083,14 @@ func TestUsersForEntityRolefilter(t *testing.T) {
 		result     types.UserIDToRoles
 	}{
 		{
-			name: "success - returns all roles for users who have filtered role",
+			name: "success",
 			result: types.UserIDToRoles{
-				"alice": []string{"member", "vault_maintainer"},
+				"alice": []string{"member"},
 				"bob":   []string{"member"},
 			},
 			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
 				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, mock.Anything).
 					Return("storeId", nil).Once()
-
-				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
-					StoreId: "storeId",
-					TupleKey: &openfgav1.ReadRequestTupleKey{
-						Relation: "assignee",
-						Object:   "role:entityType/entityId/owner",
-					},
-					PageSize: wrapperspb.Int32(100),
-				}).Return(&openfgav1.ReadResponse{
-					Tuples: []*openfgav1.Tuple{},
-				}, nil).Once()
 
 				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
 					StoreId: "storeId",
@@ -1529,6 +1120,24 @@ func TestUsersForEntityRolefilter(t *testing.T) {
 					StoreId: "storeId",
 					TupleKey: &openfgav1.ReadRequestTupleKey{
 						Relation: "assignee",
+						Object:   "role:entityType/entityId/owner",
+					},
+					PageSize: wrapperspb.Int32(100),
+				}).Return(&openfgav1.ReadResponse{
+					Tuples: []*openfgav1.Tuple{
+						{
+							Key: &openfgav1.TupleKey{
+								User:   "user:alice",
+								Object: "NOT_VALID_OBJECT",
+							},
+						},
+					},
+				}, nil).Once()
+
+				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
+					StoreId: "storeId",
+					TupleKey: &openfgav1.ReadRequestTupleKey{
+						Relation: "assignee",
 						Object:   "role:entityType/entityId/vault_maintainer",
 					},
 					PageSize: wrapperspb.Int32(100),
@@ -1537,127 +1146,6 @@ func TestUsersForEntityRolefilter(t *testing.T) {
 						{
 							Key: &openfgav1.TupleKey{
 								User:   "user:alice",
-								Object: "role:entityType/entityId/vault_maintainer",
-							},
-						},
-					},
-				}, nil).Once()
-			},
-		},
-		{
-			name: "success - user with owner role gets all their roles when filtering for owner",
-			result: types.UserIDToRoles{
-				"charlie": []string{"member", "owner"},
-			},
-			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
-				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, mock.Anything).
-					Return("storeId", nil).Once()
-
-				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
-					StoreId: "storeId",
-					TupleKey: &openfgav1.ReadRequestTupleKey{
-						Relation: "assignee",
-						Object:   "role:entityType/entityId/owner",
-					},
-					PageSize: wrapperspb.Int32(100),
-				}).Return(&openfgav1.ReadResponse{
-					Tuples: []*openfgav1.Tuple{
-						{
-							Key: &openfgav1.TupleKey{
-								User:   "user:charlie",
-								Object: "role:entityType/entityId/owner",
-							},
-						},
-					},
-				}, nil).Once()
-
-				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
-					StoreId: "storeId",
-					TupleKey: &openfgav1.ReadRequestTupleKey{
-						Relation: "assignee",
-						Object:   "role:entityType/entityId/member",
-					},
-					PageSize: wrapperspb.Int32(100),
-				}).Return(&openfgav1.ReadResponse{
-					Tuples: []*openfgav1.Tuple{
-						{
-							Key: &openfgav1.TupleKey{
-								User:   "user:charlie",
-								Object: "role:entityType/entityId/member",
-							},
-						},
-					},
-				}, nil).Once()
-
-				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
-					StoreId: "storeId",
-					TupleKey: &openfgav1.ReadRequestTupleKey{
-						Relation: "assignee",
-						Object:   "role:entityType/entityId/vault_maintainer",
-					},
-					PageSize: wrapperspb.Int32(100),
-				}).Return(&openfgav1.ReadResponse{
-					Tuples: []*openfgav1.Tuple{},
-				}, nil).Once()
-			},
-		},
-		{
-			name: "success - excludes users who don't have filtered role",
-			result: types.UserIDToRoles{
-				"dave": []string{"vault_maintainer", "owner"},
-			},
-			setupMocks: func(client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
-				helper.EXPECT().GetStoreIDForTenant(mock.Anything, mock.Anything, mock.Anything).
-					Return("storeId", nil).Once()
-
-				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
-					StoreId: "storeId",
-					TupleKey: &openfgav1.ReadRequestTupleKey{
-						Relation: "assignee",
-						Object:   "role:entityType/entityId/owner",
-					},
-					PageSize: wrapperspb.Int32(100),
-				}).Return(&openfgav1.ReadResponse{
-					Tuples: []*openfgav1.Tuple{
-						{
-							Key: &openfgav1.TupleKey{
-								User:   "user:dave",
-								Object: "role:entityType/entityId/owner",
-							},
-						},
-					},
-				}, nil).Once()
-
-				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
-					StoreId: "storeId",
-					TupleKey: &openfgav1.ReadRequestTupleKey{
-						Relation: "assignee",
-						Object:   "role:entityType/entityId/member",
-					},
-					PageSize: wrapperspb.Int32(100),
-				}).Return(&openfgav1.ReadResponse{
-					Tuples: []*openfgav1.Tuple{
-						{
-							Key: &openfgav1.TupleKey{
-								User:   "user:eve",
-								Object: "role:entityType/entityId/member",
-							},
-						},
-					},
-				}, nil).Once()
-
-				client.EXPECT().Read(mock.Anything, &openfgav1.ReadRequest{
-					StoreId: "storeId",
-					TupleKey: &openfgav1.ReadRequestTupleKey{
-						Relation: "assignee",
-						Object:   "role:entityType/entityId/vault_maintainer",
-					},
-					PageSize: wrapperspb.Int32(100),
-				}).Return(&openfgav1.ReadResponse{
-					Tuples: []*openfgav1.Tuple{
-						{
-							Key: &openfgav1.TupleKey{
-								User:   "user:dave",
 								Object: "role:entityType/entityId/vault_maintainer",
 							},
 						},
@@ -1684,7 +1172,7 @@ func TestUsersForEntityRolefilter(t *testing.T) {
 					StoreId: "storeId",
 					TupleKey: &openfgav1.ReadRequestTupleKey{
 						Relation: "assignee",
-						Object:   "role:entityType/entityId/member",
+						Object:   "role:entityType/entityId/owner",
 					},
 					PageSize: wrapperspb.Int32(100),
 				}).Return(nil, assert.AnError).Once()
@@ -1699,7 +1187,7 @@ func TestUsersForEntityRolefilter(t *testing.T) {
 			s := CompatService{
 				upstream: openFGAServiceClientMock,
 				helper:   fgaStoreHelperMock,
-				roles:    types.AllRoleStrings(),
+				roles:    getRoles(),
 			}
 
 			// setup mocks
@@ -1707,24 +1195,11 @@ func TestUsersForEntityRolefilter(t *testing.T) {
 				tt.setupMocks(openFGAServiceClientMock, fgaStoreHelperMock)
 			}
 
-			// execute - test different role filters based on test case
-			var roleFilter []*graph.RoleInput
-			switch tt.name {
-			case "success - user with owner role gets all their roles when filtering for owner":
-				roleFilter = []*graph.RoleInput{
-					{DisplayName: "Owner", TechnicalName: "owner"},
-				}
-			case "success - excludes users who don't have filtered role":
-				roleFilter = []*graph.RoleInput{
-					{DisplayName: "Owner", TechnicalName: "owner"},
-				}
-			default:
-				roleFilter = []*graph.RoleInput{
-					{DisplayName: "Member", TechnicalName: "member"},
-				}
+			// execute
+			filefilter := []*graph.RoleInput{
+				{DisplayName: "Member", TechnicalName: "member"},
 			}
-
-			res, err := s.UsersForEntityRolefilter(context.TODO(), "tenantID", "entityId", "entityType", roleFilter)
+			res, err := s.UsersForEntityRolefilter(context.TODO(), "tenantID", "entityId", "entityType", filefilter)
 			assert.Equal(t, tt.error, err)
 			assert.Equal(t, tt.result, res)
 		})
