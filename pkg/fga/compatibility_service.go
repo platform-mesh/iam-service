@@ -9,26 +9,24 @@ import (
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	"github.com/r3labs/diff/v3"
 	"go.opentelemetry.io/otel"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	commonsCtx "github.com/platform-mesh/golang-commons/context"
 	openmfpFga "github.com/platform-mesh/golang-commons/fga/store"
+	pmfga "github.com/platform-mesh/golang-commons/fga/store"
 	commonsLogger "github.com/platform-mesh/golang-commons/logger"
 	commonsSentry "github.com/platform-mesh/golang-commons/sentry"
 
-	"github.com/platform-mesh/iam-service/internal/pkg/utils"
 	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/platform-mesh/iam-service/pkg/fga/middleware/principal"
 	"github.com/platform-mesh/iam-service/pkg/fga/types"
 	graphql "github.com/platform-mesh/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/utils"
 )
-
-// TODO: get a list of roles to ask for from the database
-func getRoles() []string {
-	return []string{"owner", "member", "vault_maintainer"}
-}
 
 type Service interface {
 	UsersForEntity(ctx context.Context, tenantID string, entityID string, entityType string) (types.UserIDToRoles, error)
@@ -39,7 +37,20 @@ type Service interface {
 	RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) error
 	AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graphql.Change) error
 	RemoveFromEntity(ctx context.Context, tenantID string, entityType string, entityID string, userID string) error
+	GetPermissionsForRole(ctx context.Context, tenantID string, entityType string, roleTechnicalName string) ([]*graphql.Permission, error)
 }
+
+// TODO: get a list of roles to ask for from the database
+func getRoles() []string {
+	return []string{"owner", "member", "vault_maintainer"}
+}
+
+func (c *CompatService) WithFGAStoreHelper(helper openmfpFga.FGAStoreHelper) *CompatService {
+	c.helper = helper
+	return c
+}
+
+var _ openfgav1.OpenFGAServiceServer = (*CompatService)(nil)
 
 type UserService interface {
 	GetUserByID(ctx context.Context, tenantID string, userId string) (*graphql.User, error)
@@ -48,7 +59,7 @@ type UserService interface {
 type CompatService struct {
 	openfgav1.UnimplementedOpenFGAServiceServer
 	upstream openfgav1.OpenFGAServiceClient
-	helper   openmfpFga.FGAStoreHelper
+	helper   pmfga.FGAStoreHelper
 	database db.Service
 	events   FgaEvents
 	roles    []string
@@ -62,16 +73,11 @@ type FgaEvents interface {
 func NewCompatClient(cl openfgav1.OpenFGAServiceClient, db db.Service, fgaEvents FgaEvents) (*CompatService, error) {
 	return &CompatService{
 		upstream: cl,
-		helper:   openmfpFga.New(),
+		helper:   pmfga.New(),
 		database: db,
 		events:   fgaEvents,
-		roles:    getRoles(),
+		roles:    types.AllRoleStrings(),
 	}, nil
-}
-
-func (c *CompatService) WithFGAStoreHelper(helper openmfpFga.FGAStoreHelper) *CompatService {
-	c.helper = helper
-	return c
 }
 
 var _ openfgav1.OpenFGAServiceServer = (*CompatService)(nil)
@@ -245,7 +251,8 @@ func (s *CompatService) UsersForEntityRolefilter(
 	}
 
 	logger := commonsLogger.LoadLoggerFromContext(ctx)
-	userIDToRoles := types.UserIDToRoles{}
+
+	allUserIDToRoles := types.UserIDToRoles{}
 	for _, role := range s.roles {
 		var continuationToken string
 		for {
@@ -274,9 +281,7 @@ func (s *CompatService) UsersForEntityRolefilter(
 					continue
 				}
 				roleTechnicalName := roleIdRaw[2]
-				if utils.CheckRolesFilter(roleTechnicalName, rolefilter) {
-					userIDToRoles[userID] = append(userIDToRoles[userID], roleTechnicalName)
-				}
+				allUserIDToRoles[userID] = append(allUserIDToRoles[userID], roleTechnicalName)
 			}
 
 			continuationToken = roleMembers.ContinuationToken
@@ -286,7 +291,17 @@ func (s *CompatService) UsersForEntityRolefilter(
 		}
 	}
 
-	return userIDToRoles, nil
+	filteredUserIDToRoles := make(types.UserIDToRoles, len(allUserIDToRoles))
+	for userID, userRoles := range allUserIDToRoles {
+		for _, userRole := range userRoles {
+			if utils.CheckRolesFilter(userRole, rolefilter) {
+				filteredUserIDToRoles[userID] = userRoles
+				break
+			}
+		}
+	}
+
+	return filteredUserIDToRoles, nil
 }
 
 func (s *CompatService) CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, ownerUserID string) error {
@@ -547,7 +562,14 @@ func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string,
 			}
 		}
 
-		for _, r := range s.roles {
+		rolesForEntity, err := s.database.GetRolesForEntity(ctx, entityType, "")
+		if err != nil {
+			logger.Error().Str("entityType", entityType).AnErr("GetRolesForEntity", err).Send()
+			commonsSentry.CaptureError(err, tags)
+			return err
+		}
+
+		for _, r := range rolesForEntity {
 			_, err = s.upstream.Write(ctx, &openfgav1.WriteRequest{
 				StoreId:              storeID,
 				AuthorizationModelId: modelID,
@@ -555,8 +577,8 @@ func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string,
 					TupleKeys: []*openfgav1.TupleKey{
 						{
 							Object:   fmt.Sprintf("%s:%s", entityType, entityID),
-							Relation: r,
-							User:     fmt.Sprintf("role:%s/%s/%s#assignee", entityType, entityID, r),
+							Relation: r.TechnicalName,
+							User:     fmt.Sprintf("role:%s/%s/%s#assignee", entityType, entityID, r.TechnicalName),
 						},
 					},
 				},
@@ -609,4 +631,76 @@ func (s *CompatService) RemoveFromEntity(ctx context.Context, tenantID string, e
 	}
 
 	return err
+}
+
+const ParentEntry = "parent"
+
+func (s *CompatService) GetPermissionsForRole(ctx context.Context, tenantID string, entityType string, roleTechnicalName string) ([]*graphql.Permission, error) {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.GetPermissionsForRole")
+	defer span.End()
+
+	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	modelResponse, err := s.upstream.ReadAuthorizationModels(ctx, &openfgav1.ReadAuthorizationModelsRequest{
+		StoreId: storeID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(modelResponse.AuthorizationModels) == 0 {
+		return []*graphql.Permission{}, nil
+	}
+
+	model := modelResponse.AuthorizationModels[0]
+	var permissions []*graphql.Permission
+
+	for _, typeDef := range model.TypeDefinitions {
+		if typeDef.Type == entityType {
+			for relationName, relationDef := range typeDef.Relations {
+				// skip relations that are not permissions
+				if relationName == ParentEntry || types.ParseRole(relationName) != types.Invalid {
+					continue
+				}
+
+				if s.roleHasPermission(relationDef, roleTechnicalName) {
+					permissions = append(permissions, &graphql.Permission{
+						DisplayName: s.formatSnakeToTitle(relationName),
+						Relation:    relationName,
+					})
+				}
+			}
+			break
+		}
+	}
+
+	return permissions, nil
+}
+
+func (s *CompatService) roleHasPermission(relationDef *openfgav1.Userset, roleTechnicalName string) bool {
+	union := relationDef.GetUnion()
+	if union != nil {
+		for _, child := range union.Child {
+			computedUserset := child.GetComputedUserset()
+			if computedUserset != nil && computedUserset.Relation == roleTechnicalName {
+				return true
+			}
+		}
+		return false
+	}
+
+	computedUserset := relationDef.GetComputedUserset()
+	return computedUserset != nil && computedUserset.Relation == roleTechnicalName
+}
+
+func (s *CompatService) formatSnakeToTitle(relation string) string {
+	caser := cases.Title(language.English)
+	words := strings.Split(relation, "_")
+	for i, word := range words {
+		words[i] = caser.String(word)
+	}
+	return strings.Join(words, " ")
 }
