@@ -15,17 +15,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type OpenMFPStoreHelper struct {
+type StoreHelper struct {
 	cache *expirable.LRU[string, string]
 }
 
-func NewOpenMFPStoreHelper() *OpenMFPStoreHelper {
-	return &OpenMFPStoreHelper{cache: expirable.NewLRU[string, string](10, nil, 10*time.Minute)}
+func NewStoreHelper() *StoreHelper {
+	return &StoreHelper{cache: expirable.NewLRU[string, string](10, nil, 10*time.Minute)}
 }
 
-var _ openmfpfga.FGAStoreHelper = (*OpenMFPStoreHelper)(nil)
+var _ openmfpfga.FGAStoreHelper = (*StoreHelper)(nil)
 
-func (d OpenMFPStoreHelper) GetStoreIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error) {
+func (d StoreHelper) GetStoreIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error) {
 
 	cacheKey := "store-" + orgID
 	s, ok := d.cache.Get(cacheKey)
@@ -57,7 +57,7 @@ func (d OpenMFPStoreHelper) GetStoreIDForTenant(ctx context.Context, conn openfg
 	return storeID, nil
 }
 
-func (d OpenMFPStoreHelper) GetModelIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error) {
+func (d StoreHelper) GetModelIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error) {
 
 	cacheKey := "model-" + orgID
 	s, ok := d.cache.Get(cacheKey)
@@ -83,7 +83,7 @@ func (d OpenMFPStoreHelper) GetModelIDForTenant(ctx context.Context, conn openfg
 
 	return modelID, nil
 }
-func (d OpenMFPStoreHelper) IsDuplicateWriteError(err error) bool {
+func (d StoreHelper) IsDuplicateWriteError(err error) bool {
 	if err == nil {
 		return false
 	}

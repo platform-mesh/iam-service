@@ -98,7 +98,7 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 	}
 	log.Info().Str("addr", appConfig.Openfga.ListenAddr).Msg("successfully started grpc listener")
 
-	fgaStoreHelper := internalfga.NewOpenMFPStoreHelper()
+	fgaStoreHelper := internalfga.NewStoreHelper()
 
 	fgaServer, compatService, err := fga.NewFGAServer(appConfig.Openfga.GRPCAddr, database, nil, tr, appConfig.IsLocal)
 	if err != nil {
@@ -129,7 +129,7 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 
 	openfgaClient := openfgav1.NewOpenFGAServiceClient(conn)
 
-	// create openmfp Resolver
+	// create Resolver
 	svc := iamservice.New(database, compatService)
 	ad := directives.NewAuthorizedDirective(fgaStoreHelper, openfgaClient)
 	router := iamRouter.CreateRouter(appConfig, svc, log, iamRouter.WithAuthorizedDirective(ad.Authorized))

@@ -9,8 +9,8 @@ import (
 
 	gqlgen "github.com/99designs/gqlgen/graphql"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
-	openmfpctx "github.com/platform-mesh/golang-commons/context"
-	openmfpfga "github.com/platform-mesh/golang-commons/fga/store"
+	pmctx "github.com/platform-mesh/golang-commons/context"
+	commonsfga "github.com/platform-mesh/golang-commons/fga/store"
 	"github.com/rs/zerolog/log"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
@@ -53,22 +53,21 @@ func extractNestedKeyFromArgs(args map[string]any, paramName string) (string, er
 	return paramValue, nil
 }
 
-var relationMapping = map[string]string{
-	"project_create": "create_core_openmfp_org_accounts",
-}
-
 type AuthorizedDirective struct {
-	StoreHelper   openmfpfga.FGAStoreHelper
+	StoreHelper   commonsfga.FGAStoreHelper
 	openfgaClient openfgav1.OpenFGAServiceClient
 }
 
-func NewAuthorizedDirective(storeHelper openmfpfga.FGAStoreHelper, openfgaClient openfgav1.OpenFGAServiceClient) AuthorizedDirective {
+func NewAuthorizedDirective(storeHelper commonsfga.FGAStoreHelper, openfgaClient openfgav1.OpenFGAServiceClient) AuthorizedDirective {
 	return AuthorizedDirective{
 		StoreHelper:   storeHelper,
 		openfgaClient: openfgaClient,
 	}
 }
 func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next gqlgen.Resolver, relation string, _ *string, _ *string, entityParamName string) (any, error) {
+	var relationMapping = map[string]string{
+		"project_create": "create_core_openmfp_org_accounts",
+	}
 
 	if mappedRelation, ok := relationMapping[relation]; ok {
 		relation = mappedRelation
@@ -95,7 +94,7 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next gqlgen.
 		return nil, err
 	}
 
-	user, err := openmfpctx.GetWebTokenFromContext(ctx)
+	user, err := pmctx.GetWebTokenFromContext(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get auth token from context")
 		return nil, gqlerror.Errorf("unauthorized")

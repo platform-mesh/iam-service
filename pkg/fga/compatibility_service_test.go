@@ -26,7 +26,7 @@ func TestNewCompatClient(t *testing.T) {
 	cl := &mocks.OpenFGAServiceClient{}
 	db := &dbMocks.DatabaseService{}
 	fgaEvents := &mocks.FgaEvents{}
-	fgaStoreHelper := internalfga.NewOpenMFPStoreHelper()
+	fgaStoreHelper := internalfga.NewStoreHelper()
 	s, err := NewCompatClient(cl, db, fgaEvents)
 	s = s.WithFGAStoreHelper(fgaStoreHelper)
 	assert.NoError(t, err)
