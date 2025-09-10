@@ -54,7 +54,9 @@ func (suite *QueriesTestSuite) TestQuery_AvailableRolesForEntity() {
 				map[string]interface{}{
 					"displayName":   "Owner",
 					"technicalName": "owner",
-					"permissions":   nil,
+					"permissions": []interface{}{
+						map[string]interface{}{"relation": "member_manage", "displayName": "Member Manage"},
+					},
 				},
 				map[string]interface{}{
 					"displayName":   "Member",
