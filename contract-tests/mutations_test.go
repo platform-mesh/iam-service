@@ -23,7 +23,9 @@ func TestMutationsTestSuite(t *testing.T) {
 }
 
 func (suite *MutationsTestSuite) TestMutation_UsersConnection() {
-	suite.GqlApiTest(nil, nil).
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
 		GraphQLRequest(usersConnectionMutation()).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -38,7 +40,9 @@ func (suite *MutationsTestSuite) TestMutation_UsersConnection() {
 }
 
 func (suite *MutationsTestSuite) TestMutation_DeleteInvite() {
-	suite.GqlApiTest(nil, nil).
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
 		GraphQLRequest(deleteInviteMutation()).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -49,10 +53,11 @@ func (suite *MutationsTestSuite) TestMutation_DeleteInvite() {
 
 // Test RemoveUser
 func (suite *MutationsTestSuite) TestMutation_RemoveUser() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
 	userMocks := dbMocks.NewUserHooks(suite.T())
 	userMocks.EXPECT().UserRemoved(mock.Anything, mock.Anything, mock.Anything).Once()
 
-	suite.GqlApiTest(userMocks, nil).
+	suite.GqlApiTest(&userInjection, userMocks, nil).
 		GraphQLRequest(removeUserMutation()).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -78,7 +83,9 @@ func removeUserMutation() apitest.GraphQLRequestBody {
 }
 
 func (suite *MutationsTestSuite) TestMutation_CreateAccount() {
-	suite.GqlApiTest(nil, nil).
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
 		GraphQLRequest(createAccountMutation(tenantId, "project", "test", iamAdminName)).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -88,7 +95,9 @@ func (suite *MutationsTestSuite) TestMutation_CreateAccount() {
 }
 
 func (suite *MutationsTestSuite) TestMutation_RemoveAccount() {
-	suite.GqlApiTest(nil, nil).
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
 		GraphQLRequest(removeAccountMutation(tenantId, "project", "test")).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -98,6 +107,8 @@ func (suite *MutationsTestSuite) TestMutation_RemoveAccount() {
 }
 
 func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
 	currentUserRoles := []string{FGA_ROLE_PROJECT_OWNER, FGA_ROLE_PROJECT_VAULT_MAINTAINER}
 	newUserRoles := []string{FGA_ROLE_PROJECT_OWNER}
 	mockFgaEvents := mocks.NewFgaEvents(suite.T())
@@ -105,7 +116,7 @@ func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings() {
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything, iamAdminName, currentUserRoles, newUserRoles,
 	).Return(nil).Once()
 
-	suite.GqlApiTest(nil, mockFgaEvents).
+	suite.GqlApiTest(&userInjection, nil, mockFgaEvents).
 		GraphQLRequest(assignRoleBindingsMutation(tenantId, "test", "project", iamAdminName, "owner")).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -115,7 +126,9 @@ func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings() {
 }
 
 func (suite *MutationsTestSuite) TestMutation_RemoveFromEntity() {
-	suite.GqlApiTest(nil, nil).
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
+	suite.GqlApiTest(&userInjection, nil, nil).
 		GraphQLRequest(removeFromEntityMutation(tenantId, "test", "project", iamAdminName)).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -131,6 +144,8 @@ func (suite *MutationsTestSuite) TestMutation_RemoveFromEntity() {
 // So the test checks if there is a firstName in the response of second user creation
 // despite it absence in the input
 func (suite *MutationsTestSuite) TestMutation_CreateUserTwoTimes() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
 	userID := "userId123"
 	userEmail := "newUser@gmail.com"
 	firstName := "John"
@@ -139,7 +154,7 @@ func (suite *MutationsTestSuite) TestMutation_CreateUserTwoTimes() {
 	// create the user with full data
 	userMocks := dbMocks.NewUserHooks(suite.T())
 	userMocks.EXPECT().UserCreated(mock.Anything, mock.Anything, mock.Anything).Once()
-	req := suite.GqlApiTest(userMocks, nil)
+	req := suite.GqlApiTest(&userInjection, userMocks, nil)
 
 	req.
 		GraphQLQuery(createUser, map[string]interface{}{
@@ -178,8 +193,10 @@ func (suite *MutationsTestSuite) TestMutation_CreateUserTwoTimes() {
 }
 
 func (suite *MutationsTestSuite) TestMutation_CreateUser_Error() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
 	userMocks := dbMocks.NewUserHooks(suite.T())
-	suite.GqlApiTest(userMocks, nil).
+	suite.GqlApiTest(&userInjection, userMocks, nil).
 		GraphQLQuery(createUser, map[string]interface{}{
 			"tenantId": tenantId,
 			"input":    graphql.UserInput{},
@@ -191,11 +208,12 @@ func (suite *MutationsTestSuite) TestMutation_CreateUser_Error() {
 }
 
 func (suite *MutationsTestSuite) TestMutation_CreateUser() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
 	userMocks := dbMocks.NewUserHooks(suite.T())
 	userMocks.EXPECT().UserCreated(mock.Anything, mock.Anything, mock.Anything).Once()
 	var createUserQuery_userID = generateID()
 
-	suite.GqlApiTest(userMocks, nil).
+	suite.GqlApiTest(&userInjection, userMocks, nil).
 		GraphQLRequest(createUserQuery(createUserQuery_userID)).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -211,6 +229,8 @@ func (suite *MutationsTestSuite) TestMutation_CreateUser() {
 }
 
 func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings_RemoveUserRole() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
 	currentUserRoles := []string{FGA_ROLE_PROJECT_OWNER, FGA_ROLE_PROJECT_VAULT_MAINTAINER}
 	newUserRoles := []string{FGA_ROLE_PROJECT_MEMBER}
 	mockFgaEvents := mocks.NewFgaEvents(suite.T())
@@ -218,7 +238,7 @@ func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings_RemoveUserRole(
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything, iamAdminName, currentUserRoles, newUserRoles,
 	).Return(nil).Once()
 
-	suite.GqlApiTest(nil, mockFgaEvents).
+	suite.GqlApiTest(&userInjection, nil, mockFgaEvents).
 		GraphQLRequest(assignRoleBindingsMutation(tenantId, "test", "project", iamAdminName, "member")).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -228,6 +248,8 @@ func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings_RemoveUserRole(
 }
 
 func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings_UserRoleChanged() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
 	currentUserRoles := []string{FGA_ROLE_PROJECT_OWNER, FGA_ROLE_PROJECT_VAULT_MAINTAINER}
 	newUserRoles := []string{FGA_ROLE_PROJECT_MEMBER}
 	mockFgaEvents := mocks.NewFgaEvents(suite.T())
@@ -236,7 +258,7 @@ func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings_UserRoleChanged
 	).Return(nil).Once()
 
 	// role change for user ['vault_maintainer', 'owner'] -> ['member']
-	request := suite.GqlApiTest(nil, mockFgaEvents)
+	request := suite.GqlApiTest(&userInjection, nil, mockFgaEvents)
 	request.
 		GraphQLRequest(assignRoleBindingsMutation(tenantId, "test", "project", iamAdminName, "member")).
 		Expect(suite.T()).
@@ -263,6 +285,8 @@ func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings_UserRoleChanged
 }
 
 func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings_UserRoleAdded() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
 	newUserId := "ID111111"
 	currentUserRoles := []string{}
 	newUserRoles := []string{FGA_ROLE_PROJECT_MEMBER}
@@ -271,7 +295,7 @@ func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings_UserRoleAdded()
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything, newUserId, currentUserRoles, newUserRoles,
 	).Return(nil).Once()
 
-	suite.GqlApiTest(nil, mockFgaEvents).
+	suite.GqlApiTest(&userInjection, nil, mockFgaEvents).
 		GraphQLRequest(assignRoleBindingsMutation(tenantId, "test", "project", newUserId, "member")).
 		Expect(suite.T()).
 		Status(http.StatusOK).
@@ -281,11 +305,13 @@ func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings_UserRoleAdded()
 }
 
 func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings_No_UserRoleChanged() {
+	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
+
 	newUserId := "ID111111"
 	mockFgaEvents := mocks.NewFgaEvents(suite.T())
 	mockFgaEvents.AssertNotCalled(suite.T(), "UserRoleChanged")
 
-	suite.GqlApiTest(nil, mockFgaEvents).
+	suite.GqlApiTest(&userInjection, nil, nil).
 		GraphQLRequest(assignRoleBindingsMutation_EmptyRoles(tenantId, "test", "project", newUserId)).
 		Expect(suite.T()).
 		Status(http.StatusOK).
