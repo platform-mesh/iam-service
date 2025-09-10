@@ -39,7 +39,7 @@ func (suite *DataLoaderTestSuite) TestLoadData() {
 	})
 
 	// initialize suite fields(fga, db, etc)
-	suite.GqlApiTest(nil, nil, nil)
+	suite.GqlApiTest(nil, nil)
 	suite.appConfig = config.Config{
 		IsLocal: false,
 		Database: db.ConfigDatabase{

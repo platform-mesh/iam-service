@@ -20,13 +20,12 @@ import (
 	commonsLogger "github.com/platform-mesh/golang-commons/logger"
 	commonsSentry "github.com/platform-mesh/golang-commons/sentry"
 
+	"github.com/platform-mesh/iam-service/internal/pkg/utils"
 	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/platform-mesh/iam-service/pkg/fga/middleware/principal"
 	"github.com/platform-mesh/iam-service/pkg/fga/types"
 	graphql "github.com/platform-mesh/iam-service/pkg/graph"
-	"github.com/platform-mesh/iam-service/pkg/utils"
 )
-
 
 type Service interface {
 	UsersForEntity(ctx context.Context, tenantID string, entityID string, entityType string) (types.UserIDToRoles, error)
@@ -66,6 +65,11 @@ func NewCompatClient(cl openfgav1.OpenFGAServiceClient, db db.Service, fgaEvents
 		events:   fgaEvents,
 		roles:    types.AllRoleStrings(),
 	}, nil
+}
+
+func (c *CompatService) WithFGAStoreHelper(helper pmfga.FGAStoreHelper) *CompatService {
+	c.helper = helper
+	return c
 }
 
 var _ openfgav1.OpenFGAServiceServer = (*CompatService)(nil)

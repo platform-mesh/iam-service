@@ -21,6 +21,9 @@ type Config struct {
 		GRPCAddr        string `envconfig:"default=openfga:8081"`
 		ListenAddr      string `envconfig:"default=:8081"`
 	}
+	Istio struct {
+		QuitApi string `envconfig:"default=http://localhost:15020/quitquitquit"`
+	}
 }
 
 // NewFromEnv creates a Config from environment values
