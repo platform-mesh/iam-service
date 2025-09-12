@@ -7,16 +7,21 @@ import (
 	"net/http"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/resolver"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
 	_ "github.com/joho/godotenv/autoload"
+	openfgav1 "github.com/openfga/api/proto/openfga/v1"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/vektah/gqlparser/v2/ast"
 
+	internalfga "github.com/platform-mesh/iam-service/internal/pkg/fga"
 	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/platform-mesh/iam-service/pkg/fga"
 	myresolver "github.com/platform-mesh/iam-service/pkg/resolver"
@@ -29,6 +34,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	pmcontext "github.com/platform-mesh/golang-commons/context"
 
+	"github.com/platform-mesh/iam-service/internal/pkg/directives"
 	gormlogger "github.com/platform-mesh/iam-service/internal/pkg/logger"
 	iamRouter "github.com/platform-mesh/iam-service/internal/pkg/router"
 	"github.com/platform-mesh/iam-service/internal/pkg/tenant"
@@ -92,10 +98,13 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 	}
 	log.Info().Str("addr", appConfig.Openfga.ListenAddr).Msg("successfully started grpc listener")
 
+	fgaStoreHelper := internalfga.NewStoreHelper()
+
 	fgaServer, compatService, err := fga.NewFGAServer(appConfig.Openfga.GRPCAddr, database, nil, tr, appConfig.IsLocal)
 	if err != nil {
 		log.Panic().Err(err).Msg("failed to init service")
 	}
+	compatService = compatService.WithFGAStoreHelper(fgaStoreHelper)
 
 	go func() {
 		err := fgaServer.Serve(lis)
@@ -109,9 +118,35 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 		}
 	}()
 
-	// create platform-mesh Resolver
+	conn, err := grpc.NewClient(appConfig.Openfga.GRPCAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to start grpc server")
+	}
+
+	openfgaClient := openfgav1.NewOpenFGAServiceClient(conn)
+
+	// create Resolver
 	svc := iamservice.New(database, compatService)
-	router := iamRouter.CreateRouter(appConfig, svc, log)
+	ad := directives.NewAuthorizedDirective(fgaStoreHelper, openfgaClient)
+	router := iamRouter.CreateRouter(appConfig, svc, log, iamRouter.WithAuthorizedDirective(ad.Authorized))
+	metricsHandler := promhttp.Handler()
+	router.Handle("/metrics", metricsHandler)
+	router.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		_, err := w.Write([]byte("OK"))
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to write response for health check")
+		}
+	})
+	router.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		_, err := w.Write([]byte("OK"))
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to write response for readiness check")
+		}
+	})
 
 	server := &http.Server{
 		Addr:         ":" + appConfig.Port,

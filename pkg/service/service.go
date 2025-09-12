@@ -494,7 +494,10 @@ func (s *Service) TenantInfo(ctx context.Context, tenantIdInput *string) (*graph
 	}
 
 	return &graph.TenantInfo{
-		TenantID: tenantID,
+		TenantID:     tenantID,
+		Subdomain:    "",
+		EmailDomain:  "",
+		EmailDomains: []string{},
 	}, nil
 }
 

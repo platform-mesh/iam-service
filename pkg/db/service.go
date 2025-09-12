@@ -83,6 +83,7 @@ var _ Service = (*Database)(nil)
 
 // New returns an initialized Database struct
 func New(cfg ConfigDatabase, dbConn *gorm.DB, logger *logger.Logger, migrate bool, isLocal bool) (*Database, error) {
+	logger.Info().Msg("Initializing Database")
 	db, err := dbConn.DB()
 	if err != nil {
 		return nil, errors.Wrap(err, connectToDbError)
@@ -106,11 +107,8 @@ func New(cfg ConfigDatabase, dbConn *gorm.DB, logger *logger.Logger, migrate boo
 		logger: logger.ComponentLogger("database"),
 	}
 
-	if cfg.DSN != "" {
-		return database, nil
-	}
-
 	if migrate {
+		logger.Info().Msg("Migrating database to latest version")
 		dbConn.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
 		// migrate DB scheme to models state
 		models := []interface{}{
