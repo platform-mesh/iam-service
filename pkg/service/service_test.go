@@ -1143,7 +1143,7 @@ func Test_AvailableRolesForEntity_Success(t *testing.T) {
 	userPermissions := []*graph.Permission{
 		{DisplayName: "View Project", Relation: "view_project"},
 	}
-	
+
 	mockDb.EXPECT().GetRolesForEntity(mock.Anything, mock.Anything, mock.Anything).Return(mockRoles, nil).Once()
 	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entity.EntityType, "admin").Return(adminPermissions, nil).Once()
 	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entity.EntityType, "user").Return(userPermissions, nil).Once()
@@ -1155,12 +1155,12 @@ func Test_AvailableRolesForEntity_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, roles)
 	assert.Len(t, roles, 2)
-	
+
 	// Check admin role
 	assert.Equal(t, "Admin", roles[0].DisplayName)
 	assert.Equal(t, "admin", roles[0].TechnicalName)
 	assert.ElementsMatch(t, adminPermissions, roles[0].Permissions)
-	
+
 	// Check user role
 	assert.Equal(t, "User", roles[1].DisplayName)
 	assert.Equal(t, "user", roles[1].TechnicalName)
@@ -1212,7 +1212,7 @@ func Test_Service_AvailableRolesForEntityType(t *testing.T) {
 	userPermissions := []*graph.Permission{
 		{DisplayName: "View Content", Relation: "view_content"},
 	}
-	
+
 	mockDb.EXPECT().GetRolesForEntity(mock.Anything, mock.Anything, mock.Anything).Return(mockRoles, nil).Once()
 	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "admin").Return(adminPermissions, nil).Once()
 	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "user").Return(userPermissions, nil).Once()
@@ -1224,12 +1224,12 @@ func Test_Service_AvailableRolesForEntityType(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, roles)
 	assert.Equal(t, len(mockRoles), len(roles))
-	
+
 	// Check admin role
 	assert.Equal(t, "Admin", roles[0].DisplayName)
 	assert.Equal(t, "admin", roles[0].TechnicalName)
 	assert.ElementsMatch(t, adminPermissions, roles[0].Permissions)
-	
+
 	// Check user role
 	assert.Equal(t, "User", roles[1].DisplayName)
 	assert.Equal(t, "user", roles[1].TechnicalName)
@@ -1253,7 +1253,7 @@ func Test_AvailableRolesForEntity_GetPermissionsForRoleError(t *testing.T) {
 			TechnicalName: "admin",
 		},
 	}
-	
+
 	mockDb.EXPECT().GetRolesForEntity(mock.Anything, mock.Anything, mock.Anything).Return(mockRoles, nil).Once()
 	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entity.EntityType, "admin").Return(nil, errors.New("permissions error")).Once()
 
@@ -1283,7 +1283,7 @@ func Test_RolesForUserOfEntity_MultipleRoles(t *testing.T) {
 		userID: []string{"admin", "member"},
 	}
 	mockFga.EXPECT().UsersForEntity(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(userIDToRoles, nil).Once()
-	
+
 	dbRoles := []*db.Role{
 		{DisplayName: "Admin", TechnicalName: "admin"},
 		{DisplayName: "Member", TechnicalName: "member"},
@@ -1295,7 +1295,7 @@ func Test_RolesForUserOfEntity_MultipleRoles(t *testing.T) {
 	memberPermissions := []*graph.Permission{
 		{DisplayName: "View Project", Relation: "view_project"},
 	}
-	
+
 	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).Return(dbRoles, nil).Once()
 	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "admin").Return(adminPermissions, nil).Once()
 	mockFga.EXPECT().GetPermissionsForRole(mock.Anything, tenantID, entityType, "member").Return(memberPermissions, nil).Once()
@@ -1310,7 +1310,7 @@ func Test_RolesForUserOfEntity_MultipleRoles(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, roles)
 	assert.Len(t, roles, 2)
-	
+
 	// Find admin role
 	var adminRole, memberRole *graph.Role
 	for _, role := range roles {
@@ -1321,11 +1321,11 @@ func Test_RolesForUserOfEntity_MultipleRoles(t *testing.T) {
 			memberRole = role
 		}
 	}
-	
+
 	assert.NotNil(t, adminRole)
 	assert.Equal(t, "Admin", adminRole.DisplayName)
 	assert.ElementsMatch(t, adminPermissions, adminRole.Permissions)
-	
+
 	assert.NotNil(t, memberRole)
 	assert.Equal(t, "Member", memberRole.DisplayName)
 	assert.ElementsMatch(t, memberPermissions, memberRole.Permissions)
