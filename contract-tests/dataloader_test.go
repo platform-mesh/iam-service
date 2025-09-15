@@ -31,7 +31,16 @@ func (suite *DataLoaderTestSuite) TestLoadData() {
 
 	// initialize suite fields(fga, db, etc)
 	suite.GqlApiTest(nil, nil, nil)
-	suite.appConfig = config.Config{}
+
+	// Set up config with proper paths for the data files
+	suite.appConfig = config.Config{
+		Database: db.ConfigDatabase{
+			LocalData: db.DatabaseLocalData{
+				DataPathTenantConfiguration: "../input/tenantConfigurations.yaml",
+				DataPathRoles:               "../input/roles.yaml",
+			},
+		},
+	}
 
 	cmd.NewDataLoader(
 		rootCmd, suite.appConfig, suite.logger, suite.database)
