@@ -206,12 +206,12 @@ type Mutation {
     removeFromEntity(tenantId: ID!, entityType: String!, userId: ID!, entityId: ID!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
     leaveEntity(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @authorized(relation: "member", entityTypeParamName: "entityType", entityParamName: "entityId")
 
-    createAccount(tenantId: ID!, entityType: String!, entityId: ID!, owner: String!): Boolean! @peersOnly
-    removeAccount(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @peersOnly
-
     ## Only for administrative use
     createUser(tenantId: String!, input: UserInput!): User! @peersOnly
     removeUser(tenantId:String!, userId: String, email: String): Boolean @peersOnly
+
+    """ Creates or updates an user corresponding to the web token passed in an HTTP header """
+    login: Boolean!
 }
 
 schema{

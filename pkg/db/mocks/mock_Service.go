@@ -8,6 +8,8 @@ import (
 	db "github.com/platform-mesh/iam-service/pkg/db"
 	graph "github.com/platform-mesh/iam-service/pkg/graph"
 
+	jwt "github.com/platform-mesh/golang-commons/jwt"
+
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -752,6 +754,57 @@ func (_c *DatabaseService_InviteUser_Call) Return(_a0 error) *DatabaseService_In
 }
 
 func (_c *DatabaseService_InviteUser_Call) RunAndReturn(run func(context.Context, string, graph.Invite, bool) error) *DatabaseService_InviteUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// LoginUserWithToken provides a mock function with given fields: ctx, tokenInfo, userID, tenantID, user, email
+func (_m *DatabaseService) LoginUserWithToken(ctx context.Context, tokenInfo jwt.WebToken, userID string, tenantID string, user *graph.User, email string) error {
+	ret := _m.Called(ctx, tokenInfo, userID, tenantID, user, email)
+
+	if len(ret) == 0 {
+		panic("no return value specified for LoginUserWithToken")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, jwt.WebToken, string, string, *graph.User, string) error); ok {
+		r0 = rf(ctx, tokenInfo, userID, tenantID, user, email)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DatabaseService_LoginUserWithToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LoginUserWithToken'
+type DatabaseService_LoginUserWithToken_Call struct {
+	*mock.Call
+}
+
+// LoginUserWithToken is a helper method to define mock.On call
+//   - ctx context.Context
+//   - tokenInfo jwt.WebToken
+//   - userID string
+//   - tenantID string
+//   - user *graph.User
+//   - email string
+func (_e *DatabaseService_Expecter) LoginUserWithToken(ctx interface{}, tokenInfo interface{}, userID interface{}, tenantID interface{}, user interface{}, email interface{}) *DatabaseService_LoginUserWithToken_Call {
+	return &DatabaseService_LoginUserWithToken_Call{Call: _e.mock.On("LoginUserWithToken", ctx, tokenInfo, userID, tenantID, user, email)}
+}
+
+func (_c *DatabaseService_LoginUserWithToken_Call) Run(run func(ctx context.Context, tokenInfo jwt.WebToken, userID string, tenantID string, user *graph.User, email string)) *DatabaseService_LoginUserWithToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(jwt.WebToken), args[2].(string), args[3].(string), args[4].(*graph.User), args[5].(string))
+	})
+	return _c
+}
+
+func (_c *DatabaseService_LoginUserWithToken_Call) Return(_a0 error) *DatabaseService_LoginUserWithToken_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *DatabaseService_LoginUserWithToken_Call) RunAndReturn(run func(context.Context, jwt.WebToken, string, string, *graph.User, string) error) *DatabaseService_LoginUserWithToken_Call {
 	_c.Call.Return(run)
 	return _c
 }

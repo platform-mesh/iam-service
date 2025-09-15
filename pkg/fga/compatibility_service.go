@@ -32,8 +32,6 @@ type Service interface {
 	UsersForEntityRolefilter(
 		ctx context.Context, tenantID string, entityID string, entityType string, rolefilter []*graphql.RoleInput,
 	) (types.UserIDToRoles, error)
-	CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, ownerUserID string) error
-	RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) error
 	AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graphql.Change) error
 	RemoveFromEntity(ctx context.Context, tenantID string, entityType string, entityID string, userID string) error
 	GetPermissionsForRole(ctx context.Context, tenantID string, entityType string, roleTechnicalName string) ([]*graphql.Permission, error)
@@ -60,7 +58,7 @@ type FgaEvents interface {
 func NewCompatClient(cl openfgav1.OpenFGAServiceClient, db db.Service, fgaEvents FgaEvents) (*CompatService, error) {
 	return &CompatService{
 		upstream: cl,
-		helper:   pmfga.New(),
+		helper:   pmfga.NewWithPrefix("tenant-"),
 		database: db,
 		events:   fgaEvents,
 		roles:    types.AllRoleStrings(),
@@ -294,145 +292,6 @@ func (s *CompatService) UsersForEntityRolefilter(
 	}
 
 	return filteredUserIDToRoles, nil
-}
-
-func (s *CompatService) CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, ownerUserID string) error {
-	entityType = strings.ToLower(entityType)
-
-	writes := []*openfgav1.TupleKey{
-		{
-			Object:   fmt.Sprintf("role:%s/%s/owner", entityType, entityID),
-			Relation: "assignee",
-			User:     fmt.Sprintf("user:%s", ownerUserID),
-		},
-		{
-			Object:   fmt.Sprintf("%s:%s", entityType, entityID),
-			Relation: "owner",
-			User:     fmt.Sprintf("role:%s/%s/owner#assignee", entityType, entityID),
-		},
-	}
-
-	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, tenantID)
-	if err != nil {
-		return err
-	}
-
-	modelID, err := s.helper.GetModelIDForTenant(ctx, s.upstream, tenantID)
-	if err != nil {
-		return err
-	}
-
-	logger := commonsLogger.LoadLoggerFromContext(ctx)
-	for _, write := range writes {
-		_, err = s.upstream.Write(ctx, &openfgav1.WriteRequest{
-			StoreId:              storeID,
-			AuthorizationModelId: modelID,
-			Writes: &openfgav1.WriteRequestWrites{
-				TupleKeys: []*openfgav1.TupleKey{write},
-			},
-		})
-		if s.helper.IsDuplicateWriteError(err) {
-			return err
-		}
-		if err != nil {
-			logger.Error().AnErr("openFGA write error", err).Send()
-			commonsSentry.CaptureError(err, commonsSentry.Tags{
-				"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "ownerUserID": ownerUserID,
-			})
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (s *CompatService) RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) error {
-	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, tenantID)
-	if err != nil {
-		return err
-	}
-	modelID, err := s.helper.GetModelIDForTenant(ctx, s.upstream, tenantID)
-	if err != nil {
-		return err
-	}
-
-	entityType = strings.ToLower(entityType)
-
-	logger := commonsLogger.LoadLoggerFromContext(ctx)
-	tags := commonsSentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID}
-	var deletes []*openfgav1.TupleKeyWithoutCondition
-	for _, role := range s.roles {
-		var continuationToken string
-		for {
-			assignees, err := s.upstream.Read(ctx, &openfgav1.ReadRequest{
-				StoreId: storeID,
-				TupleKey: &openfgav1.ReadRequestTupleKey{
-					Object:   fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role),
-					Relation: "assignee",
-				},
-				PageSize:          wrapperspb.Int32(100),
-				ContinuationToken: continuationToken,
-			})
-			if err != nil {
-				logger.Error().AnErr("openFGA read error", err).Send()
-				commonsSentry.CaptureError(err, tags)
-				return err
-			}
-			for _, assignee := range assignees.Tuples {
-				deletes = append(deletes, &openfgav1.TupleKeyWithoutCondition{
-					Object:   assignee.Key.Object,
-					Relation: assignee.Key.Relation,
-					User:     assignee.Key.User,
-				})
-			}
-
-			continuationToken = assignees.ContinuationToken
-			if continuationToken == "" {
-				break
-			}
-		}
-	}
-
-	if len(deletes) > 0 {
-		_, err = s.upstream.Write(ctx, &openfgav1.WriteRequest{
-			StoreId:              storeID,
-			AuthorizationModelId: modelID,
-			Deletes: &openfgav1.WriteRequestDeletes{
-				TupleKeys: deletes,
-			},
-		})
-		if err != nil {
-			logger.Error().AnErr("openFGA write error", err).Send()
-			commonsSentry.CaptureError(err, tags)
-			return err
-		}
-	}
-
-	for _, role := range s.roles {
-		_, err = s.upstream.Write(ctx, &openfgav1.WriteRequest{
-			StoreId:              storeID,
-			AuthorizationModelId: modelID,
-			Deletes: &openfgav1.WriteRequestDeletes{
-				TupleKeys: []*openfgav1.TupleKeyWithoutCondition{
-					{
-						Object:   fmt.Sprintf("%s:%s", entityType, entityID),
-						Relation: role,
-						User:     fmt.Sprintf("role:%s/%s/%s#assignee", entityType, entityID, role),
-					},
-				},
-			},
-		})
-		if s.helper.IsDuplicateWriteError(err) {
-			return err
-		}
-		if err != nil {
-			logger.Error().AnErr("openFGA write error", err).Send()
-			commonsSentry.CaptureError(err, commonsSentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "role": role})
-			return err
-		}
-	}
-
-	return err
 }
 
 func (s *CompatService) AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graphql.Change) error { // nolint: gocognit, cyclop,funlen,lll

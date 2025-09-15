@@ -11,10 +11,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/platform-mesh/golang-commons/jwt"
 	"gorm.io/gorm"
 	"sigs.k8s.io/yaml"
 
 	"github.com/platform-mesh/golang-commons/logger"
+
 	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 
@@ -27,6 +29,7 @@ type UserHooks interface {
 	UserInvited(ctx context.Context, user *graph.User, tenantID string, scope string, userInvited bool)
 	UserCreated(ctx context.Context, user *graph.User, tenantID string)
 	UserRemoved(ctx context.Context, user *graph.User, tenantID string)
+	UserLogin(ctx context.Context, user *graph.User, tenantID string)
 }
 
 type Service interface {
@@ -58,7 +61,7 @@ type UserService interface {
 	DeleteInvite(ctx context.Context, criteria Invite) error
 	InviteUser(ctx context.Context, tenantID string, invite graph.Invite, notifyByEmail bool) error
 	SearchUsers(ctx context.Context, tenantID, query string) ([]*graph.User, error)
-
+	LoginUserWithToken(ctx context.Context, tokenInfo jwt.WebToken, userID string, tenantID string, user *graph.User, email string) error
 	// hooks
 	SetUserHooks(hooks UserHooks)
 	GetUserHooks() UserHooks

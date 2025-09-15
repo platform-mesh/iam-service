@@ -14,6 +14,26 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+// containsAll checks if slice contains all expected elements regardless of order
+func containsAll(slice, expected []string) bool {
+	if len(slice) != len(expected) {
+		return false
+	}
+
+	sliceMap := make(map[string]bool)
+	for _, s := range slice {
+		sliceMap[s] = true
+	}
+
+	for _, e := range expected {
+		if !sliceMap[e] {
+			return false
+		}
+	}
+
+	return true
+}
+
 type MutationsTestSuite struct {
 	CommonTestSuite
 }
@@ -82,38 +102,19 @@ func removeUserMutation() apitest.GraphQLRequestBody {
 	}
 }
 
-func (suite *MutationsTestSuite) TestMutation_CreateAccount() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(createAccountMutation(tenantId, "project", "test", iamAdminName)).
-		Expect(suite.T()).
-		Status(http.StatusOK).
-		Assert(gqlAssertions.NoGQLErrors()).
-		Assert(jsonpath.Equal("$.data.createAccount", true)).
-		End()
-}
-
-func (suite *MutationsTestSuite) TestMutation_RemoveAccount() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(removeAccountMutation(tenantId, "project", "test")).
-		Expect(suite.T()).
-		Status(http.StatusOK).
-		Assert(gqlAssertions.NoGQLErrors()).
-		Assert(jsonpath.Equal("$.data.removeAccount", true)).
-		End()
-}
-
 func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings() {
 	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
 
-	currentUserRoles := []string{FGA_ROLE_PROJECT_OWNER, FGA_ROLE_PROJECT_VAULT_MAINTAINER}
-	newUserRoles := []string{FGA_ROLE_PROJECT_OWNER}
+	expectedCurrentRoles := []string{FGA_ROLE_PROJECT_OWNER, FGA_ROLE_PROJECT_VAULT_MAINTAINER}
+	expectedNewRoles := []string{FGA_ROLE_PROJECT_OWNER}
 	mockFgaEvents := mocks.NewFgaEvents(suite.T())
 	mockFgaEvents.EXPECT().UserRoleChanged(
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything, iamAdminName, currentUserRoles, newUserRoles,
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything, iamAdminName,
+		mock.MatchedBy(func(roles []string) bool {
+			return len(roles) == len(expectedCurrentRoles) &&
+				containsAll(roles, expectedCurrentRoles)
+		}),
+		expectedNewRoles,
 	).Return(nil).Once()
 
 	suite.GqlApiTest(&userInjection, nil, mockFgaEvents).
@@ -231,11 +232,16 @@ func (suite *MutationsTestSuite) TestMutation_CreateUser() {
 func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings_RemoveUserRole() {
 	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
 
-	currentUserRoles := []string{FGA_ROLE_PROJECT_OWNER, FGA_ROLE_PROJECT_VAULT_MAINTAINER}
-	newUserRoles := []string{FGA_ROLE_PROJECT_MEMBER}
+	expectedCurrentRoles := []string{FGA_ROLE_PROJECT_OWNER, FGA_ROLE_PROJECT_VAULT_MAINTAINER}
+	expectedNewRoles := []string{FGA_ROLE_PROJECT_MEMBER}
 	mockFgaEvents := mocks.NewFgaEvents(suite.T())
 	mockFgaEvents.EXPECT().UserRoleChanged(
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything, iamAdminName, currentUserRoles, newUserRoles,
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything, iamAdminName,
+		mock.MatchedBy(func(roles []string) bool {
+			return len(roles) == len(expectedCurrentRoles) &&
+				containsAll(roles, expectedCurrentRoles)
+		}),
+		expectedNewRoles,
 	).Return(nil).Once()
 
 	suite.GqlApiTest(&userInjection, nil, mockFgaEvents).
@@ -250,11 +256,16 @@ func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings_RemoveUserRole(
 func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings_UserRoleChanged() {
 	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
 
-	currentUserRoles := []string{FGA_ROLE_PROJECT_OWNER, FGA_ROLE_PROJECT_VAULT_MAINTAINER}
-	newUserRoles := []string{FGA_ROLE_PROJECT_MEMBER}
+	expectedCurrentRoles := []string{FGA_ROLE_PROJECT_OWNER, FGA_ROLE_PROJECT_VAULT_MAINTAINER}
+	expectedNewRoles := []string{FGA_ROLE_PROJECT_MEMBER}
 	mockFgaEvents := mocks.NewFgaEvents(suite.T())
 	mockFgaEvents.EXPECT().UserRoleChanged(
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything, iamAdminName, currentUserRoles, newUserRoles,
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything, iamAdminName,
+		mock.MatchedBy(func(roles []string) bool {
+			return len(roles) == len(expectedCurrentRoles) &&
+				containsAll(roles, expectedCurrentRoles)
+		}),
+		expectedNewRoles,
 	).Return(nil).Once()
 
 	// role change for user ['vault_maintainer', 'owner'] -> ['member']
@@ -268,10 +279,10 @@ func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings_UserRoleChanged
 		End()
 
 	// role change for user ['member'] -> ['vault_maintainer']
-	currentUserRoles = []string{FGA_ROLE_PROJECT_MEMBER}
-	newUserRoles = []string{FGA_ROLE_PROJECT_VAULT_MAINTAINER}
+	expectedCurrentRoles = []string{FGA_ROLE_PROJECT_MEMBER}
+	expectedNewRoles = []string{FGA_ROLE_PROJECT_VAULT_MAINTAINER}
 	mockFgaEvents.EXPECT().UserRoleChanged(
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything, iamAdminName, currentUserRoles, newUserRoles,
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything, iamAdminName, expectedCurrentRoles, expectedNewRoles,
 	).Return(nil).Once()
 
 	request.

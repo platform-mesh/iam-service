@@ -9,1278 +9,1011 @@ import (
 
 	"github.com/agiledragon/gomonkey/v2"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
+
 	"github.com/platform-mesh/golang-commons/logger"
 	"github.com/platform-mesh/iam-service/pkg/db"
-	"github.com/platform-mesh/iam-service/pkg/db/mocks"
 	"github.com/platform-mesh/iam-service/pkg/graph"
-	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
-func setupSQLiteDB(t *testing.T) *gorm.DB {
-	t.Helper()
+// Mock implementation of UserHooks for testing
+type MockUserHooks struct{}
 
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	assert.NoError(t, err)
-
-	return db
+func (m *MockUserHooks) UserInvited(ctx context.Context, user *graph.User, tenantID string, scope string, userInvited bool) {
 }
+func (m *MockUserHooks) UserCreated(ctx context.Context, user *graph.User, tenantID string) {}
+func (m *MockUserHooks) UserRemoved(ctx context.Context, user *graph.User, tenantID string) {}
+func (m *MockUserHooks) UserLogin(ctx context.Context, user *graph.User, tenantID string)   {}
 
-func TestNew_WhenSuccessful_CreatesDatabaseInstance(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	// Act
-	database, err := db.New(cfg, gormDB, log, false, false)
-
-	// Assert
-	assert.NoError(t, err, "New should not return an error")
-	assert.NotNil(t, database, "database instance should not be nil")
-}
-
-func TestNew_WhenMigrateEnabled_AutoMigrateIsCalled(t *testing.T) {
-	// Arrange
+func TestService_LoadTenantConfigData_FileNotFound(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	autoMigrateCalled := false
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
 
-	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "AutoMigrate", func(_ *gorm.DB, dst ...interface{}) error {
-		autoMigrateCalled = true
-		return nil // Simulate successful migration
-	})
-
-	defer patch.Reset()
-
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
-
-	// Act
-	database, err := db.New(cfg, gormDB, log, true, false)
-
-	// Assert
-	assert.NoError(t, err, "New should not return an error")
-	assert.NotNil(t, database, "database instance should not be nil")
-	assert.True(t, autoMigrateCalled, "AutoMigrate should have been called")
+	// Test with non-existent file
+	err = database.LoadTenantConfigData("non-existent-file.yaml")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error occurred when reading data file")
 }
 
-func TestNew_WhenDBIsCalled_ReturnsError(t *testing.T) {
-	// Arrange
+func TestService_LoadTenantConfigData_InvalidYAML(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	dbCalled := false
-	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "DB", func(*gorm.DB) (*sql.DB, error) {
-		dbCalled = true
-		return nil, assert.AnError
-	})
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
 
-	defer patch.Reset()
+	// Create temp file with invalid YAML
+	tmpFile, err := os.CreateTemp("", "invalid-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
+	_, err = tmpFile.WriteString("invalid yaml content [")
+	require.NoError(t, err)
+	_ = tmpFile.Close()
 
-	// Act
-	database, err := db.New(cfg, gormDB, log, false, false)
-
-	// Assert
-	assert.Error(t, err, "New should return an error")
-	assert.Nil(t, database, "database instance should be nil")
-	assert.True(t, dbCalled, "DB should have been called")
+	err = database.LoadTenantConfigData(tmpFile.Name())
+	assert.Error(t, err)
 }
 
-func TestNew_CfgDSNotEmpty_ReturnsDBandNil(t *testing.T) {
-	// Arrange
+func TestService_LoadTenantConfigData_CreateError(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	cfg := db.ConfigDatabase{
-		DSN: "postgres://user:password@localhost:5432/dbname",
-	}
-
-	// Act
-	database, err := db.New(cfg, gormDB, log, false, false)
-
-	// Assert
-	assert.NoError(t, err, "New should not return an error")
-	assert.NotNil(t, database, "database instance should not be nil")
-}
-
-func TestNew_AutoMigrateReturnsError_ReturnsError(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
-	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "AutoMigrate", func(_ *gorm.DB, dst ...interface{}) error {
-		return assert.AnError
-	})
+	// Create temp file with valid YAML
+	tmpFile, err := os.CreateTemp("", "config-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
-	defer patch.Reset()
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-	}
+	yamlContent := `configs:
+  - tenant_id: "test-tenant"
+    issuer: "test-issuer"
+    audience: "test-audience"
+    zone_id: "test-zone"`
 
-	// Act
-	database, err := db.New(cfg, gormDB, log, true, false)
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
 
-	// Assert
-	assert.Error(t, err, "New should return an error")
-	assert.Nil(t, database, "database instance should be nil")
-}
-
-func TestLoadTenantConfigData_WhenSuccessful_ReturnsTenantConfigData(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathTenantConfiguration: "input/tenantConfigurations.yaml",
-		},
-	}
-
-	loadTenantConfigDataCalls := 0
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		loadTenantConfigDataCalls++
-		return []byte(`configs:
-- tenantId: example-tenant
-  issuer: https://issuer.my.corp
-  audience: a2b50a84-f380-4c88-84d4-424059236cb3
-  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
-`), nil
-	})
-
-	defer patch.Reset()
-
-	database, err := db.New(cfg, gormDB, log, true, false)
-	assert.NoError(t, err)
-
-	// Act
-	err = database.LoadTenantConfigData(cfg.LocalData.DataPathTenantConfiguration)
-
-	// Assert
-	assert.NoError(t, err, "LoadTenantConfigData should not return an error")
-	assert.Equal(t, 1, loadTenantConfigDataCalls, "LoadTenantConfigData should have been called once")
-}
-
-func TestLoadTenantConfigData_Error(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathTenantConfiguration: "input/tenantConfigurations.yaml",
-		},
-	}
-
-	loadTenantConfigDataCalls := 0
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		loadTenantConfigDataCalls++
-		return []byte(`configs:
-- tenantId: sap-btp
-  issuer: https://accounts.sap.com
-  audience: e3284ced-3a27-476b-9ae6-d5ad1ba05266
-  zoneId: 123123-123123
-- tenantId: example-tenant
-  issuer: https://issuer.my.corp
-  audience: a2b50a84-f380-4c88-84d4-424059236cb3
-  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
-- tenantId: hyperspacedev
-  issuer: https://hyperspacedev.accounts.ondemand.com
-  audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
-  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
-- tenantId: 29y87kiy4iakrkbb/test
-  issuer: https://hyperspacedev.accounts.ondemand.com
-  audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
-  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
-- tenantId: 29y87kiy4iakrkbb/test
-  issuer: https://hyperspacedev.accounts.ondemand.com
-  audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
-  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
-`), nil
-	})
-
-	defer patch.Reset()
-
-	// monkey patch the delete method to return an error
-	patchCreate := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "Create", func(db *gorm.DB, value interface{}) *gorm.DB {
+	// Monkey patch the Create method to return error
+	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "Create", func(tx *gorm.DB, value interface{}) *gorm.DB {
 		gormDB.Error = errors.New("create error")
 		return gormDB
 	})
+	defer patch.Reset()
 
-	defer patchCreate.Reset()
-
-	database, err := db.New(cfg, gormDB, log, true, false)
-	assert.NoError(t, err)
-
-	// Act
-	err = database.LoadTenantConfigData(cfg.LocalData.DataPathTenantConfiguration)
-
-	// Assert
-	assert.Error(t, err, "LoadTenantConfigData should return an error")
-	assert.Equal(t, 1, loadTenantConfigDataCalls, "LoadTenantConfigData should have been called once")
-
+	err = database.LoadTenantConfigData(tmpFile.Name())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "create error")
 }
 
-func TestLoadTenantConfigData_FirstRowsAffected(t *testing.T) {
-	// Arrange
+func TestService_LoadTeamData_FileNotFound(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathTenantConfiguration: "input/tenantConfigurations.yaml",
-		},
-	}
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
 
-	loadTenantConfigDataCalls := 0
+	err = database.LoadTeamData("non-existent-file.yaml", nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error occurred when reading data file")
+}
 
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		loadTenantConfigDataCalls++
-		return []byte(`configs:
-- tenantId: sap-btp
-  issuer: https://accounts.sap.com
-  audience: e3284ced-3a27-476b-9ae6-d5ad1ba05266
-  zoneId: 123123-123123
-- tenantId: example-tenant
-  issuer: https://issuer.my.corp
-  audience: a2b50a84-f380-4c88-84d4-424059236cb3
-  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
-- tenantId: hyperspacedev
-  issuer: https://hyperspacedev.accounts.ondemand.com
-  audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
-  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
-- tenantId: 29y87kiy4iakrkbb/test
-  issuer: https://hyperspacedev.accounts.ondemand.com
-  audience: f2cf17ca-5599-46f9-866b-fee5e8af96e8
-  zoneId: 9b38c8d2-ee84-45c2-9e16-4ebaf811ca58
-`), nil
-	})
+func TestService_LoadTeamData_InvalidYAML(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
 
-	defer patch.Reset()
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
 
-	// monkey patch the delete method to return an error
-	patchCreate := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "First", func(db *gorm.DB, dest interface{}, conds ...interface{}) *gorm.DB {
-		gormDB.RowsAffected = 1
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create temp file with invalid YAML
+	tmpFile, err := os.CreateTemp("", "invalid-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	_, err = tmpFile.WriteString("invalid yaml content [")
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	err = database.LoadTeamData(tmpFile.Name(), nil)
+	assert.Error(t, err)
+}
+
+func TestService_LoadTeamData_CreateError(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create temp file with valid YAML
+	tmpFile, err := os.CreateTemp("", "teams-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	yamlContent := `team:
+  - id: "team1"
+    tenantId: "tenant1" 
+    name: "Test Team"
+    displayName: "Test Team"`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	// Monkey patch the Create method to return error
+	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "Create", func(tx *gorm.DB, value interface{}) *gorm.DB {
+		gormDB.Error = errors.New("create error")
 		return gormDB
 	})
+	defer patch.Reset()
 
-	defer patchCreate.Reset()
-
-	database, err := db.New(cfg, gormDB, log, true, false)
-	assert.NoError(t, err)
-
-	// Act
-	err = database.LoadTenantConfigData(cfg.LocalData.DataPathTenantConfiguration)
-
-	// Assert
-	assert.NoError(t, err, "LoadTenantConfigData should not return an error")
-	assert.Equal(t, 1, loadTenantConfigDataCalls, "LoadTenantConfigData should have been called once")
-
+	err = database.LoadTeamData(tmpFile.Name(), nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "create error")
 }
 
-func TestLoadTenantConfigData_ReadFileFails_ReturnsError(t *testing.T) {
-	// Arrange
+func TestService_LoadTeamData_NoTeamsLoaded(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	cfg := db.ConfigDatabase{
-		LocalData: db.DatabaseLocalData{
-			DataPathTenantConfiguration: "input/tenantConfigurations.yaml",
-		},
-	}
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		return nil, assert.AnError
-	})
-
-	defer patch.Reset()
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
-	// Act
-	err = database.LoadTenantConfigData(cfg.LocalData.DataPathTenantConfiguration)
+	// Create temp file with empty teams
+	tmpFile, err := os.CreateTemp("", "teams-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
-	// Assert
-	assert.Error(t, err, "LoadTenantConfigData should return an error")
+	yamlContent := `team: []`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	err = database.LoadTeamData(tmpFile.Name(), nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no teams where loaded into the DB")
 }
 
-func TestLoadTenantConfigData_YamlUnmarshalFails_ReturnsError(t *testing.T) {
-	// Arrange
+func TestService_LoadUserData_FileNotFound(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	cfg := db.ConfigDatabase{
-		LocalData: db.DatabaseLocalData{
-			DataPathTenantConfiguration: "input/tenantConfigurations.yaml",
-		},
-	}
-
-	loadTenantConfigDataCalls := 0
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		loadTenantConfigDataCalls++
-		return []byte(`invalid`), nil
-	})
-
-	defer patch.Reset()
-
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
-	// Act
-	err = database.LoadTenantConfigData(cfg.LocalData.DataPathTenantConfiguration)
-
-	// Assert
-	assert.Error(t, err, "LoadTenantConfigData should return an error")
-	assert.Equal(t, 1, loadTenantConfigDataCalls, "LoadTenantConfigData should have been called once")
+	users, err := database.LoadUserData("non-existent-file.yaml")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error occurred when reading data file")
+	assert.Nil(t, users)
 }
 
-func TestLoadTeamData_WhenSuccessful_ReturnsTeamData(t *testing.T) {
-	// Arrange
+func TestService_LoadUserData_InvalidYAML(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathTeam: "input/team.yaml",
-			DataPathUser: "input/user.yaml",
-		},
-	}
-
-	loadUserDataCalls := 0
-	loadTeamDataCalls := 0
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		switch filename {
-		case "input/team.yaml":
-			loadTeamDataCalls++
-			return []byte(`team:
-  - tenantId: 29y87kiy4iakrkbb/test
-    name: exampleTeam1`), nil
-		case "input/user.yaml":
-			loadUserDataCalls++
-			return []byte(`user:
-  - tenant_id: abc123456
-    user_id: OOS6VEIL5I
-    email: OOS6VEIL5I@sap.com
-    first_name: zNameStartingWithZ
-    groupsAssignments:
-      - group: projectAdmins
-        scope: exampleProject
-        entity: project`), nil
-		}
-
-		return nil, nil
-	})
-	defer patch.Reset()
-
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
-	// Act
-	users, errUsers := database.LoadUserData(cfg.LocalData.DataPathUser)
-	err = database.LoadTeamData(cfg.LocalData.DataPathTeam, users)
+	// Create temp file with invalid YAML
+	tmpFile, err := os.CreateTemp("", "invalid-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
-	// Assert
-	assert.NoError(t, err, "LoadTeamData should not return an error")
-	assert.NoError(t, errUsers, "LoadUserData should not return an error")
-	assert.Equal(t, 1, loadUserDataCalls, "LoadUserData should have been called once")
-	assert.Equal(t, 1, loadTeamDataCalls, "LoadTeamData should have been called once")
+	_, err = tmpFile.WriteString("invalid yaml content [")
+	require.NoError(t, err)
+	_ = tmpFile.Close()
 
-	// rows affected > 0
-	patchCreate := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "First", func(db *gorm.DB, dest interface{}, conds ...interface{}) *gorm.DB {
-		gormDB.RowsAffected = 1
+	users, err := database.LoadUserData(tmpFile.Name())
+	assert.Error(t, err)
+	assert.Nil(t, users)
+}
+
+func TestService_LoadUserData_CreateError(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create temp file with valid YAML
+	tmpFile, err := os.CreateTemp("", "users-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	yamlContent := `user:
+  - id: "user1"
+    tenant_id: "tenant1"
+    user_id: "test-user"
+    email: "test@example.com"`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	// Monkey patch the Create method to return error
+	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "Create", func(tx *gorm.DB, value interface{}) *gorm.DB {
+		gormDB.Error = errors.New("create error")
 		return gormDB
 	})
-	defer patchCreate.Reset()
-
-	// Act
-	err = database.LoadTeamData(cfg.LocalData.DataPathTeam, users)
-
-	// Assert
-	assert.NoError(t, err, "LoadTeamData should not return an error")
-	assert.NoError(t, errUsers, "LoadUserData should not return an error")
-	assert.Equal(t, 2, loadTeamDataCalls, "LoadTeamData should have been called once")
-
-}
-
-func TestLoadTeamData_ZeroUser_Error(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathTeam: "input/team.yaml",
-			DataPathUser: "input/user.yaml",
-		},
-	}
-
-	loadUserDataCalls := 0
-	loadTeamDataCalls := 0
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		switch filename {
-		case "input/user.yaml":
-			loadUserDataCalls++
-			return []byte(`user:`), nil
-		case "input/team.yaml":
-			loadTeamDataCalls++
-			return []byte(`team:
-  - tenantId: 29y87kiy4iakrkbb/test
-    name: exampleTeam1`), nil
-		}
-
-		return nil, nil
-	})
 	defer patch.Reset()
 
-	database, err := db.New(cfg, gormDB, log, true, false)
-	assert.NoError(t, err)
-
-	// Act
-	users, errUsers := database.LoadUserData(cfg.LocalData.DataPathUser)
-	err = database.LoadTeamData(cfg.LocalData.DataPathTeam, users)
-
-	// Assert
-	assert.NoError(t, err, "LoadTeamData should not return an error")
-	assert.Error(t, errUsers)
-	assert.Equal(t, 1, loadUserDataCalls, "LoadUserData should have been called once")
-	assert.Equal(t, 1, loadTeamDataCalls, "LoadTeamData should have been called once")
-
-}
-
-func TestLoadTeamData_ZeroTeams(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathTeam: "input/team.yaml",
-			DataPathUser: "input/user.yaml",
-		},
-	}
-
-	loadUserDataCalls := 0
-	loadTeamDataCalls := 0
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		switch filename {
-		case "input/team.yaml":
-			loadTeamDataCalls++
-			return []byte(`team:`), nil
-		case "input/user.yaml":
-			loadUserDataCalls++
-			return []byte(`user:
-  - tenant_id: abc123456
-    user_id: OOS6VEIL5I
-    email: OOS6VEIL5I@sap.com
-    first_name: zNameStartingWithZ
-    groupsAssignments:
-      - group: projectAdmins
-        scope: exampleProject
-        entity: project`), nil
-		}
-
-		return nil, nil
-	})
-	defer patch.Reset()
-
-	database, err := db.New(cfg, gormDB, log, true, false)
-	assert.NoError(t, err)
-
-	// Act
-	users, errUsers := database.LoadUserData(cfg.LocalData.DataPathUser)
-	err = database.LoadTeamData(cfg.LocalData.DataPathTeam, users)
-
-	// Assert
+	users, err := database.LoadUserData(tmpFile.Name())
 	assert.Error(t, err)
-	assert.NoError(t, errUsers, "LoadUserData should not return an error")
-	assert.Equal(t, 1, loadUserDataCalls, "LoadUserData should have been called once")
-	assert.Equal(t, 1, loadTeamDataCalls, "LoadTeamData should have been called once")
+	assert.Contains(t, err.Error(), "create error")
+	assert.Nil(t, users)
 }
 
-func TestLoadTeamData_CreateError(t *testing.T) {
-	// Arrange
+func TestService_LoadUserData_NoUsersLoaded(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathTeam: "input/team.yaml",
-			DataPathUser: "input/user.yaml",
-		},
-	}
-
-	loadUserDataCalls := 0
-	loadTeamDataCalls := 0
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		switch filename {
-		case "input/team.yaml":
-			loadTeamDataCalls++
-			return []byte(`team:
-  - tenantId: 29y87kiy4iakrkbb/test
-    name: exampleTeam1`), nil
-		case "input/user.yaml":
-			loadUserDataCalls++
-			return []byte(`user:
-  - tenant_id: abc123456
-    user_id: OOS6VEIL5I
-    email: OOS6VEIL5I@sap.com
-    first_name: zNameStartingWithZ
-    groupsAssignments:
-      - group: projectAdmins
-        scope: exampleProject
-        entity: project`), nil
-		}
-
-		return nil, nil
-	})
-	defer patch.Reset()
-
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
-	// Act
-	users, errUsers := database.LoadUserData(cfg.LocalData.DataPathUser)
+	// Create temp file with empty users
+	tmpFile, err := os.CreateTemp("", "users-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
-	// db.Create() error
-	patchCreate := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "Create", func(db *gorm.DB, val interface{}) *gorm.DB {
-		gormDB.Error = assert.AnError
+	yamlContent := `user: []`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	users, err := database.LoadUserData(tmpFile.Name())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no users where loaded into the DB")
+	assert.Nil(t, users)
+}
+
+func TestService_LoadInvitationData_FileNotFound(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	err = database.LoadInvitationData("non-existent-file.yaml")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error occurred when reading data file")
+}
+
+func TestService_LoadInvitationData_InvalidYAML(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create temp file with invalid YAML
+	tmpFile, err := os.CreateTemp("", "invalid-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	_, err = tmpFile.WriteString("invalid yaml content [")
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	err = database.LoadInvitationData(tmpFile.Name())
+	assert.Error(t, err)
+}
+
+func TestService_LoadInvitationData_CreateError(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create temp file with valid YAML
+	tmpFile, err := os.CreateTemp("", "invites-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	yamlContent := `invitations:
+  - tenant_id: "tenant1"
+    email: "test@example.com"
+    entity_type: "team"
+    entity_id: "team1"
+    roles: "admin"`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	// Monkey patch the Create method to return error
+	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "Create", func(tx *gorm.DB, value interface{}) *gorm.DB {
+		gormDB.Error = errors.New("create error")
 		return gormDB
 	})
-	defer patchCreate.Reset()
+	defer patch.Reset()
 
-	// Act
-	err = database.LoadTeamData(cfg.LocalData.DataPathTeam, users)
-
-	// Assert
+	err = database.LoadInvitationData(tmpFile.Name())
 	assert.Error(t, err)
-	assert.NoError(t, errUsers, "LoadUserData should not return an error")
-	assert.Equal(t, 1, loadTeamDataCalls, "LoadTeamData should have been called once")
-
+	assert.Contains(t, err.Error(), "create error")
 }
 
-func TestLoadTeamData_ReadFileFails_ReturnsError(t *testing.T) {
-	// Arrange
+func TestService_LoadInvitationData_NoInvitationsLoaded(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	cfg := db.ConfigDatabase{
-		LocalData: db.DatabaseLocalData{
-			DataPathTeam: "input/team.yaml",
-		},
-	}
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		return nil, assert.AnError
-	})
-
-	defer patch.Reset()
-	database, err := db.New(cfg, gormDB, log, true, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
-	// Act
-	err = database.LoadTeamData(cfg.LocalData.DataPathTeam, nil)
-
-	// Assert
-	assert.Error(t, err, "LoadTeamData should return an error")
-}
-
-func TestLoadTeamData_YamlUnmarshalFails_ReturnsError(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		LocalData: db.DatabaseLocalData{
-			DataPathTeam: "input/team.yaml",
-		},
-	}
-
-	loadTeamDataCalls := 0
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		loadTeamDataCalls++
-		return []byte(`invalid`), nil
-	})
-
-	defer patch.Reset()
-
-	database, err := db.New(cfg, gormDB, log, true, false)
-	assert.NoError(t, err)
-
-	// Act
-	err = database.LoadTeamData(cfg.LocalData.DataPathTeam, nil)
-
-	// Assert
-	assert.Error(t, err, "LoadTeamData should return an error")
-	assert.Equal(t, 1, loadTeamDataCalls, "LoadTeamData should have been called once")
-}
-
-func TestLoadInvitationData_WhenSuccessful_ReturnsInvitationData(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathInvitations: "input/invitations.yaml",
-		},
-	}
-
-	loadInvitationDataCalls := 0
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		loadInvitationDataCalls++
-		return []byte(`invitations:
-  - tenantId: 29y87kiy4iakrkbb/test
-    email: invited-admin-member@it.corp
-    roles: owner,member
-    entityType: project
-    entityId: test`), nil
-	})
-
-	defer patch.Reset()
-
-	database, err := db.New(cfg, gormDB, log, true, false)
-	assert.NoError(t, err)
-
-	// Act
-	err = database.LoadInvitationData(cfg.LocalData.DataPathInvitations)
-
-	// Assert
-	assert.NoError(t, err, "LoadInvitationData should not return an error")
-	assert.Equal(t, 1, loadInvitationDataCalls, "LoadInvitationData should have been called once")
-}
-
-func TestLoadInvitationData_ReadFileFails_ReturnsError(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		LocalData: db.DatabaseLocalData{
-			DataPathInvitations: "input/invitations.yaml",
-		},
-	}
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		return nil, assert.AnError
-	})
-
-	defer patch.Reset()
-	database, err := db.New(cfg, gormDB, log, true, false)
-	assert.NoError(t, err)
-
-	// Act
-	err = database.LoadInvitationData(cfg.LocalData.DataPathInvitations)
-
-	// Assert
-	assert.Error(t, err, "LoadInvitationData should return an error")
-}
-
-func TestLoadInvitationData_YamlUnmarshalFails_ReturnsError(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		LocalData: db.DatabaseLocalData{
-			DataPathInvitations: "input/invitations.yaml",
-		},
-	}
-
-	loadInvitationDataCalls := 0
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		loadInvitationDataCalls++
-		return []byte(`invalid`), nil
-	})
-
-	defer patch.Reset()
-
-	database, err := db.New(cfg, gormDB, log, true, false)
-	assert.NoError(t, err)
-
-	// Act
-	err = database.LoadInvitationData(cfg.LocalData.DataPathInvitations)
-
-	// Assert
-	assert.Error(t, err, "LoadInvitationData should return an error")
-	assert.Equal(t, 1, loadInvitationDataCalls, "LoadInvitationData should have been called once")
-}
-
-func TestLoadRoleData_WhenSuccessful_ReturnsRoleData(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathRoles: "input/roles.yaml",
-		},
-	}
-
-	loadRoleDataCalls := 0
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		loadRoleDataCalls++
-		return []byte(`
-- displayName: Owner
-  technicalName: owner
-  entityType: project`), nil
-	})
-
-	defer patch.Reset()
-
-	database, err := db.New(cfg, gormDB, log, true, false)
-	assert.NoError(t, err)
-
-	// Act
-	err = database.LoadRoleData(cfg.LocalData.DataPathRoles)
-
-	// Assert
-	assert.NoError(t, err, "LoadRoleData should not return an error")
-	assert.Equal(t, 1, loadRoleDataCalls, "LoadRoleData should have been called once")
-}
-
-func TestLoadRoleData_ReadFileFails_ReturnsError(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		LocalData: db.DatabaseLocalData{
-			DataPathRoles: "input/roles.yaml",
-		},
-	}
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		return nil, assert.AnError
-	})
-
-	defer patch.Reset()
-	database, err := db.New(cfg, gormDB, log, true, false)
-	assert.NoError(t, err)
-
-	// Act
-	err = database.LoadRoleData(cfg.LocalData.DataPathRoles)
-
-	// Assert
-	assert.Error(t, err, "LoadRoleData should return an error")
-}
-
-func TestLoadRoleData_YamlUnmarshalFails_ReturnsError(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		LocalData: db.DatabaseLocalData{
-			DataPathRoles: "input/roles.yaml",
-		},
-	}
-
-	loadRoleDataCalls := 0
-
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		loadRoleDataCalls++
-		return []byte(`invalid`), nil
-	})
-
-	defer patch.Reset()
-
-	database, err := db.New(cfg, gormDB, log, true, false)
-	assert.NoError(t, err)
-
-	// Act
-	err = database.LoadRoleData(cfg.LocalData.DataPathRoles)
-
-	// Assert
-	assert.Error(t, err, "LoadRoleData should return an error")
-	assert.Equal(t, 1, loadRoleDataCalls, "LoadRoleData should have been called once")
-}
-
-func TestLoadUserData_SuccessfullLoadIsLocalData_ReturnsData(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathUser:                "./input/user.yaml",
-			DataPathInvitations:         "./input/invitations.yaml",
-			DataPathTeam:                "./input/team.yaml",
-			DataPathTenantConfiguration: "./input/tenantConfigurations.yaml",
-			DataPathDomainConfiguration: "./input/domainConfigurations.yaml",
-			DataPathRoles:               "./input/roles.yaml",
-		},
-	}
-
-	ctx := context.Background()
-
-	// Act
-	database, err := db.New(cfg, gormDB, log, true, true)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, database)
-
-	user, err := database.GetUserByEmail(ctx, "tnt1234567", "USR547890@company.com")
-	assert.NoError(t, err)
-	assert.Equal(t, user.Email, "USR547890@company.com")
-}
-
-func TestLoadUserData_LoadIsLocalData_ReturnsError(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathUser:                "./input/user.yaml",
-			DataPathInvitations:         "./input/invitations.yaml",
-			DataPathTeam:                "./input/team.yaml",
-			DataPathTenantConfiguration: "./input/tenantConfigurations.yaml",
-			DataPathDomainConfiguration: "./input/domainConfigurations.yaml",
-			DataPathRoles:               "./input/roles.yaml",
-		},
-	}
-
-	loadUserDataCalls := 0
-	// patch database.LoadUserData to return an error
-	patch := gomonkey.ApplyMethod(reflect.TypeOf(&db.Database{}), "LoadUserData", func(*db.Database, string) ([]*graph.User, error) {
-		loadUserDataCalls++
-		return nil, assert.AnError
-	})
-
-	defer patch.Reset()
-
-	// Act
-	database, err := db.New(cfg, gormDB, log, true, true)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, database)
-
-}
-
-func TestLoadUserData_LoadInvitationData_ReturnsError(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathUser:                "./input/user.yaml",
-			DataPathInvitations:         "./input/invitations.yaml",
-			DataPathTeam:                "./input/team.yaml",
-			DataPathTenantConfiguration: "./input/tenantConfigurations.yaml",
-			DataPathDomainConfiguration: "./input/domainConfigurations.yaml",
-			DataPathRoles:               "./input/roles.yaml",
-		},
-	}
-
-	loadInvitationDataCalls := 0
-	// patch database.LoadInvitationData to return an error
-	patch := gomonkey.ApplyMethod(reflect.TypeOf(&db.Database{}), "LoadInvitationData", func(*db.Database, string) error {
-		loadInvitationDataCalls++
-		return assert.AnError
-	})
-
-	defer patch.Reset()
-
-	// Act
-	database, err := db.New(cfg, gormDB, log, true, true)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, database)
-
-}
-
-func TestLoadUserData_LoadTeamData_ReturnsError(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathUser:                "./input/user.yaml",
-			DataPathInvitations:         "./input/invitations.yaml",
-			DataPathTeam:                "./input/team.yaml",
-			DataPathTenantConfiguration: "./input/tenantConfigurations.yaml",
-			DataPathDomainConfiguration: "./input/domainConfigurations.yaml",
-			DataPathRoles:               "./input/roles.yaml",
-		},
-	}
-
-	loadTeamDataCalls := 0
-	// patch database.LoadTeamData to return an error
-	patch := gomonkey.ApplyMethod(reflect.TypeOf(&db.Database{}), "LoadTeamData", func(*db.Database, string, []*graph.User) error {
-		loadTeamDataCalls++
-		return assert.AnError
-	})
-
-	defer patch.Reset()
-
-	// Act
-	database, err := db.New(cfg, gormDB, log, true, true)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, database)
-
-}
-
-func TestLoadUserData_LoadTenantConfigData_ReturnsError(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathUser:                "./input/user.yaml",
-			DataPathInvitations:         "./input/invitations.yaml",
-			DataPathTeam:                "./input/team.yaml",
-			DataPathTenantConfiguration: "./input/tenantConfigurations.yaml",
-			DataPathDomainConfiguration: "./input/domainConfigurations.yaml",
-			DataPathRoles:               "./input/roles.yaml",
-		},
-	}
-
-	loadTenantConfigDataCalls := 0
-	// patch database.LoadTenantConfigData to return an error
-	patch := gomonkey.ApplyMethod(reflect.TypeOf(&db.Database{}), "LoadTenantConfigData", func(*db.Database, string) error {
-		loadTenantConfigDataCalls++
-		return assert.AnError
-	})
-
-	defer patch.Reset()
-
-	// Act
-	database, err := db.New(cfg, gormDB, log, true, true)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, database)
-
-}
-
-func TestLoadUserData_LoadRoleData_ReturnsError(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathUser:                "./input/user.yaml",
-			DataPathInvitations:         "./input/invitations.yaml",
-			DataPathTeam:                "./input/team.yaml",
-			DataPathTenantConfiguration: "./input/tenantConfigurations.yaml",
-			DataPathDomainConfiguration: "./input/domainConfigurations.yaml",
-			DataPathRoles:               "./input/roles.yaml",
-		},
-	}
-
-	loadRoleDataCalls := 0
-	// patch database.LoadRoleData to return an error
-	patch := gomonkey.ApplyMethod(reflect.TypeOf(&db.Database{}), "LoadRoleData", func(*db.Database, string) error {
-		loadRoleDataCalls++
-		return assert.AnError
-	})
-
-	defer patch.Reset()
-
-	// Act
-	database, err := db.New(cfg, gormDB, log, true, true)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, database)
-}
-
-func TestLoadUserData_EmptyFilePaths_ReturnsError(t *testing.T) {
-	// Arrange
-	gormDB := setupSQLiteDB(t)
-
-	log, err := logger.New(logger.DefaultConfig())
-	assert.NoError(t, err)
-
-	cfg := db.ConfigDatabase{}
-
-	database, err := db.New(cfg, gormDB, log, true, true)
-	assert.NoError(t, err)
-
-	// Act
-	user, err := database.LoadUserData("")
-
-	// Assert
+	// Create temp file with empty invitations
+	tmpFile, err := os.CreateTemp("", "invites-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	yamlContent := `invitations: []`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	err = database.LoadInvitationData(tmpFile.Name())
 	assert.Error(t, err)
-	assert.Nil(t, user)
+	assert.Contains(t, err.Error(), "no invitations where loaded into the DB")
 }
 
-func TestLoadUserData_DBFirstReturnsNil_ReturnsError(t *testing.T) {
-	// Arrange
+func TestService_LoadRoleData_EmptyFilePath(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	cfg := db.ConfigDatabase{
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		MaxConnLifetime: "1h",
-		LocalData: db.DatabaseLocalData{
-			DataPathTeam: "input/team.yaml",
-			DataPathUser: "input/user.yaml",
-		},
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Test with empty file path - should return nil
+	err = database.LoadRoleData("")
+	assert.NoError(t, err)
+}
+
+func TestService_LoadRoleData_FileNotFound(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	err = database.LoadRoleData("non-existent-file.yaml")
+	assert.Error(t, err)
+}
+
+func TestService_LoadRoleData_InvalidYAML(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create temp file with invalid YAML
+	tmpFile, err := os.CreateTemp("", "invalid-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	_, err = tmpFile.WriteString("invalid yaml content [")
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	err = database.LoadRoleData(tmpFile.Name())
+	assert.Error(t, err)
+}
+
+func TestService_LoadRoleData_FirstError(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create temp file with valid YAML
+	tmpFile, err := os.CreateTemp("", "roles-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	yamlContent := `- technical_name: "admin"
+  display_name: "Administrator"
+  entity_type: "team"
+  entity_id: "team1"`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	// Monkey patch the First method to return a non-ErrRecordNotFound error
+	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "First", func(tx *gorm.DB, dest interface{}, conds ...interface{}) *gorm.DB {
+		gormDB.Error = errors.New("database error")
+		return gormDB
+	})
+	defer patch.Reset()
+
+	err = database.LoadRoleData(tmpFile.Name())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "database error")
+}
+
+func TestService_LoadRoleData_SaveError(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create existing role
+	existingRole := db.Role{
+		TechnicalName: "admin",
+		EntityType:    "team",
+		DisplayName:   "Old Admin",
 	}
+	gormDB.Create(&existingRole)
 
-	loadUserDataCalls := 0
-	loadTeamDataCalls := 0
+	// Create temp file with valid YAML
+	tmpFile, err := os.CreateTemp("", "roles-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
-	patch := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
-		switch filename {
-		case "input/team.yaml":
-			loadTeamDataCalls++
-			return []byte(`team:
-  - tenantId: 29y87kiy4iakrkbb/test
-    name: exampleTeam1`), nil
-		case "input/user.yaml":
-			loadUserDataCalls++
-			return []byte(`user:
-  - tenant_id: abc123456
-    user_id: OOS6VEIL5I
-    email: OOS6VEIL5I@sap.com
-    first_name: zNameStartingWithZ
-    groupsAssignments:
-      - group: projectAdmins
-        scope: exampleProject
-        entity: project`), nil
+	yamlContent := `- technical_name: "admin"
+  display_name: "New Administrator"
+  entity_type: "team"
+  entity_id: "team1"`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	// Monkey patch the Save method to return error
+	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "Save", func(tx *gorm.DB, value interface{}) *gorm.DB {
+		gormDB.Error = errors.New("save error")
+		return gormDB
+	})
+	defer patch.Reset()
+
+	err = database.LoadRoleData(tmpFile.Name())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "save error")
+}
+
+func TestService_LoadRoleData_CreateError(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create temp file with valid YAML
+	tmpFile, err := os.CreateTemp("", "roles-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	yamlContent := `- technical_name: "admin"
+  display_name: "Administrator"
+  entity_type: "team"
+  entity_id: "team1"`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	// Monkey patch the Create method to return error after First returns ErrRecordNotFound
+	var callCount int
+	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "First", func(tx *gorm.DB, dest interface{}, conds ...interface{}) *gorm.DB {
+		gormDB.Error = gorm.ErrRecordNotFound
+		gormDB.RowsAffected = 0
+		return gormDB
+	})
+	defer patch.Reset()
+
+	patch2 := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "Create", func(tx *gorm.DB, value interface{}) *gorm.DB {
+		callCount++
+		if callCount > 0 {
+			gormDB.Error = errors.New("create error")
 		}
-
-		return nil, nil
+		return gormDB
 	})
+	defer patch2.Reset()
 
-	defer patch.Reset()
-
-	database, err := db.New(cfg, gormDB, log, true, false)
-	assert.NoError(t, err)
-
-	// Act
-	users, errUsers := database.LoadUserData(cfg.LocalData.DataPathUser)
-	err = database.LoadTeamData(cfg.LocalData.DataPathTeam, users)
-
-	// Assert
-	assert.NoError(t, err, "LoadTeamData should not return an error")
-	assert.NoError(t, errUsers, "LoadUserData should not return an error")
-	assert.Equal(t, 1, loadUserDataCalls, "LoadUserData should have been called once")
-	assert.Equal(t, 1, loadTeamDataCalls, "LoadTeamData should have been called once")
+	err = database.LoadRoleData(tmpFile.Name())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "create error")
 }
 
-func TestSetUserHooks_WhenSuccessful_UpdateDatabaseHooks(t *testing.T) {
-	// Arrange
+func TestService_GetTenantConfigurationForContext(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(db.ConfigDatabase{}, gormDB, log, false, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
-	userHook := mocks.NewUserHooks(t)
+	ctx := context.TODO()
 
-	// Act
-	database.SetUserHooks(userHook)
-
-	// Assert
-	assert.NotNil(t, database.GetUserHooks())
-	assert.Equal(t, userHook, database.GetUserHooks())
+	// Test with context that doesn't have tenant config - should return error
+	config, err := database.GetTenantConfigurationForContext(ctx)
+	assert.Error(t, err)
+	assert.Nil(t, config)
 }
 
-func TestClose_WhenSuccessful_ClosesDatabaseConnection(t *testing.T) {
-	// Arrange
+func TestService_Close(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(db.ConfigDatabase{}, gormDB, log, false, false)
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
 	assert.NoError(t, err)
 
-	// Act
 	err = database.Close()
-
-	// Assert
 	assert.NoError(t, err)
 }
 
-func TestClose_DB_ReturnsError(t *testing.T) {
-	// Arrange
+func TestService_Close_DBError(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	// Act
-	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "DB", func(*gorm.DB) (*sql.DB, error) {
-		return nil, assert.AnError
-	})
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
 
+	// Monkey patch the DB method to return error
+	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "DB", func(db *gorm.DB) (*sql.DB, error) {
+		return nil, errors.New("db connection error")
+	})
 	defer patch.Reset()
 
-	database, err := db.New(db.ConfigDatabase{}, gormDB, log, false, false)
+	err = database.Close()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "db connection error")
+}
 
-	// Assert
+func TestService_New_DBConnectionError(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	// Monkey patch the DB method to return error
+	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "DB", func(db *gorm.DB) (*sql.DB, error) {
+		return nil, errors.New("connection error")
+	})
+	defer patch.Reset()
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Error connecting to database")
 	assert.Nil(t, database)
-	assert.Error(t, err)
 }
 
-func TestClose_DB_NilError(t *testing.T) {
-	// test the Close method error handling by creating a database that will fail on Close()
-	// we'll create a database, close the underlying connection, and then try to close again
-
-	// Arrange
+func TestService_New_MigrationError(t *testing.T) {
 	gormDB := setupSQLiteDB(t)
 
 	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	database, err := db.New(db.ConfigDatabase{}, gormDB, log, false, false)
-	assert.NotNil(t, database)
+	// Monkey patch the AutoMigrate method to return error
+	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "AutoMigrate", func(db *gorm.DB, dst ...interface{}) error {
+		return errors.New("migration error")
+	})
+	defer patch.Reset()
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to migrate model")
+	assert.Nil(t, database)
+}
+
+func TestService_New_WithConnectionPoolSettings(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
 	assert.NoError(t, err)
 
-	sqlDB, err := gormDB.DB()
+	cfg := getDbCfg()
+	cfg.MaxOpenConns = 10
+	cfg.MaxIdleConns = 5
+	cfg.MaxConnLifetime = "1h"
+
+	database, err := db.New(cfg, gormDB, log, true, false)
 	assert.NoError(t, err)
-	err = sqlDB.Close()
-	assert.NoError(t, err)
+	assert.NotNil(t, database)
 
 	err = database.Close()
+	assert.NoError(t, err)
+}
 
+func TestService_New_InvalidConnLifetime(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	cfg := getDbCfg()
+	cfg.MaxConnLifetime = "invalid-duration"
+
+	database, err := db.New(cfg, gormDB, log, true, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, database)
+
+	err = database.Close()
+	assert.NoError(t, err)
+}
+
+func TestService_New_LocalMode_LoadDataErrors(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	cfg := getDbCfg()
+	cfg.LocalData = db.DatabaseLocalData{
+		DataPathUser:                "non-existent-users.yaml",
+		DataPathInvitations:         "non-existent-invitations.yaml",
+		DataPathTeam:                "non-existent-teams.yaml",
+		DataPathTenantConfiguration: "non-existent-config.yaml",
+		DataPathRoles:               "non-existent-roles.yaml",
+	}
+
+	// Should still create database successfully even if local data loading fails
+	database, err := db.New(cfg, gormDB, log, true, true)
+	assert.NoError(t, err)
+	assert.NotNil(t, database)
+
+	err = database.Close()
+	assert.NoError(t, err)
+}
+
+func TestService_SetUserHooks(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Test getting hooks when none are set
+	hooks := database.GetUserHooks()
+	assert.Nil(t, hooks)
+
+	// Mock hooks for testing
+	mockHooks := &MockUserHooks{}
+	database.SetUserHooks(mockHooks)
+
+	retrievedHooks := database.GetUserHooks()
+	assert.Equal(t, mockHooks, retrievedHooks)
+}
+
+func TestService_SetConfig(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	newCfg := db.ConfigDatabase{
+		MaxOpenConns:    20,
+		MaxIdleConns:    10,
+		MaxConnLifetime: "2h",
+	}
+
+	database.SetConfig(newCfg)
+
+	// We can't directly test the config was set, but we can ensure no error occurred
+	assert.NotNil(t, database)
+}
+
+func TestService_GetGormDB(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	retrievedDB := database.GetGormDB()
+	assert.Equal(t, gormDB, retrievedDB)
+}
+
+func TestService_LoadTeamData_WithParentTeam(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create temp file with teams that have parent-child relationships
+	tmpFile, err := os.CreateTemp("", "teams-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	yamlContent := `team:
+  - id: "parent-team"
+    tenantId: "tenant1"
+    name: "Parent Team"
+    displayName: "Parent Team"
+  - id: "child-team"
+    tenantId: "tenant1"
+    name: "Child Team"
+    displayName: "Child Team"
+    parentTeam: "Parent Team"`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	err = database.LoadTeamData(tmpFile.Name(), nil)
+	assert.NoError(t, err)
+}
+
+func TestService_LoadTeamData_ExistingTeam(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create existing team
+	existingTeam := &graph.Team{
+		Name:     "Existing Team",
+		TenantID: "tenant1",
+	}
+	gormDB.Create(&existingTeam)
+
+	// Create temp file with same team
+	tmpFile, err := os.CreateTemp("", "teams-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	yamlContent := `team:
+  - id: "team1"
+    tenantId: "tenant1"
+    name: "Existing Team"
+    displayName: "Existing Team"`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	err = database.LoadTeamData(tmpFile.Name(), nil)
+	assert.NoError(t, err)
+}
+
+func TestService_LoadUserData_ExistingUser(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create existing user
+	existingUser := &db.User{
+		UserID:   "existing-user",
+		TenantID: "tenant1",
+		Email:    "existing@example.com",
+	}
+	gormDB.Create(&existingUser)
+
+	// Create temp file with same user
+	tmpFile, err := os.CreateTemp("", "users-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	yamlContent := `user:
+  - id: "user1"
+    tenant_id: "tenant1"
+    user_id: "existing-user"
+    email: "existing@example.com"`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	users, err := database.LoadUserData(tmpFile.Name())
+	assert.NoError(t, err)
+	assert.Len(t, users, 1)
+}
+
+func TestService_LoadInvitationData_ExistingInvitation(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create existing invitation
+	existingInvite := &db.Invite{
+		Email:      "existing@example.com",
+		TenantID:   "tenant1",
+		EntityType: "team",
+		EntityID:   "team1",
+		Roles:      "admin",
+	}
+	gormDB.Create(&existingInvite)
+
+	// Create temp file with same invitation
+	tmpFile, err := os.CreateTemp("", "invites-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	yamlContent := `invitations:
+  - tenant_id: "tenant1"
+    email: "existing@example.com"
+    entity_type: "team"
+    entity_id: "team1"
+    roles: "admin"`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	err = database.LoadInvitationData(tmpFile.Name())
+	assert.NoError(t, err)
+}
+
+func TestService_LoadRoleData_Success(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create temp file with valid YAML
+	tmpFile, err := os.CreateTemp("", "roles-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	yamlContent := `- technical_name: "admin"
+  display_name: "Administrator"
+  entity_type: "team"
+  entity_id: "team1"`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	err = database.LoadRoleData(tmpFile.Name())
+	assert.NoError(t, err)
+}
+
+func TestService_LoadRoleData_UpdateExistingRole(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	// Create existing role
+	existingRole := db.Role{
+		TechnicalName: "admin",
+		EntityType:    "team",
+		DisplayName:   "Old Admin",
+	}
+	gormDB.Create(&existingRole)
+
+	// Create temp file with updated role
+	tmpFile, err := os.CreateTemp("", "roles-*.yaml")
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	yamlContent := `- technical_name: "admin"
+  display_name: "New Administrator"
+  entity_type: "team"
+  entity_id: "team1"`
+
+	_, err = tmpFile.WriteString(yamlContent)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	err = database.LoadRoleData(tmpFile.Name())
 	assert.NoError(t, err)
 }

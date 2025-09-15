@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/platform-mesh/golang-commons/jwt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -155,6 +156,48 @@ func (d *Database) GetOrCreateUser(ctx context.Context, tenantID string, input g
 	}
 
 	return &newUser, err
+}
+
+func (d *Database) LoginUserWithToken(ctx context.Context, tokenInfo jwt.WebToken, userID string, tenantID string, user *graph.User, email string) error {
+	if tokenInfo.FirstName == "" || tokenInfo.LastName == "" {
+		msg := "Token of existing user does not contain first or(and) last name claims"
+		d.logger.Warn().Str("issuer", tokenInfo.Issuer).Str("user", userID).Msg(msg)
+		sentry.CaptureError(errors.New(msg), sentry.Tags{"tenant": tenantID, "user": user.ID, "issuer": tokenInfo.Issuer})
+	}
+
+	userUpdated := false
+	if user.UserID != userID {
+		user.UserID = userID
+		userUpdated = true
+	}
+	if user.Email != email {
+		user.Email = email
+		userUpdated = true
+	}
+	if tokenInfo.FirstName != "" && user.FirstName != &tokenInfo.FirstName {
+		user.FirstName = &tokenInfo.FirstName
+		userUpdated = true
+	}
+	if tokenInfo.LastName != "" && user.LastName != &tokenInfo.LastName {
+		user.LastName = &tokenInfo.LastName
+		userUpdated = true
+	}
+	if user.InvitationOutstanding {
+		user.InvitationOutstanding = false
+		userUpdated = true
+	}
+
+	if userUpdated {
+		err := d.Save(user)
+		if err != nil {
+			return err
+		}
+	}
+
+	if d.userHooks != nil {
+		d.userHooks.UserLogin(ctx, user, tenantID)
+	}
+	return nil
 }
 
 // RemoveUser removes user
