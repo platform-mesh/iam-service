@@ -202,7 +202,7 @@ func (s *CommonTestSuite) getRouter(fgaEventHandler fga.FgaEvents) *chi.Mux {
 
 	// create platform-mesh Resolver
 	mfpSvc := pmservice.New(s.database, compatService)
-	router := iamRouter.CreateRouter(s.appConfig, mfpSvc, s.logger)
+	router := iamRouter.CreateRouter(s.appConfig, mfpSvc, s.logger, []func(http.Handler) http.Handler{})
 	return router
 
 }
