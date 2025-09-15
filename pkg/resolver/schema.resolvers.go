@@ -35,16 +35,6 @@ func (r *mutationResolver) LeaveEntity(ctx context.Context, tenantID string, ent
 	return r.service.LeaveEntity(ctx, tenantID, entityType, entityID)
 }
 
-// CreateAccount is the resolver for the createAccount field.
-func (r *mutationResolver) CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, owner string) (bool, error) {
-	return r.service.CreateAccount(ctx, tenantID, entityType, entityID, owner)
-}
-
-// RemoveAccount is the resolver for the removeAccount field.
-func (r *mutationResolver) RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error) {
-	return r.service.RemoveAccount(ctx, tenantID, entityType, entityID)
-}
-
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, tenantID string, input graph.UserInput) (*graph.User, error) {
 	return r.service.CreateUser(ctx, tenantID, input)

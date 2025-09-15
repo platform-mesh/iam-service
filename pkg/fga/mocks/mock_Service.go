@@ -75,56 +75,6 @@ func (_c *Service_AssignRoleBindings_Call) RunAndReturn(run func(context.Context
 	return _c
 }
 
-// CreateAccount provides a mock function with given fields: ctx, tenantID, entityType, entityID, ownerUserID
-func (_m *Service) CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, ownerUserID string) error {
-	ret := _m.Called(ctx, tenantID, entityType, entityID, ownerUserID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CreateAccount")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
-		r0 = rf(ctx, tenantID, entityType, entityID, ownerUserID)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// Service_CreateAccount_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateAccount'
-type Service_CreateAccount_Call struct {
-	*mock.Call
-}
-
-// CreateAccount is a helper method to define mock.On call
-//   - ctx context.Context
-//   - tenantID string
-//   - entityType string
-//   - entityID string
-//   - ownerUserID string
-func (_e *Service_Expecter) CreateAccount(ctx interface{}, tenantID interface{}, entityType interface{}, entityID interface{}, ownerUserID interface{}) *Service_CreateAccount_Call {
-	return &Service_CreateAccount_Call{Call: _e.mock.On("CreateAccount", ctx, tenantID, entityType, entityID, ownerUserID)}
-}
-
-func (_c *Service_CreateAccount_Call) Run(run func(ctx context.Context, tenantID string, entityType string, entityID string, ownerUserID string)) *Service_CreateAccount_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(string))
-	})
-	return _c
-}
-
-func (_c *Service_CreateAccount_Call) Return(_a0 error) *Service_CreateAccount_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *Service_CreateAccount_Call) RunAndReturn(run func(context.Context, string, string, string, string) error) *Service_CreateAccount_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // GetPermissionsForRole provides a mock function with given fields: ctx, tenantID, entityType, roleTechnicalName
 func (_m *Service) GetPermissionsForRole(ctx context.Context, tenantID string, entityType string, roleTechnicalName string) ([]*graph.Permission, error) {
 	ret := _m.Called(ctx, tenantID, entityType, roleTechnicalName)
@@ -182,55 +132,6 @@ func (_c *Service_GetPermissionsForRole_Call) Return(_a0 []*graph.Permission, _a
 }
 
 func (_c *Service_GetPermissionsForRole_Call) RunAndReturn(run func(context.Context, string, string, string) ([]*graph.Permission, error)) *Service_GetPermissionsForRole_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// RemoveAccount provides a mock function with given fields: ctx, tenantID, entityType, entityID
-func (_m *Service) RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) error {
-	ret := _m.Called(ctx, tenantID, entityType, entityID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for RemoveAccount")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
-		r0 = rf(ctx, tenantID, entityType, entityID)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// Service_RemoveAccount_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveAccount'
-type Service_RemoveAccount_Call struct {
-	*mock.Call
-}
-
-// RemoveAccount is a helper method to define mock.On call
-//   - ctx context.Context
-//   - tenantID string
-//   - entityType string
-//   - entityID string
-func (_e *Service_Expecter) RemoveAccount(ctx interface{}, tenantID interface{}, entityType interface{}, entityID interface{}) *Service_RemoveAccount_Call {
-	return &Service_RemoveAccount_Call{Call: _e.mock.On("RemoveAccount", ctx, tenantID, entityType, entityID)}
-}
-
-func (_c *Service_RemoveAccount_Call) Run(run func(ctx context.Context, tenantID string, entityType string, entityID string)) *Service_RemoveAccount_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string))
-	})
-	return _c
-}
-
-func (_c *Service_RemoveAccount_Call) Return(_a0 error) *Service_RemoveAccount_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *Service_RemoveAccount_Call) RunAndReturn(run func(context.Context, string, string, string) error) *Service_RemoveAccount_Call {
 	_c.Call.Return(run)
 	return _c
 }

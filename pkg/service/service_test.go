@@ -18,7 +18,6 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/fga/types"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/service"
-	"google.golang.org/grpc/status"
 )
 
 var (
@@ -1350,85 +1349,6 @@ func Test_RolesForUserOfEntity_MultipleRoles(t *testing.T) {
 	assert.ElementsMatch(t, memberPermissions, memberRole.Permissions)
 }
 
-func Test_CreateAccount_Success(t *testing.T) {
-	service, _, mockFga := setupService(t)
-	ctx := context.Background()
-
-	tenantID := "tenantID123"
-	entityType := "project"
-	entityID := "entityID123"
-	owner := "ownerID123"
-
-	// mock
-	mockFga.EXPECT().CreateAccount(mock.Anything, tenantID, entityType, entityID, owner).Return(nil).Once()
-
-	// Act
-	success, err := service.CreateAccount(ctx, tenantID, entityType, entityID, owner)
-
-	// asserts
-	assert.NoError(t, err)
-	assert.True(t, success)
-}
-
-func Test_CreateAccount_DuplicateWriteError(t *testing.T) {
-	service, _, mockFga := setupService(t)
-	ctx := context.Background()
-
-	tenantID := "tenantID123"
-	entityType := "project"
-	entityID := "entityID123"
-	owner := "ownerID123"
-	errDuplicate := status.Error(2017, "Duplicate error")
-
-	// mock
-	mockFga.EXPECT().CreateAccount(mock.Anything, tenantID, entityType, entityID, owner).Return(errDuplicate).Once()
-
-	// Act
-	success, err := service.CreateAccount(ctx, tenantID, entityType, entityID, owner)
-
-	// asserts
-	assert.NoError(t, err)
-	assert.True(t, success)
-}
-
-func Test_RemoveAccount_Success(t *testing.T) {
-	service, _, mockFga := setupService(t)
-	ctx := context.Background()
-
-	tenantID := "tenantID123"
-	entityType := "project"
-	entityID := "entityId"
-
-	// mock
-	mockFga.EXPECT().RemoveAccount(mock.Anything, tenantID, entityType, entityID).Return(nil).Once()
-
-	// Act
-	success, err := service.RemoveAccount(ctx, tenantID, entityType, entityID)
-
-	// asserts
-	assert.NoError(t, err)
-	assert.True(t, success)
-}
-
-func Test_RemoveAccount_DuplicateWriteError(t *testing.T) {
-	service, _, mockFga := setupService(t)
-	ctx := context.Background()
-
-	tenantID := "tenantID123"
-	entityType := "project"
-	entityID := "entityId"
-	errDuplicate := status.Error(2017, "Duplicate error")
-
-	// mock
-	mockFga.EXPECT().RemoveAccount(mock.Anything, tenantID, entityType, entityID).Return(errDuplicate).Once()
-
-	// Act
-	success, err := service.RemoveAccount(ctx, tenantID, entityType, entityID)
-
-	// asserts
-	assert.NoError(t, err)
-	assert.True(t, success)
-}
 func Test_TenantInfo_Success(t *testing.T) {
 	service, mockDb, _ := setupService(t)
 	ctx := context.Background()

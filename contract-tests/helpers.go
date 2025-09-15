@@ -336,35 +336,6 @@ func assignRoleBindingsMutation_EmptyRoles(tenantId string, entityId string, ent
 	}
 }
 
-func createAccountMutation(tenantId string, entityType string, entityId string, owner string) apitest.GraphQLRequestBody {
-	const createAccount = `mutation ($tenantId: ID!, $entityType: String!, $entityId: ID!, $owner: String!) {
-		createAccount(tenantId: $tenantId, entityType: $entityType, entityId: $entityId, owner: $owner)
-	  }`
-	return apitest.GraphQLRequestBody{
-		Query: createAccount,
-		Variables: map[string]interface{}{
-			"tenantId":   tenantId,
-			"entityType": entityType,
-			"entityId":   entityId,
-			"owner":      owner,
-		},
-	}
-}
-
-func removeAccountMutation(tenantId string, entityType string, entityId string) apitest.GraphQLRequestBody {
-	const removeAccount = `mutation ($tenantId: ID!, $entityType: String!, $entityId: ID!) {
-		removeAccount(tenantId: $tenantId, entityType: $entityType, entityId: $entityId)
-	  }`
-	return apitest.GraphQLRequestBody{
-		Query: removeAccount,
-		Variables: map[string]interface{}{
-			"tenantId":   tenantId,
-			"entityType": entityType,
-			"entityId":   entityId,
-		},
-	}
-}
-
 // Query: usersOfEntity
 func usersOfEntity_filterSearchtermAndRoles_Query(tenantId string) apitest.GraphQLRequestBody {
 	const apiTestQuery = ` query usersOfEntity(

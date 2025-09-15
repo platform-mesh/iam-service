@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/platform-mesh/golang-commons/errors"
-	fgastore "github.com/platform-mesh/golang-commons/fga/store"
 	"github.com/platform-mesh/golang-commons/logger"
 
 	"gorm.io/gorm"
@@ -41,8 +40,6 @@ type ServiceInterface interface { // nolint: interfacebloat
 	UserByEmail(ctx context.Context, tenantID string, email string) (*graph.User, error)
 	UsersConnection(ctx context.Context, tenantID string, limit *int, page *int) (*graph.UserConnection, error)
 	GetZone(ctx context.Context) (*graph.Zone, error)
-	CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, owner string) (bool, error)
-	RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error)
 	TenantInfo(ctx context.Context, tenantIdInput *string) (*graph.TenantInfo, error)
 	SearchUsers(ctx context.Context, query string) ([]*graph.User, error)
 	UsersByIds(ctx context.Context, tenantID string, userIds []string) ([]*graph.User, error)
@@ -488,35 +485,6 @@ func (s *Service) getRolesForEntity(ctx context.Context, tenantID string, entity
 	}
 
 	return returnRoles, nil
-}
-
-func (s *Service) CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, owner string) (bool, error) {
-	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.CreateAccount")
-	defer span.End()
-
-	err := s.Fga.CreateAccount(ctx, tenantID, entityType, entityID, owner)
-
-	fgaStore := fgastore.New()
-
-	if fgaStore.IsDuplicateWriteError(err) { // do not send out events if the account already exists
-		return true, nil
-	}
-
-	return err == nil, err
-}
-
-func (s *Service) RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error) {
-	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "service.RemoveAccount")
-	defer span.End()
-
-	err := s.Fga.RemoveAccount(ctx, tenantID, entityType, entityID)
-	fgaStore := fgastore.New()
-
-	if fgaStore.IsDuplicateWriteError(err) { // this error happens when the user does not exists and should be ignored
-		return true, nil
-	}
-
-	return err == nil, err
 }
 
 func (s *Service) TenantInfo(ctx context.Context, tenantIdInput *string) (*graph.TenantInfo, error) {

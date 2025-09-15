@@ -61,13 +61,11 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AssignRoleBindings func(childComplexity int, tenantID string, entityType string, entityID string, input []*Change) int
-		CreateAccount      func(childComplexity int, tenantID string, entityType string, entityID string, owner string) int
 		CreateUser         func(childComplexity int, tenantID string, input UserInput) int
 		DeleteInvite       func(childComplexity int, tenantID string, invite Invite) int
 		InviteUser         func(childComplexity int, tenantID string, invite Invite, notifyByEmail bool) int
 		LeaveEntity        func(childComplexity int, tenantID string, entityType string, entityID string) int
 		Login              func(childComplexity int) int
-		RemoveAccount      func(childComplexity int, tenantID string, entityType string, entityID string) int
 		RemoveFromEntity   func(childComplexity int, tenantID string, entityType string, userID string, entityID string) int
 		RemoveUser         func(childComplexity int, tenantID string, userID *string, email *string) int
 	}
@@ -128,8 +126,6 @@ type MutationResolver interface {
 	AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*Change) (bool, error)
 	RemoveFromEntity(ctx context.Context, tenantID string, entityType string, userID string, entityID string) (bool, error)
 	LeaveEntity(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error)
-	CreateAccount(ctx context.Context, tenantID string, entityType string, entityID string, owner string) (bool, error)
-	RemoveAccount(ctx context.Context, tenantID string, entityType string, entityID string) (bool, error)
 	CreateUser(ctx context.Context, tenantID string, input UserInput) (*User, error)
 	RemoveUser(ctx context.Context, tenantID string, userID *string, email *string) (*bool, error)
 	Login(ctx context.Context) (bool, error)
@@ -206,18 +202,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.AssignRoleBindings(childComplexity, args["tenantId"].(string), args["entityType"].(string), args["entityId"].(string), args["input"].([]*Change)), true
 
-	case "Mutation.createAccount":
-		if e.complexity.Mutation.CreateAccount == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createAccount_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateAccount(childComplexity, args["tenantId"].(string), args["entityType"].(string), args["entityId"].(string), args["owner"].(string)), true
-
 	case "Mutation.createUser":
 		if e.complexity.Mutation.CreateUser == nil {
 			break
@@ -272,18 +256,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.Login(childComplexity), true
-
-	case "Mutation.removeAccount":
-		if e.complexity.Mutation.RemoveAccount == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_removeAccount_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.RemoveAccount(childComplexity, args["tenantId"].(string), args["entityType"].(string), args["entityId"].(string)), true
 
 	case "Mutation.removeFromEntity":
 		if e.complexity.Mutation.RemoveFromEntity == nil {
@@ -874,9 +846,6 @@ type Mutation {
     removeFromEntity(tenantId: ID!, entityType: String!, userId: ID!, entityId: ID!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
     leaveEntity(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @authorized(relation: "member", entityTypeParamName: "entityType", entityParamName: "entityId")
 
-    createAccount(tenantId: ID!, entityType: String!, entityId: ID!, owner: String!): Boolean! @peersOnly
-    removeAccount(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @peersOnly
-
     ## Only for administrative use
     createUser(tenantId: String!, input: UserInput!): User! @peersOnly
     removeUser(tenantId:String!, userId: String, email: String): Boolean @peersOnly
@@ -1157,103 +1126,6 @@ func (ec *executionContext) field_Mutation_assignRoleBindings_argsInput(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Mutation_createAccount_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation_createAccount_argsTenantID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["tenantId"] = arg0
-	arg1, err := ec.field_Mutation_createAccount_argsEntityType(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["entityType"] = arg1
-	arg2, err := ec.field_Mutation_createAccount_argsEntityID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["entityId"] = arg2
-	arg3, err := ec.field_Mutation_createAccount_argsOwner(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["owner"] = arg3
-	return args, nil
-}
-func (ec *executionContext) field_Mutation_createAccount_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_createAccount_argsEntityType(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityType"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityType"))
-	if tmp, ok := rawArgs["entityType"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_createAccount_argsEntityID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityId"))
-	if tmp, ok := rawArgs["entityId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_createAccount_argsOwner(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["owner"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("owner"))
-	if tmp, ok := rawArgs["owner"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
 func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1487,80 +1359,6 @@ func (ec *executionContext) field_Mutation_leaveEntity_argsEntityType(
 }
 
 func (ec *executionContext) field_Mutation_leaveEntity_argsEntityID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityId"))
-	if tmp, ok := rawArgs["entityId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_removeAccount_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation_removeAccount_argsTenantID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["tenantId"] = arg0
-	arg1, err := ec.field_Mutation_removeAccount_argsEntityType(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["entityType"] = arg1
-	arg2, err := ec.field_Mutation_removeAccount_argsEntityID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["entityId"] = arg2
-	return args, nil
-}
-func (ec *executionContext) field_Mutation_removeAccount_argsTenantID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["tenantId"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-	if tmp, ok := rawArgs["tenantId"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_removeAccount_argsEntityType(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["entityType"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("entityType"))
-	if tmp, ok := rawArgs["entityType"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_removeAccount_argsEntityID(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (string, error) {
@@ -3201,160 +2999,6 @@ func (ec *executionContext) fieldContext_Mutation_leaveEntity(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_leaveEntity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_createAccount(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_createAccount(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		directive0 := func(rctx context.Context) (any, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().CreateAccount(rctx, fc.Args["tenantId"].(string), fc.Args["entityType"].(string), fc.Args["entityId"].(string), fc.Args["owner"].(string))
-		}
-
-		directive1 := func(ctx context.Context) (any, error) {
-			if ec.directives.PeersOnly == nil {
-				var zeroVal bool
-				return zeroVal, errors.New("directive peersOnly is not implemented")
-			}
-			return ec.directives.PeersOnly(ctx, nil, directive0)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(bool); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation_createAccount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createAccount_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_removeAccount(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_removeAccount(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		directive0 := func(rctx context.Context) (any, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().RemoveAccount(rctx, fc.Args["tenantId"].(string), fc.Args["entityType"].(string), fc.Args["entityId"].(string))
-		}
-
-		directive1 := func(ctx context.Context) (any, error) {
-			if ec.directives.PeersOnly == nil {
-				var zeroVal bool
-				return zeroVal, errors.New("directive peersOnly is not implemented")
-			}
-			return ec.directives.PeersOnly(ctx, nil, directive0)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(bool); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation_removeAccount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_removeAccount_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -7754,20 +7398,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "leaveEntity":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_leaveEntity(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "createAccount":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createAccount(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "removeAccount":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_removeAccount(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++

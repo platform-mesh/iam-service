@@ -13,12 +13,6 @@ type middlewareProvider struct {
 	retriever policy_services.TenantRetriever
 }
 
-type configuration struct {
-	TechnicalIssuers []string `envconfig:"optional"`
-}
-
-var middlewareConfiguration = configuration{}
-
 func (tp *middlewareProvider) storeTenantIdCtxValue() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

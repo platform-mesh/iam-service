@@ -102,30 +102,6 @@ func removeUserMutation() apitest.GraphQLRequestBody {
 	}
 }
 
-func (suite *MutationsTestSuite) TestMutation_CreateAccount() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(createAccountMutation(tenantId, "project", "test", iamAdminName)).
-		Expect(suite.T()).
-		Status(http.StatusOK).
-		Assert(gqlAssertions.NoGQLErrors()).
-		Assert(jsonpath.Equal("$.data.createAccount", true)).
-		End()
-}
-
-func (suite *MutationsTestSuite) TestMutation_RemoveAccount() {
-	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
-
-	suite.GqlApiTest(&userInjection, nil, nil).
-		GraphQLRequest(removeAccountMutation(tenantId, "project", "test")).
-		Expect(suite.T()).
-		Status(http.StatusOK).
-		Assert(gqlAssertions.NoGQLErrors()).
-		Assert(jsonpath.Equal("$.data.removeAccount", true)).
-		End()
-}
-
 func (suite *MutationsTestSuite) TestMutation_AssignRoleBindings() {
 	userInjection := getUserInjection(iamAdminNameToken, defaultSpiffeeHeaderValue)
 
