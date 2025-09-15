@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	pmmws "github.com/platform-mesh/golang-commons/middleware"
+	"github.com/platform-mesh/golang-commons/policy_services"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -22,6 +24,7 @@ import (
 	"github.com/vektah/gqlparser/v2/ast"
 
 	internalfga "github.com/platform-mesh/iam-service/internal/pkg/fga"
+	"github.com/platform-mesh/iam-service/internal/pkg/middleware"
 	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/platform-mesh/iam-service/pkg/fga"
 	myresolver "github.com/platform-mesh/iam-service/pkg/resolver"
@@ -129,10 +132,16 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 
 	openfgaClient := openfgav1.NewOpenFGAServiceClient(conn)
 
+	// Prepare middlewares
+	mws := pmmws.CreateMiddleware(log)
+	ctr := policy_services.NewCustomTenantRetriever(tr)
+	tenantMws := middleware.StoreTenantIdCtxValue(ctr)
+	mws = append(mws, tenantMws)
+
 	// create Resolver
 	svc := iamservice.New(database, compatService)
 	ad := directives.NewAuthorizedDirective(fgaStoreHelper, openfgaClient)
-	router := iamRouter.CreateRouter(appConfig, svc, log, iamRouter.WithAuthorizedDirective(ad.Authorized))
+	router := iamRouter.CreateRouter(appConfig, svc, log, mws, iamRouter.WithAuthorizedDirective(ad.Authorized))
 	metricsHandler := promhttp.Handler()
 	router.Handle("/metrics", metricsHandler)
 	router.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
