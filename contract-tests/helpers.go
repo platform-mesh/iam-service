@@ -83,7 +83,7 @@ func availableRolesForEntityTypeQuery() apitest.GraphQLRequestBody {
 		Query: apiTestQuery,
 		Variables: map[string]interface{}{
 			"tenantId":   tenantId,
-			"entityType": "account",
+			"entityType": "core_platform-mesh_io_account",
 		},
 	}
 }
