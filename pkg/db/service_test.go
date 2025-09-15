@@ -54,11 +54,13 @@ func TestService_LoadTenantConfigData_InvalidYAML(t *testing.T) {
 	// Create temp file with invalid YAML
 	tmpFile, err := os.CreateTemp("", "invalid-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	_, err = tmpFile.WriteString("invalid yaml content [")
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	err = database.LoadTenantConfigData(tmpFile.Name())
 	assert.Error(t, err)
@@ -76,7 +78,9 @@ func TestService_LoadTenantConfigData_CreateError(t *testing.T) {
 	// Create temp file with valid YAML
 	tmpFile, err := os.CreateTemp("", "config-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `configs:
   - tenant_id: "test-tenant"
@@ -86,7 +90,7 @@ func TestService_LoadTenantConfigData_CreateError(t *testing.T) {
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	// Monkey patch the Create method to return error
 	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "Create", func(tx *gorm.DB, value interface{}) *gorm.DB {
@@ -126,11 +130,13 @@ func TestService_LoadTeamData_InvalidYAML(t *testing.T) {
 	// Create temp file with invalid YAML
 	tmpFile, err := os.CreateTemp("", "invalid-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	_, err = tmpFile.WriteString("invalid yaml content [")
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	err = database.LoadTeamData(tmpFile.Name(), nil)
 	assert.Error(t, err)
@@ -148,7 +154,9 @@ func TestService_LoadTeamData_CreateError(t *testing.T) {
 	// Create temp file with valid YAML
 	tmpFile, err := os.CreateTemp("", "teams-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `team:
   - id: "team1"
@@ -158,7 +166,7 @@ func TestService_LoadTeamData_CreateError(t *testing.T) {
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	// Monkey patch the Create method to return error
 	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "Create", func(tx *gorm.DB, value interface{}) *gorm.DB {
@@ -184,13 +192,15 @@ func TestService_LoadTeamData_NoTeamsLoaded(t *testing.T) {
 	// Create temp file with empty teams
 	tmpFile, err := os.CreateTemp("", "teams-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `team: []`
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	err = database.LoadTeamData(tmpFile.Name(), nil)
 	assert.Error(t, err)
@@ -224,11 +234,13 @@ func TestService_LoadUserData_InvalidYAML(t *testing.T) {
 	// Create temp file with invalid YAML
 	tmpFile, err := os.CreateTemp("", "invalid-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	_, err = tmpFile.WriteString("invalid yaml content [")
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	users, err := database.LoadUserData(tmpFile.Name())
 	assert.Error(t, err)
@@ -247,7 +259,9 @@ func TestService_LoadUserData_CreateError(t *testing.T) {
 	// Create temp file with valid YAML
 	tmpFile, err := os.CreateTemp("", "users-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `user:
   - id: "user1"
@@ -257,7 +271,7 @@ func TestService_LoadUserData_CreateError(t *testing.T) {
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	// Monkey patch the Create method to return error
 	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "Create", func(tx *gorm.DB, value interface{}) *gorm.DB {
@@ -284,13 +298,15 @@ func TestService_LoadUserData_NoUsersLoaded(t *testing.T) {
 	// Create temp file with empty users
 	tmpFile, err := os.CreateTemp("", "users-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `user: []`
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	users, err := database.LoadUserData(tmpFile.Name())
 	assert.Error(t, err)
@@ -324,11 +340,13 @@ func TestService_LoadInvitationData_InvalidYAML(t *testing.T) {
 	// Create temp file with invalid YAML
 	tmpFile, err := os.CreateTemp("", "invalid-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	_, err = tmpFile.WriteString("invalid yaml content [")
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	err = database.LoadInvitationData(tmpFile.Name())
 	assert.Error(t, err)
@@ -346,7 +364,9 @@ func TestService_LoadInvitationData_CreateError(t *testing.T) {
 	// Create temp file with valid YAML
 	tmpFile, err := os.CreateTemp("", "invites-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `invitations:
   - tenant_id: "tenant1"
@@ -357,7 +377,7 @@ func TestService_LoadInvitationData_CreateError(t *testing.T) {
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	// Monkey patch the Create method to return error
 	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "Create", func(tx *gorm.DB, value interface{}) *gorm.DB {
@@ -383,13 +403,15 @@ func TestService_LoadInvitationData_NoInvitationsLoaded(t *testing.T) {
 	// Create temp file with empty invitations
 	tmpFile, err := os.CreateTemp("", "invites-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `invitations: []`
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	err = database.LoadInvitationData(tmpFile.Name())
 	assert.Error(t, err)
@@ -435,11 +457,13 @@ func TestService_LoadRoleData_InvalidYAML(t *testing.T) {
 	// Create temp file with invalid YAML
 	tmpFile, err := os.CreateTemp("", "invalid-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	_, err = tmpFile.WriteString("invalid yaml content [")
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	err = database.LoadRoleData(tmpFile.Name())
 	assert.Error(t, err)
@@ -457,7 +481,9 @@ func TestService_LoadRoleData_FirstError(t *testing.T) {
 	// Create temp file with valid YAML
 	tmpFile, err := os.CreateTemp("", "roles-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `- technical_name: "admin"
   display_name: "Administrator"
@@ -466,7 +492,7 @@ func TestService_LoadRoleData_FirstError(t *testing.T) {
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	// Monkey patch the First method to return a non-ErrRecordNotFound error
 	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "First", func(tx *gorm.DB, dest interface{}, conds ...interface{}) *gorm.DB {
@@ -500,7 +526,9 @@ func TestService_LoadRoleData_SaveError(t *testing.T) {
 	// Create temp file with valid YAML
 	tmpFile, err := os.CreateTemp("", "roles-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `- technical_name: "admin"
   display_name: "New Administrator"
@@ -509,7 +537,7 @@ func TestService_LoadRoleData_SaveError(t *testing.T) {
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	// Monkey patch the Save method to return error
 	patch := gomonkey.ApplyMethod(reflect.TypeOf(gormDB), "Save", func(tx *gorm.DB, value interface{}) *gorm.DB {
@@ -535,7 +563,9 @@ func TestService_LoadRoleData_CreateError(t *testing.T) {
 	// Create temp file with valid YAML
 	tmpFile, err := os.CreateTemp("", "roles-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `- technical_name: "admin"
   display_name: "Administrator"
@@ -544,7 +574,7 @@ func TestService_LoadRoleData_CreateError(t *testing.T) {
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	// Monkey patch the Create method to return error after First returns ErrRecordNotFound
 	var callCount int
@@ -782,7 +812,9 @@ func TestService_LoadTeamData_WithParentTeam(t *testing.T) {
 	// Create temp file with teams that have parent-child relationships
 	tmpFile, err := os.CreateTemp("", "teams-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `team:
   - id: "parent-team"
@@ -797,7 +829,7 @@ func TestService_LoadTeamData_WithParentTeam(t *testing.T) {
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	err = database.LoadTeamData(tmpFile.Name(), nil)
 	assert.NoError(t, err)
@@ -822,7 +854,9 @@ func TestService_LoadTeamData_ExistingTeam(t *testing.T) {
 	// Create temp file with same team
 	tmpFile, err := os.CreateTemp("", "teams-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `team:
   - id: "team1"
@@ -832,7 +866,7 @@ func TestService_LoadTeamData_ExistingTeam(t *testing.T) {
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	err = database.LoadTeamData(tmpFile.Name(), nil)
 	assert.NoError(t, err)
@@ -858,7 +892,9 @@ func TestService_LoadUserData_ExistingUser(t *testing.T) {
 	// Create temp file with same user
 	tmpFile, err := os.CreateTemp("", "users-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `user:
   - id: "user1"
@@ -868,7 +904,7 @@ func TestService_LoadUserData_ExistingUser(t *testing.T) {
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	users, err := database.LoadUserData(tmpFile.Name())
 	assert.NoError(t, err)
@@ -897,7 +933,9 @@ func TestService_LoadInvitationData_ExistingInvitation(t *testing.T) {
 	// Create temp file with same invitation
 	tmpFile, err := os.CreateTemp("", "invites-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `invitations:
   - tenant_id: "tenant1"
@@ -908,7 +946,7 @@ func TestService_LoadInvitationData_ExistingInvitation(t *testing.T) {
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	err = database.LoadInvitationData(tmpFile.Name())
 	assert.NoError(t, err)
@@ -926,7 +964,9 @@ func TestService_LoadRoleData_Success(t *testing.T) {
 	// Create temp file with valid YAML
 	tmpFile, err := os.CreateTemp("", "roles-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `- technical_name: "admin"
   display_name: "Administrator"
@@ -935,7 +975,7 @@ func TestService_LoadRoleData_Success(t *testing.T) {
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	err = database.LoadRoleData(tmpFile.Name())
 	assert.NoError(t, err)
@@ -961,7 +1001,9 @@ func TestService_LoadRoleData_UpdateExistingRole(t *testing.T) {
 	// Create temp file with updated role
 	tmpFile, err := os.CreateTemp("", "roles-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	yamlContent := `- technical_name: "admin"
   display_name: "New Administrator"
@@ -970,7 +1012,7 @@ func TestService_LoadRoleData_UpdateExistingRole(t *testing.T) {
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	err = database.LoadRoleData(tmpFile.Name())
 	assert.NoError(t, err)
