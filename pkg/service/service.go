@@ -39,7 +39,6 @@ type ServiceInterface interface { // nolint: interfacebloat
 	User(ctx context.Context, tenantID string, userID string) (*graph.User, error)
 	UserByEmail(ctx context.Context, tenantID string, email string) (*graph.User, error)
 	UsersConnection(ctx context.Context, tenantID string, limit *int, page *int) (*graph.UserConnection, error)
-	GetZone(ctx context.Context) (*graph.Zone, error)
 	TenantInfo(ctx context.Context, tenantIdInput *string) (*graph.TenantInfo, error)
 	SearchUsers(ctx context.Context, query string) ([]*graph.User, error)
 	UsersByIds(ctx context.Context, tenantID string, userIds []string) ([]*graph.User, error)
@@ -204,22 +203,6 @@ func (s *Service) UsersConnection(ctx context.Context, tenantID string, limit *i
 	}
 
 	return userConnection, nil
-}
-
-func (s *Service) GetZone(ctx context.Context) (*graph.Zone, error) {
-	// retrieve jwt from context
-	tc, err := s.Db.GetTenantConfigurationForContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if tc != nil {
-		return &graph.Zone{
-			ZoneID:   tc.ZoneId,
-			TenantID: tc.TenantID,
-		}, nil
-	}
-	return nil, nil
 }
 
 func (s *Service) AssignRoleBindings(ctx context.Context, tenantID string, entityType string,

@@ -217,7 +217,6 @@ func (d *Database) LoadTenantConfigData(filePath string) error {
 			TenantID: tc.TenantID,
 			Issuer:   tc.Issuer,
 			Audience: tc.Audience,
-			ZoneId:   tc.ZoneId,
 		}
 		result = d.db.Create(&newTenantConfiguration)
 		if result.Error != nil {

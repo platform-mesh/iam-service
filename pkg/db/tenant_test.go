@@ -10,8 +10,9 @@ import (
 	commonsCtx "github.com/platform-mesh/golang-commons/context"
 	"github.com/platform-mesh/golang-commons/jwt"
 	"github.com/platform-mesh/golang-commons/logger"
-	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/platform-mesh/iam-service/pkg/db"
 )
 
 func TestDatabase_GetTenantConfigurationForContext(t *testing.T) {
@@ -57,7 +58,6 @@ func TestDatabase_GetTenantConfigurationForContext(t *testing.T) {
 		TenantID:  uuid.New().String(),
 		Issuer:    tokenInfo.Issuer,
 		Audience:  tokenInfo.Audiences[0],
-		ZoneId:    "123123-123123",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -120,7 +120,6 @@ func TestDatabase_GetTenantConfigurationByIssuerAndAudience(t *testing.T) {
 		TenantID:  uuid.New().String(),
 		Issuer:    issuer,
 		Audience:  audiences[0],
-		ZoneId:    "123123-123123",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -178,7 +177,6 @@ func TestDatabase_GetTenantConfigurationByIssuerAndAudienceDBFirstReturnsNoRows_
 		TenantID:  uuid.New().String(),
 		Issuer:    issuer,
 		Audience:  "wrong_audience",
-		ZoneId:    "123123-123123",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}

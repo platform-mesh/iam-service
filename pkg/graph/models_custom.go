@@ -119,11 +119,6 @@ type UserInput struct {
 	InvitationOutstanding *bool   `json:"invitationOutstanding,omitempty"`
 }
 
-type Zone struct {
-	ZoneID   string `json:"zoneId"`
-	TenantID string `json:"tenantId"`
-}
-
 type Permission struct {
 	DisplayName string `json:"displayName"`
 	Relation    string `json:"relation"`

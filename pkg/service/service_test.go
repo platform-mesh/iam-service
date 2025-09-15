@@ -432,59 +432,6 @@ func Test_UsersConnection_Error(t *testing.T) {
 	assert.Nil(t, userConnection)
 
 }
-func Test_GetZone_Success(t *testing.T) {
-	service, mockDb, _ := setupService(t)
-	ctx := context.Background()
-
-	// mock
-	zone := &graph.Zone{
-		ZoneID:   "zoneID123",
-		TenantID: "tenantID123",
-	}
-	tcReturn := db.TenantConfiguration{
-		TenantID: zone.TenantID,
-		ZoneId:   zone.ZoneID,
-	}
-	mockDb.EXPECT().GetTenantConfigurationForContext(mock.Anything).Return(&tcReturn, nil).Once()
-
-	// Act
-	tc, err := service.GetZone(ctx)
-
-	// asserts
-	assert.NoError(t, err)
-	assert.Equal(t, tc.TenantID, tcReturn.TenantID)
-	assert.Equal(t, tc.ZoneID, tcReturn.ZoneId)
-}
-
-func Test_GetZone_NoTenantConfiguration(t *testing.T) {
-	service, mockDb, _ := setupService(t)
-	ctx := context.Background()
-
-	// mock
-	mockDb.EXPECT().GetTenantConfigurationForContext(mock.Anything).Return(nil, nil).Once()
-
-	// Act
-	zone, err := service.GetZone(ctx)
-
-	// asserts
-	assert.NoError(t, err)
-	assert.Nil(t, zone)
-}
-
-func Test_GetZone_Error(t *testing.T) {
-	service, mockDb, _ := setupService(t)
-	ctx := context.Background()
-
-	// mock
-	mockDb.EXPECT().GetTenantConfigurationForContext(mock.Anything).Return(nil, errors.New("mock error")).Once()
-
-	// Act
-	zone, err := service.GetZone(ctx)
-
-	// asserts
-	assert.Error(t, err)
-	assert.Nil(t, zone)
-}
 
 func TestNew(t *testing.T) {
 	db := &mocks.DatabaseService{}

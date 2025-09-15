@@ -14,7 +14,6 @@ type TenantConfiguration struct {
 	TenantID string `gorm:"primary_key"`
 	Issuer   string `gorm:"primary_key"`
 	Audience string `gorm:"primary_key"`
-	ZoneId   string
 
 	CreatedAt time.Time
 	UpdatedAt time.Time

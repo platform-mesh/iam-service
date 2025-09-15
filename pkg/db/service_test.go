@@ -14,6 +14,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/platform-mesh/golang-commons/logger"
+
 	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 )
@@ -85,8 +86,7 @@ func TestService_LoadTenantConfigData_CreateError(t *testing.T) {
 	yamlContent := `configs:
   - tenant_id: "test-tenant"
     issuer: "test-issuer"
-    audience: "test-audience"
-    zone_id: "test-zone"`
+    audience: "test-audience"`
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
