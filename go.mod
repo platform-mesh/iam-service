@@ -1,6 +1,6 @@
 module github.com/platform-mesh/iam-service
 
-go 1.24.4
+go 1.25.1
 
 require (
 	github.com/99designs/gqlgen v0.17.79
