@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -41,6 +42,7 @@ func CreateRouter(
 	appConfig config.Config,
 	svc *service.Service,
 	log *logger.Logger,
+	mws []func(http.Handler) http.Handler,
 	opts ...Options,
 ) *chi.Mux {
 	router := chi.NewRouter()
@@ -96,6 +98,7 @@ func CreateRouter(
 	if appConfig.IsLocal {
 		router.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	}
-	router.Handle("/query", gqHandler)
+
+	router.With(mws...).Handle("/query", gqHandler)
 	return router
 }

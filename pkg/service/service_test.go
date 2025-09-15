@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-jose/go-jose/v4"
 	mfpcontext "github.com/platform-mesh/golang-commons/context"
+	commonsLogger "github.com/platform-mesh/golang-commons/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
@@ -28,7 +29,16 @@ func setupService(t *testing.T) (*service.Service, *mocks.DatabaseService, *fgam
 	t.Helper()
 	mockDb := mocks.NewDatabaseService(t)
 	mockFga := fgamock.NewService(t)
-	svc := service.New(mockDb, mockFga)
+
+	// Create a logger for the service
+	logConfig := commonsLogger.DefaultConfig()
+	logConfig.Level = "error"
+	logger, err := commonsLogger.New(logConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	svc := service.New(mockDb, mockFga, logger)
 	return svc, mockDb, mockFga
 }
 
@@ -479,7 +489,16 @@ func Test_GetZone_Error(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	db := &mocks.DatabaseService{}
-	svc := service.New(db, nil)
+
+	// Create a logger for the test
+	logConfig := commonsLogger.DefaultConfig()
+	logConfig.Level = "error"
+	logger, err := commonsLogger.New(logConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	svc := service.New(db, nil, logger)
 	assert.NotNil(t, svc)
 	assert.Equal(t, db, svc.Db)
 }
