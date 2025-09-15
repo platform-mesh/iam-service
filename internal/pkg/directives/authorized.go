@@ -66,7 +66,7 @@ func NewAuthorizedDirective(storeHelper commonsfga.FGAStoreHelper, openfgaClient
 }
 func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next gqlgen.Resolver, relation string, _ *string, _ *string, entityParamName string) (any, error) {
 	var relationMapping = map[string]string{
-		"project_create": "create_core_openmfp_org_accounts",
+		"project_create": "create_core_platform-mesh_io_accounts",
 	}
 
 	if mappedRelation, ok := relationMapping[relation]; ok {
@@ -105,7 +105,7 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next gqlgen.
 		TupleKey: &openfgav1.CheckRequestTupleKey{
 			User:     fmt.Sprintf("user:%s", user.Mail), // FIXME: for now, as the email is not the subject of the token
 			Relation: relation,
-			Object:   fmt.Sprintf("account:%s", entityID),
+			Object:   fmt.Sprintf("core_platform-mesh_io_account:%s", entityID),
 		},
 	}
 
