@@ -189,8 +189,7 @@ func (d *Database) Close() error {
 	return db.Close()
 }
 
-// TODO
-// TenantContfig update / Delete not yet implemented.
+// TODO: TenantContfig update / Delete not yet implemented.
 func (d *Database) LoadTenantConfigData(filePath string) error {
 	dat, err := os.ReadFile(filePath)
 	if err != nil {
@@ -217,7 +216,6 @@ func (d *Database) LoadTenantConfigData(filePath string) error {
 			TenantID: tc.TenantID,
 			Issuer:   tc.Issuer,
 			Audience: tc.Audience,
-			ZoneId:   tc.ZoneId,
 		}
 		result = d.db.Create(&newTenantConfiguration)
 		if result.Error != nil {

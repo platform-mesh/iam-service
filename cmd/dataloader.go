@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/platform-mesh/golang-commons/logger"
+
 	"github.com/platform-mesh/iam-service/internal/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/db"
 )
@@ -86,6 +87,11 @@ func NewDataLoader(
 
 // loadDataToDB loads data to the database.
 func (d *DataLoader) loadDataToDB() error {
+	err := d.Database.LoadTenantConfigData(d.cfg.Database.LocalData.DataPathTenantConfiguration)
+	if err != nil {
+		log.Panic().Err(err).Msg("Error loading tenant config data")
+	}
+
 	if d.cfg.Database.LocalData.DataPathRoles != "" {
 		err := d.Database.LoadRoleData(d.cfg.Database.LocalData.DataPathRoles)
 		if err != nil {
