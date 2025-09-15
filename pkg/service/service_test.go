@@ -1742,3 +1742,183 @@ func Test_UsersByIds_DbError(t *testing.T) {
 	assert.Nil(t, users)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
+
+func Test_Login_NoWebToken(t *testing.T) {
+	service, _, _ := setupService(t)
+	ctx := context.Background()
+
+	// Act - no token in context
+	success, err := service.Login(ctx)
+
+	// Assert
+	assert.Error(t, err)
+	assert.False(t, success)
+}
+
+func Test_Login_NoTenant(t *testing.T) {
+	service, _, _ := setupService(t)
+	ctx := context.Background()
+
+	// Setup valid JWT token but no tenant
+	ctx = mfpcontext.AddWebTokenToContext(ctx, validToken, []jose.SignatureAlgorithm{jose.RS256})
+
+	// Act
+	success, err := service.Login(ctx)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "No tenant id was present found in a login request")
+	assert.False(t, success)
+}
+
+func Test_Login_EmptyUserFields(t *testing.T) {
+	service, _, _ := setupService(t)
+	ctx := context.Background()
+
+	// Create a token with empty fields
+	emptyToken := "eyJqa3UiOiJodHRwczovL2FlMmdjbGNlbC5hY2NvdW50czQwMC5vbmRlbWFuZC5jb20vb2F1dGgyL2NlcnRzIiwia2lkIjoick9VdUo0aWxjYWEyLU9xemMtWWVxY2h1aDRRIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiIiLCJhdWQiOiJjOGMzMjBjZC1lYzA3LTQ4MzUtOGFhMi04NzgwNTkwNjQ4MTQiLCJhcHBfdGlkIjoiOGVmNzQ5ZmItZjM1OC00ZDYyLWI5OWQtMTgwZDg1NzkwNzM0IiwiaXNzIjoiaHR0cHM6Ly9hZTJnY2xjZWwuYWNjb3VudHM0MDAub25kZW1hbmQuY29tIiwiem9uZV91dWlkIjoiOGVmNzQ5ZmItZjM1OC00ZDYyLWI5OWQtMTgwZDg1NzkwNzM0IiwiY25mIjp7Ing1dCNTMjU2IjoidjF3SXl5cEJEaldNQ3phd3owazRxeEhhekVJSXdJLW5pZlRHSUw4c21GdyJ9LCJleHAiOjE2ODcxNzkxNTEsImlhdCI6MTY4NzE3NTU1MSwianRpIjoiZGRmMThhYjItZDM3MS00ZGU5LWJjZjMtZTc4ZDJiY2I2NzEyIn0.ZGirtxmcJU6RgB4GqfOWqCinya3t4-GD5jbFeGN75gvakSWXh57UedyChWpnxMqKlvb_QnQYCX-FGoOTgesx4FRSE3-GwB9uuNftjVvCNcLer5v23hCq84_RgDfN_7zo5Tm71YQxX250nA1HZ3DzPn984FiOuyDAu-iHAvQwBEE4pOqWbx40zbI63l6ttAIwclLoYvUXk5eOaD6jn5FQlwyvjB3nvmD5KDmuJQ-NsKVMdLnVyeXx9jRo_guMloCiUGZZ19h7MR-xhx-YnW408S3ELHpD90VA1E8fcyhhKUWd45RGvjTt-yqSk6ER1qRGaAyWoDC5iR0XkvxytpnD5A"
+
+	ctx = mfpcontext.AddWebTokenToContext(ctx, emptyToken, []jose.SignatureAlgorithm{jose.RS256})
+	ctx = mfpcontext.AddTenantToContext(ctx, "tenant123")
+
+	// Act
+	success, err := service.Login(ctx)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to retrieve relevant token content")
+	assert.False(t, success)
+}
+
+func Test_getResolvedRoles_Error(t *testing.T) {
+	service, mockDb, mockFga := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenant123"
+	entity := graph.EntityInput{
+		EntityType: "project",
+		EntityID:   "entity123",
+	}
+	var page = 1
+	var limit = 10
+	var showInvitees = false
+
+	userIDToRoles := types.UserIDToRoles{
+		"userID123": []string{"admin"},
+	}
+	users := []*graph.User{
+		{
+			TenantID: tenantID,
+			UserID:   "userID123",
+			Email:    "user@sap.com",
+		},
+	}
+
+	// Mock expectations
+	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(userIDToRoles, nil).Once()
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(users, nil).Twice()
+	// GetRolesByTechnicalNames fails during getResolvedRoles
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("db error")).Once()
+
+	// Act
+	resolvedRoles, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{}, nil)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, resolvedRoles)
+}
+
+func Test_TenantInfo_WithTenantIdInput(t *testing.T) {
+	service, _, _ := setupService(t)
+	ctx := context.Background()
+
+	tenantIdInput := "explicit-tenant-123"
+
+	// Act
+	tenantInfo, err := service.TenantInfo(ctx, &tenantIdInput)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NotNil(t, tenantInfo)
+	assert.Equal(t, "explicit-tenant-123", tenantInfo.TenantID)
+	assert.Equal(t, "", tenantInfo.Subdomain)
+	assert.Equal(t, "", tenantInfo.EmailDomain)
+	assert.Equal(t, []string{}, tenantInfo.EmailDomains)
+}
+
+func Test_UsersOfEntity_GetInvitesForEntityError(t *testing.T) {
+	service, mockDb, mockFga := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entity := graph.EntityInput{
+		EntityType: "project",
+		EntityID:   "entityId",
+	}
+	var page = 1
+	var limit = 10
+	var showInvitees = true
+
+	userIDToRoles := types.UserIDToRoles{
+		"userID123": []string{"admin"},
+	}
+	users := []*graph.User{
+		{
+			TenantID: tenantID,
+			UserID:   "userID123",
+			Email:    "user@sap.com",
+		},
+	}
+
+	// Mock expectations
+	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(userIDToRoles, nil).Once()
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(users, nil).Twice()
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(mockFunc_GetRolesByTechnicalNames).Once()
+	// GetInvitesForEntity fails
+	mockDb.EXPECT().GetInvitesForEntity(mock.Anything, tenantID, entity.EntityType, entity.EntityID).Return(nil, errors.New("invites error")).Once()
+
+	// Act
+	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{}, nil)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, uc)
+}
+
+func Test_UsersOfEntity_getResolvedRolesError(t *testing.T) {
+	service, mockDb, mockFga := setupService(t)
+	ctx := context.Background()
+
+	tenantID := "tenantID123"
+	entity := graph.EntityInput{
+		EntityType: "project",
+		EntityID:   "entityId",
+	}
+	var page = 1
+	var limit = 10
+	var showInvitees = false
+
+	userIDToRoles := types.UserIDToRoles{
+		"userID123": []string{"admin"},
+	}
+	users := []*graph.User{
+		{
+			TenantID: tenantID,
+			UserID:   "userID123",
+			Email:    "user@sap.com",
+		},
+	}
+
+	// Mock expectations
+	mockFga.EXPECT().UsersForEntity(mock.Anything, tenantID, entity.EntityID, entity.EntityType).Return(userIDToRoles, nil).Once()
+	mockDb.EXPECT().GetUsersByUserIDs(mock.Anything, tenantID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(users, nil).Twice()
+	// GetRolesByTechnicalNames fails during getResolvedRoles
+	mockDb.EXPECT().GetRolesByTechnicalNames(mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("roles error")).Once()
+
+	// Act
+	uc, err := service.UsersOfEntity(ctx, tenantID, entity, &limit, &page, &showInvitees, nil, []*graph.RoleInput{}, nil)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, uc)
+}
