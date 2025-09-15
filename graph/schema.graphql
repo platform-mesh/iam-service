@@ -212,6 +212,9 @@ type Mutation {
     ## Only for administrative use
     createUser(tenantId: String!, input: UserInput!): User! @peersOnly
     removeUser(tenantId:String!, userId: String, email: String): Boolean @peersOnly
+
+    """ Creates or updates an user corresponding to the web token passed in an HTTP header """
+    login: Boolean!
 }
 
 schema{

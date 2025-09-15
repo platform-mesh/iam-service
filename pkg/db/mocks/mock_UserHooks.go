@@ -95,6 +95,41 @@ func (_c *UserHooks_UserInvited_Call) RunAndReturn(run func(context.Context, *gr
 	return _c
 }
 
+// UserLogin provides a mock function with given fields: ctx, user, tenantID
+func (_m *UserHooks) UserLogin(ctx context.Context, user *graph.User, tenantID string) {
+	_m.Called(ctx, user, tenantID)
+}
+
+// UserHooks_UserLogin_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserLogin'
+type UserHooks_UserLogin_Call struct {
+	*mock.Call
+}
+
+// UserLogin is a helper method to define mock.On call
+//   - ctx context.Context
+//   - user *graph.User
+//   - tenantID string
+func (_e *UserHooks_Expecter) UserLogin(ctx interface{}, user interface{}, tenantID interface{}) *UserHooks_UserLogin_Call {
+	return &UserHooks_UserLogin_Call{Call: _e.mock.On("UserLogin", ctx, user, tenantID)}
+}
+
+func (_c *UserHooks_UserLogin_Call) Run(run func(ctx context.Context, user *graph.User, tenantID string)) *UserHooks_UserLogin_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*graph.User), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *UserHooks_UserLogin_Call) Return() *UserHooks_UserLogin_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *UserHooks_UserLogin_Call) RunAndReturn(run func(context.Context, *graph.User, string)) *UserHooks_UserLogin_Call {
+	_c.Run(run)
+	return _c
+}
+
 // UserRemoved provides a mock function with given fields: ctx, user, tenantID
 func (_m *UserHooks) UserRemoved(ctx context.Context, user *graph.User, tenantID string) {
 	_m.Called(ctx, user, tenantID)

@@ -2,25 +2,25 @@ package service
 
 import (
 	"context"
-	"errors"
-
+	"fmt"
 	"slices"
 	"strings"
 
-	"fmt"
-
+	"github.com/platform-mesh/golang-commons/errors"
 	fgastore "github.com/platform-mesh/golang-commons/fga/store"
+	"github.com/platform-mesh/golang-commons/logger"
 
 	"gorm.io/gorm"
 
 	pmctx "github.com/platform-mesh/golang-commons/context"
 	"github.com/platform-mesh/golang-commons/sentry"
 
+	"github.com/vektah/gqlparser/v2/gqlerror"
+	"go.opentelemetry.io/otel"
+
 	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/platform-mesh/iam-service/pkg/fga"
 	"github.com/platform-mesh/iam-service/pkg/graph"
-	"github.com/vektah/gqlparser/v2/gqlerror"
-	"go.opentelemetry.io/otel"
 )
 
 type ServiceInterface interface { // nolint: interfacebloat
@@ -46,11 +46,54 @@ type ServiceInterface interface { // nolint: interfacebloat
 	TenantInfo(ctx context.Context, tenantIdInput *string) (*graph.TenantInfo, error)
 	SearchUsers(ctx context.Context, query string) ([]*graph.User, error)
 	UsersByIds(ctx context.Context, tenantID string, userIds []string) ([]*graph.User, error)
+	Login(ctx context.Context) (bool, error)
 }
 
 type Service struct {
 	Db  db.Service
 	Fga fga.Service
+	log *logger.Logger
+}
+
+func (s *Service) Login(ctx context.Context) (bool, error) {
+	tokenInfo, err := pmctx.GetWebTokenFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	userID := tokenInfo.Subject
+	email := tokenInfo.Mail
+	tenantID, err := pmctx.GetTenantFromContext(ctx)
+	if err != nil {
+		return false, errors.New("No tenant id was present found in a login request")
+	}
+
+	s.log.Debug().Str("user", userID).Msg("User login")
+	if len(userID) == 0 || len(email) == 0 || len(tenantID) == 0 {
+		return false, errors.New("Failed to retrieve relevant token content %s %s %s %s %s",
+			userID, email, tenantID, tokenInfo.FirstName, tokenInfo.LastName)
+	}
+
+	var user *graph.User
+	user, err = s.Db.GetOrCreateUser(ctx, tenantID, graph.UserInput{
+		UserID:    userID,
+		Email:     email,
+		FirstName: &tokenInfo.FirstName,
+		LastName:  &tokenInfo.LastName,
+	})
+	if err != nil {
+		sentry.CaptureError(err, sentry.Tags{"tenant": tenantID, "user": userID, "issuer": tokenInfo.Issuer})
+		s.log.Error().Err(err).Str("tenant", tenantID).Str("userId", userID).Str("firstName", tokenInfo.FirstName).
+			Str("lastName", tokenInfo.LastName).Str("email", email).Msg("Failed to GetOrCreateUser")
+		return false, err
+	}
+
+	err = s.Db.LoginUserWithToken(ctx, tokenInfo, userID, tenantID, user, email)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 var (
@@ -58,10 +101,11 @@ var (
 	one      = 1  // nolint: gochecknoglobals
 )
 
-func New(db db.Service, fga fga.Service) *Service {
+func New(db db.Service, fga fga.Service, log *logger.Logger) *Service {
 	return &Service{
 		Db:  db,
 		Fga: fga,
+		log: log,
 	}
 }
 

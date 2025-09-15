@@ -3,8 +3,10 @@ package tenant
 import (
 	"context"
 
+	"github.com/platform-mesh/golang-commons/errors"
 	"github.com/platform-mesh/golang-commons/logger"
 	"github.com/platform-mesh/golang-commons/policy_services"
+
 	"github.com/platform-mesh/iam-service/pkg/db"
 )
 
@@ -32,6 +34,9 @@ func (s *TenantReader) GetTenant(ctx context.Context) (string, error) {
 	tc, err := s.db.GetTenantConfigurationForContext(ctx)
 	if err != nil {
 		return "", err
+	}
+	if tc == nil {
+		return "", errors.New("tenant configuration not found")
 	}
 	return tc.TenantID, nil
 }
