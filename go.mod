@@ -3,7 +3,7 @@ module github.com/platform-mesh/iam-service
 go 1.24.4
 
 require (
-	github.com/99designs/gqlgen v0.17.78
+	github.com/99designs/gqlgen v0.17.79
 	github.com/agiledragon/gomonkey/v2 v2.13.0
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a
 	github.com/go-jose/go-jose/v4 v4.1.2
@@ -122,9 +122,9 @@ require (
 	github.com/vrischmann/envconfig v1.4.1
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/crypto v0.42.0 // indirect
+	golang.org/x/net v0.44.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.29.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5 // indirect
