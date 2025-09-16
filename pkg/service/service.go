@@ -60,10 +60,7 @@ func (s *Service) Login(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	userID := tokenInfo.Subject
-	if cfg.JWT.UserIdClaim == "mail" {
-		userID = tokenInfo.Mail
-	}
+	userID := s.Fga.UserIdFromToken(tokenInfo, cfg.JWT.UserIdClaim)
 	email := tokenInfo.Mail
 	tenantID, err := pmctx.GetTenantFromContext(ctx)
 	if err != nil {
@@ -391,7 +388,8 @@ func (s *Service) LeaveEntity(ctx context.Context, tenantID string, entityType s
 		return false, err
 	}
 
-	err = s.Fga.RemoveFromEntity(ctx, tenantID, entityType, entityID, token.Subject)
+	cfg := pmconfig.LoadConfigFromContext(ctx).(config.Config)
+	err = s.Fga.RemoveFromEntity(ctx, tenantID, entityType, entityID, s.Fga.UserIdFromToken(token, cfg.JWT.UserIdClaim))
 
 	return err == nil, err
 }
