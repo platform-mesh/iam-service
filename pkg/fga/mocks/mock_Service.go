@@ -7,6 +7,8 @@ import (
 
 	graph "github.com/platform-mesh/iam-service/pkg/graph"
 
+	jwt "github.com/platform-mesh/golang-commons/jwt"
+
 	mock "github.com/stretchr/testify/mock"
 
 	types "github.com/platform-mesh/iam-service/pkg/fga/types"
@@ -182,6 +184,53 @@ func (_c *Service_RemoveFromEntity_Call) Return(_a0 error) *Service_RemoveFromEn
 }
 
 func (_c *Service_RemoveFromEntity_Call) RunAndReturn(run func(context.Context, string, string, string, string) error) *Service_RemoveFromEntity_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserIdFromToken provides a mock function with given fields: token, userIdClaim
+func (_m *Service) UserIdFromToken(token jwt.WebToken, userIdClaim string) string {
+	ret := _m.Called(token, userIdClaim)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserIdFromToken")
+	}
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(jwt.WebToken, string) string); ok {
+		r0 = rf(token, userIdClaim)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	return r0
+}
+
+// Service_UserIdFromToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserIdFromToken'
+type Service_UserIdFromToken_Call struct {
+	*mock.Call
+}
+
+// UserIdFromToken is a helper method to define mock.On call
+//   - token jwt.WebToken
+//   - userIdClaim string
+func (_e *Service_Expecter) UserIdFromToken(token interface{}, userIdClaim interface{}) *Service_UserIdFromToken_Call {
+	return &Service_UserIdFromToken_Call{Call: _e.mock.On("UserIdFromToken", token, userIdClaim)}
+}
+
+func (_c *Service_UserIdFromToken_Call) Run(run func(token jwt.WebToken, userIdClaim string)) *Service_UserIdFromToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(jwt.WebToken), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *Service_UserIdFromToken_Call) Return(_a0 string) *Service_UserIdFromToken_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Service_UserIdFromToken_Call) RunAndReturn(run func(jwt.WebToken, string) string) *Service_UserIdFromToken_Call {
 	_c.Call.Return(run)
 	return _c
 }

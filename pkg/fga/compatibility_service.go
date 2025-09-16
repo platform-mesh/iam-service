@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
+	pmconfig "github.com/platform-mesh/golang-commons/config"
+	"github.com/platform-mesh/golang-commons/jwt"
 	"github.com/r3labs/diff/v3"
 	"go.opentelemetry.io/otel"
 	"golang.org/x/text/cases"
@@ -20,6 +22,7 @@ import (
 	commonsLogger "github.com/platform-mesh/golang-commons/logger"
 	commonsSentry "github.com/platform-mesh/golang-commons/sentry"
 
+	"github.com/platform-mesh/iam-service/internal/pkg/config"
 	"github.com/platform-mesh/iam-service/internal/pkg/utils"
 	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/platform-mesh/iam-service/pkg/fga/middleware/principal"
@@ -35,6 +38,7 @@ type Service interface {
 	AssignRoleBindings(ctx context.Context, tenantID string, entityType string, entityID string, input []*graphql.Change) error
 	RemoveFromEntity(ctx context.Context, tenantID string, entityType string, entityID string, userID string) error
 	GetPermissionsForRole(ctx context.Context, tenantID string, entityType string, roleTechnicalName string) ([]*graphql.Permission, error)
+	UserIdFromToken(token jwt.WebToken, userIdClaim string) string
 }
 
 type UserService interface {
@@ -72,6 +76,19 @@ func (c *CompatService) WithFGAStoreHelper(helper pmfga.FGAStoreHelper) *CompatS
 
 var _ openfgav1.OpenFGAServiceServer = (*CompatService)(nil)
 
+func (c *CompatService) UserIdFromToken(tokenInfo jwt.WebToken, userIdClaim string) string {
+	return userIdFromToken(tokenInfo, userIdClaim)
+}
+func userIdFromToken(tokenInfo jwt.WebToken, userIdClaim string) string {
+	if userIdClaim == "" || (userIdClaim != "sub" && userIdClaim != "mail") {
+		panic("invalid user id claim configuration, only 'sub' and 'mail' are supported")
+	}
+	if userIdClaim == "mail" {
+		return tokenInfo.Mail
+	}
+	return tokenInfo.Subject
+}
+
 func userIDFromContext(ctx context.Context) (string, error) {
 	principalID, principalErr := principal.GetPrincipalFromContext(ctx)
 	if principalErr != nil {
@@ -83,8 +100,10 @@ func userIDFromContext(ctx context.Context) (string, error) {
 		return "", status.Error(codes.Unauthenticated, "unauthorized")
 	}
 
-	if token.Subject != "" {
-		return token.Subject, nil
+	cfg := pmconfig.LoadConfigFromContext(ctx).(config.Config)
+	userId := userIdFromToken(token, cfg.JWT.UserIDClaim)
+	if userId != "" {
+		return userId, nil
 	}
 
 	return principalID, nil

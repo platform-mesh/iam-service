@@ -3,8 +3,9 @@ package config
 import (
 	"time"
 
-	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/vrischmann/envconfig"
+
+	"github.com/platform-mesh/iam-service/pkg/db"
 )
 
 type Config struct {
@@ -23,6 +24,9 @@ type Config struct {
 	}
 	Istio struct {
 		QuitApi string `envconfig:"default=http://localhost:15020/quitquitquit"`
+	}
+	JWT struct {
+		UserIDClaim string `envconfig:"default=sub"`
 	}
 }
 

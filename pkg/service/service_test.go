@@ -6,12 +6,14 @@ import (
 	"testing"
 
 	"github.com/go-jose/go-jose/v4"
+	pmconfig "github.com/platform-mesh/golang-commons/config"
 	mfpcontext "github.com/platform-mesh/golang-commons/context"
 	commonsLogger "github.com/platform-mesh/golang-commons/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 
+	"github.com/platform-mesh/iam-service/internal/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/platform-mesh/iam-service/pkg/db/mocks"
 	fgamock "github.com/platform-mesh/iam-service/pkg/fga/mocks"
@@ -893,6 +895,10 @@ func Test_LeaveEntity_Success(t *testing.T) {
 	service, _, mockFga := setupService(t)
 	ctx := context.Background()
 
+	// Add config to context
+	mockConfig := config.Config{}
+	mockConfig.JWT.UserIDClaim = "sub"
+	ctx = pmconfig.SetConfigInContext(ctx, mockConfig)
 	ctx = mfpcontext.AddWebTokenToContext(ctx, validToken, []jose.SignatureAlgorithm{jose.RS256})
 	ctx = mfpcontext.AddAuthHeaderToContext(ctx, "Bearer token")
 
@@ -901,6 +907,9 @@ func Test_LeaveEntity_Success(t *testing.T) {
 	entityID := "entityId"
 
 	// mock
+	mockFga.EXPECT().
+		UserIdFromToken(mock.Anything, mock.Anything).
+		Return("c8c320cd-ec07-4835-8aa2-878059064814").Once()
 	mockFga.EXPECT().
 		RemoveFromEntity(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(nil).Once()
@@ -1694,6 +1703,11 @@ func Test_Login_NoWebToken(t *testing.T) {
 	service, _, _ := setupService(t)
 	ctx := context.Background()
 
+	// Add config to context
+	mockConfig := config.Config{}
+	mockConfig.JWT.UserIDClaim = "sub"
+	ctx = pmconfig.SetConfigInContext(ctx, mockConfig)
+
 	// Act - no token in context
 	success, err := service.Login(ctx)
 
@@ -1703,11 +1717,21 @@ func Test_Login_NoWebToken(t *testing.T) {
 }
 
 func Test_Login_NoTenant(t *testing.T) {
-	service, _, _ := setupService(t)
+	service, _, mockFga := setupService(t)
 	ctx := context.Background()
+
+	// Add config to context
+	mockConfig := config.Config{}
+	mockConfig.JWT.UserIDClaim = "sub"
+	ctx = pmconfig.SetConfigInContext(ctx, mockConfig)
 
 	// Setup valid JWT token but no tenant
 	ctx = mfpcontext.AddWebTokenToContext(ctx, validToken, []jose.SignatureAlgorithm{jose.RS256})
+
+	// Mock UserIdFromToken call
+	mockFga.EXPECT().
+		UserIdFromToken(mock.Anything, mock.Anything).
+		Return("c8c320cd-ec07-4835-8aa2-878059064814").Once()
 
 	// Act
 	success, err := service.Login(ctx)
@@ -1719,14 +1743,24 @@ func Test_Login_NoTenant(t *testing.T) {
 }
 
 func Test_Login_EmptyUserFields(t *testing.T) {
-	service, _, _ := setupService(t)
+	service, _, mockFga := setupService(t)
 	ctx := context.Background()
+
+	// Add config to context
+	mockConfig := config.Config{}
+	mockConfig.JWT.UserIDClaim = "sub"
+	ctx = pmconfig.SetConfigInContext(ctx, mockConfig)
 
 	// Create a token with empty fields
 	emptyToken := "eyJqa3UiOiJodHRwczovL2FlMmdjbGNlbC5hY2NvdW50czQwMC5vbmRlbWFuZC5jb20vb2F1dGgyL2NlcnRzIiwia2lkIjoick9VdUo0aWxjYWEyLU9xemMtWWVxY2h1aDRRIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiIiLCJhdWQiOiJjOGMzMjBjZC1lYzA3LTQ4MzUtOGFhMi04NzgwNTkwNjQ4MTQiLCJhcHBfdGlkIjoiOGVmNzQ5ZmItZjM1OC00ZDYyLWI5OWQtMTgwZDg1NzkwNzM0IiwiaXNzIjoiaHR0cHM6Ly9hZTJnY2xjZWwuYWNjb3VudHM0MDAub25kZW1hbmQuY29tIiwiem9uZV91dWlkIjoiOGVmNzQ5ZmItZjM1OC00ZDYyLWI5OWQtMTgwZDg1NzkwNzM0IiwiY25mIjp7Ing1dCNTMjU2IjoidjF3SXl5cEJEaldNQ3phd3owazRxeEhhekVJSXdJLW5pZlRHSUw4c21GdyJ9LCJleHAiOjE2ODcxNzkxNTEsImlhdCI6MTY4NzE3NTU1MSwianRpIjoiZGRmMThhYjItZDM3MS00ZGU5LWJjZjMtZTc4ZDJiY2I2NzEyIn0.ZGirtxmcJU6RgB4GqfOWqCinya3t4-GD5jbFeGN75gvakSWXh57UedyChWpnxMqKlvb_QnQYCX-FGoOTgesx4FRSE3-GwB9uuNftjVvCNcLer5v23hCq84_RgDfN_7zo5Tm71YQxX250nA1HZ3DzPn984FiOuyDAu-iHAvQwBEE4pOqWbx40zbI63l6ttAIwclLoYvUXk5eOaD6jn5FQlwyvjB3nvmD5KDmuJQ-NsKVMdLnVyeXx9jRo_guMloCiUGZZ19h7MR-xhx-YnW408S3ELHpD90VA1E8fcyhhKUWd45RGvjTt-yqSk6ER1qRGaAyWoDC5iR0XkvxytpnD5A"
 
 	ctx = mfpcontext.AddWebTokenToContext(ctx, emptyToken, []jose.SignatureAlgorithm{jose.RS256})
 	ctx = mfpcontext.AddTenantToContext(ctx, "tenant123")
+
+	// Mock UserIdFromToken call - it will return empty string from the token
+	mockFga.EXPECT().
+		UserIdFromToken(mock.Anything, mock.Anything).
+		Return("").Once()
 
 	// Act
 	success, err := service.Login(ctx)

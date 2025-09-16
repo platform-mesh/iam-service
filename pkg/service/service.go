@@ -11,12 +11,14 @@ import (
 
 	"gorm.io/gorm"
 
+	pmconfig "github.com/platform-mesh/golang-commons/config"
 	pmctx "github.com/platform-mesh/golang-commons/context"
 	"github.com/platform-mesh/golang-commons/sentry"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"go.opentelemetry.io/otel"
 
+	"github.com/platform-mesh/iam-service/internal/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/platform-mesh/iam-service/pkg/fga"
 	"github.com/platform-mesh/iam-service/pkg/graph"
@@ -52,12 +54,13 @@ type Service struct {
 }
 
 func (s *Service) Login(ctx context.Context) (bool, error) {
+	cfg := pmconfig.LoadConfigFromContext(ctx).(config.Config)
 	tokenInfo, err := pmctx.GetWebTokenFromContext(ctx)
 	if err != nil {
 		return false, err
 	}
 
-	userID := tokenInfo.Subject
+	userID := s.Fga.UserIdFromToken(tokenInfo, cfg.JWT.UserIDClaim)
 	email := tokenInfo.Mail
 	tenantID, err := pmctx.GetTenantFromContext(ctx)
 	if err != nil {
@@ -385,7 +388,8 @@ func (s *Service) LeaveEntity(ctx context.Context, tenantID string, entityType s
 		return false, err
 	}
 
-	err = s.Fga.RemoveFromEntity(ctx, tenantID, entityType, entityID, token.Subject)
+	cfg := pmconfig.LoadConfigFromContext(ctx).(config.Config)
+	err = s.Fga.RemoveFromEntity(ctx, tenantID, entityType, entityID, s.Fga.UserIdFromToken(token, cfg.JWT.UserIDClaim))
 
 	return err == nil, err
 }

@@ -77,7 +77,7 @@ func getGormConn(log *logger.Logger, cfg db.ConfigDatabase) (*gorm.DB, error) {
 
 func serveFunc() { // nolint: funlen,cyclop,gocognit
 	appConfig, log := initApp()
-	ctx, _, shutdown := pmcontext.StartContext(log, nil, appConfig.ShutdownTimeout)
+	ctx, _, shutdown := pmcontext.StartContext(log, appConfig, appConfig.ShutdownTimeout)
 	defer shutdown()
 
 	database, err := initDB(appConfig, log)
@@ -161,6 +161,7 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 		Handler:      router,
 		ReadTimeout:  20 * time.Second,
 		WriteTimeout: 20 * time.Second,
+		BaseContext:  func(listener net.Listener) context.Context { return ctx },
 	}
 	log.Info().Msg("Resolver created")
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &myresolver.Resolver{}}))
