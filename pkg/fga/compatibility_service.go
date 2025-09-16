@@ -185,20 +185,23 @@ func (s *CompatService) UsersForEntity(
 	for _, role := range s.roles {
 		var continuationToken string
 		for {
+			object := fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role)
 			roleMembers, err := s.upstream.Read(ctx, &openfgav1.ReadRequest{
 				StoreId: storeID,
 				TupleKey: &openfgav1.ReadRequestTupleKey{
-					Object:   fmt.Sprintf("role:%s/%s/%s", entityType, entityID, role),
+					Object:   object,
 					Relation: "assignee",
 				},
 				PageSize:          wrapperspb.Int32(100),
 				ContinuationToken: continuationToken,
 			})
+
 			if err != nil {
 				logger.Error().AnErr("openFGA read error", err).Send()
 				commonsSentry.CaptureError(err, commonsSentry.Tags{"tenantId": tenantID, "entityType": entityType, "entityID": entityID, "role": role})
 				return nil, err
 			}
+			logger.Debug().Str("object", object).Int("results", len(roleMembers.Tuples)).Str("store", storeID).Msg("fetch objects")
 			for _, tuple := range roleMembers.Tuples {
 				user := tuple.Key.User
 				userID := strings.TrimPrefix(user, "user:")
