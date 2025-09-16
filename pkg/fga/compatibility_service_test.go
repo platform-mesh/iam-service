@@ -5,15 +5,19 @@ import (
 	"testing"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
-	"github.com/platform-mesh/iam-service/pkg/db"
-	"github.com/platform-mesh/iam-service/pkg/fga/types"
+	pmconfig "github.com/platform-mesh/golang-commons/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/platform-mesh/iam-service/internal/pkg/config"
+	"github.com/platform-mesh/iam-service/pkg/db"
+	"github.com/platform-mesh/iam-service/pkg/fga/types"
+
 	storeMocks "github.com/platform-mesh/golang-commons/fga/store/mocks"
+
 	internalfga "github.com/platform-mesh/iam-service/internal/pkg/fga"
 
 	dbMocks "github.com/platform-mesh/iam-service/pkg/db/mocks"
@@ -21,6 +25,18 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/fga/mocks"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 )
+
+// setupContextWithConfig creates a context with the necessary config for testing
+func setupContextWithConfig(ctx context.Context) context.Context {
+	mockConfig := config.Config{
+		JWT: struct {
+			UserIdClaim string `envconfig:"default=sub"`
+		}{
+			UserIdClaim: "sub",
+		},
+	}
+	return pmconfig.SetConfigInContext(ctx, mockConfig)
+}
 
 func TestNewCompatClient(t *testing.T) {
 	cl := &mocks.OpenFGAServiceClient{}
@@ -33,43 +49,6 @@ func TestNewCompatClient(t *testing.T) {
 	assert.NotNil(t, s)
 }
 
-func TestUserIDFromContext(t *testing.T) {
-	tc := []struct {
-		name   string
-		ctx    context.Context
-		result string
-		error  error
-	}{
-		{
-			name:   "success",
-			ctx:    principal.SetPrincipalInContext(context.TODO(), "my-principal"),
-			result: "my-principal",
-			error:  nil,
-		},
-		{
-			name:   "no_principal_ERROR",
-			ctx:    context.TODO(),
-			result: "",
-			error:  principal.ErrNoPrincipalInContext,
-		},
-		{
-			name:   "empty_principal_and_no_token",
-			ctx:    principal.SetPrincipalInContext(context.TODO(), ""),
-			result: "",
-			error:  status.Error(codes.Unauthenticated, "unauthorized"),
-		},
-	}
-
-	for _, tt := range tc {
-		t.Run(tt.name, func(t *testing.T) {
-			res, err := userIDFromContext(tt.ctx)
-			assert.Equal(t, tt.result, res)
-			assert.Equal(t, tt.error, err)
-		})
-	}
-
-}
-
 func TestWrite(t *testing.T) {
 	tc := []struct {
 		name       string
@@ -80,7 +59,7 @@ func TestWrite(t *testing.T) {
 	}{
 		{
 			name: "success",
-			ctx:  principal.SetPrincipalInContext(context.TODO(), "my-principal"),
+			ctx:  setupContextWithConfig(principal.SetPrincipalInContext(context.TODO(), "my-principal")),
 			in: &openfgav1.WriteRequest{
 				StoreId:              "storeId",
 				AuthorizationModelId: "authorizationModelId",
@@ -129,12 +108,12 @@ func TestWrite(t *testing.T) {
 		},
 		{
 			name:  "no_principal_ERROR",
-			ctx:   context.TODO(),
+			ctx:   setupContextWithConfig(context.TODO()),
 			error: principal.ErrNoPrincipalInContext,
 		},
 		{
 			name: "check_ERROR",
-			ctx:  principal.SetPrincipalInContext(context.TODO(), "my-principal"),
+			ctx:  setupContextWithConfig(principal.SetPrincipalInContext(context.TODO(), "my-principal")),
 			in: &openfgav1.WriteRequest{
 				StoreId:              "storeId",
 				AuthorizationModelId: "authorizationModelId",
@@ -164,7 +143,7 @@ func TestWrite(t *testing.T) {
 		},
 		{
 			name: "check_response_is_not_allowed_ERROR",
-			ctx:  principal.SetPrincipalInContext(context.TODO(), "my-principal"),
+			ctx:  setupContextWithConfig(principal.SetPrincipalInContext(context.TODO(), "my-principal")),
 			in: &openfgav1.WriteRequest{
 				StoreId:              "storeId",
 				AuthorizationModelId: "authorizationModelId",
@@ -196,7 +175,7 @@ func TestWrite(t *testing.T) {
 		},
 		{
 			name: "upstream_write_ERROR",
-			ctx:  principal.SetPrincipalInContext(context.TODO(), "my-principal"),
+			ctx:  setupContextWithConfig(principal.SetPrincipalInContext(context.TODO(), "my-principal")),
 			in: &openfgav1.WriteRequest{
 				StoreId:              "storeId",
 				AuthorizationModelId: "authorizationModelId",
@@ -564,8 +543,7 @@ func TestAssignRoleBindings(t *testing.T) {
 			},
 		},
 		{
-			// success case assigns role "member"
-			name:  "success",
+			name:  "write_ERROR",
 			ctx:   context.TODO(),
 			error: assert.AnError,
 			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper, dbMock *dbMocks.DatabaseService) {
@@ -690,7 +668,7 @@ func TestRemoveFromEntity(t *testing.T) {
 			},
 		},
 		{
-			name:  "success",
+			name:  "write_ERROR",
 			ctx:   context.TODO(),
 			error: assert.AnError,
 			setupMocks: func(ctx context.Context, client *mocks.OpenFGAServiceClient, helper *storeMocks.FGAStoreHelper) {
