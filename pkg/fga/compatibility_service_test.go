@@ -30,9 +30,9 @@ import (
 func setupContextWithConfig(ctx context.Context) context.Context {
 	mockConfig := config.Config{
 		JWT: struct {
-			UserIdClaim string `envconfig:"default=sub"`
+			UserIDClaim string `envconfig:"default=sub"`
 		}{
-			UserIdClaim: "sub",
+			UserIDClaim: "sub",
 		},
 	}
 	return pmconfig.SetConfigInContext(ctx, mockConfig)

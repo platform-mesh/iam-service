@@ -897,7 +897,7 @@ func Test_LeaveEntity_Success(t *testing.T) {
 
 	// Add config to context
 	mockConfig := config.Config{}
-	mockConfig.JWT.UserIdClaim = "sub"
+	mockConfig.JWT.UserIDClaim = "sub"
 	ctx = pmconfig.SetConfigInContext(ctx, mockConfig)
 	ctx = mfpcontext.AddWebTokenToContext(ctx, validToken, []jose.SignatureAlgorithm{jose.RS256})
 	ctx = mfpcontext.AddAuthHeaderToContext(ctx, "Bearer token")
@@ -1705,7 +1705,7 @@ func Test_Login_NoWebToken(t *testing.T) {
 
 	// Add config to context
 	mockConfig := config.Config{}
-	mockConfig.JWT.UserIdClaim = "sub"
+	mockConfig.JWT.UserIDClaim = "sub"
 	ctx = pmconfig.SetConfigInContext(ctx, mockConfig)
 
 	// Act - no token in context
@@ -1722,7 +1722,7 @@ func Test_Login_NoTenant(t *testing.T) {
 
 	// Add config to context
 	mockConfig := config.Config{}
-	mockConfig.JWT.UserIdClaim = "sub"
+	mockConfig.JWT.UserIDClaim = "sub"
 	ctx = pmconfig.SetConfigInContext(ctx, mockConfig)
 
 	// Setup valid JWT token but no tenant
@@ -1748,7 +1748,7 @@ func Test_Login_EmptyUserFields(t *testing.T) {
 
 	// Add config to context
 	mockConfig := config.Config{}
-	mockConfig.JWT.UserIdClaim = "sub"
+	mockConfig.JWT.UserIDClaim = "sub"
 	ctx = pmconfig.SetConfigInContext(ctx, mockConfig)
 
 	// Create a token with empty fields

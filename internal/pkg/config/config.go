@@ -26,7 +26,7 @@ type Config struct {
 		QuitApi string `envconfig:"default=http://localhost:15020/quitquitquit"`
 	}
 	JWT struct {
-		UserIdClaim string `envconfig:"default=sub"`
+		UserIDClaim string `envconfig:"default=sub"`
 	}
 }
 

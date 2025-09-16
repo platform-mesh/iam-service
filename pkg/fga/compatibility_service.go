@@ -101,7 +101,7 @@ func userIDFromContext(ctx context.Context) (string, error) {
 	}
 
 	cfg := pmconfig.LoadConfigFromContext(ctx).(config.Config)
-	userId := userIdFromToken(token, cfg.JWT.UserIdClaim)
+	userId := userIdFromToken(token, cfg.JWT.UserIDClaim)
 	if userId != "" {
 		return userId, nil
 	}
