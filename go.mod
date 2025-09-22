@@ -11,7 +11,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2
 	github.com/openfga/api/proto v0.0.0-20250909173124-0ac19aac54f2
 	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20250428093642-7aeebe78bbfe
-	github.com/openfga/openfga v1.10.0
+	github.com/openfga/openfga v1.10.1
 	github.com/pkg/errors v0.9.1
 	github.com/platform-mesh/golang-commons v0.4.1
 	github.com/prometheus/client_golang v1.23.2
