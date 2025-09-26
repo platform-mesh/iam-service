@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/platform-mesh/golang-commons/context"
@@ -60,7 +61,7 @@ func NewKCPValidation(kcpKubeconfig string) (*KCPValidation, error) {
 	return &KCPValidation{restConfig: restCfg}, nil
 }
 
-func (k *KCPValidation) validateTokenHandler() func(http.Handler) http.Handler {
+func (k *KCPValidation) ValidateTokenHandler() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -74,6 +75,8 @@ func (k *KCPValidation) validateTokenHandler() func(http.Handler) http.Handler {
 				return
 			}
 			log = log.ChildLogger("tenantId", tenantId)
+			tenantParts := strings.Split(tenantId, "/")
+			clusterId := tenantParts[0]
 
 			// get token from context
 			token, err := context.GetAuthHeaderFromContext(ctx)
@@ -104,13 +107,12 @@ func (k *KCPValidation) validateTokenHandler() func(http.Handler) http.Handler {
 			}
 
 			// Use TokenReview API endpoint
-			apiURL, err := url.JoinPath(k.restConfig.Host, "/apis/authentication.k8s.io/v1/tokenreviews")
+			clusterUrl, err := url.Parse(k.restConfig.Host)
 			if err != nil {
-				log.Error().Err(errors.WithStack(err)).Msg("Error while constructing the TokenReview request URL")
-				http.Error(w, publicErrorMessage, http.StatusInternalServerError)
-				return
+				log.Error().Err(errors.WithStack(err)).Msg("Error parsing KCP host URL")
 			}
 
+			apiURL := fmt.Sprintf("%s://%s/clusters/%s/apis/authentication.k8s.io/v1/tokenreviews", clusterUrl.Scheme, clusterUrl.Host, clusterId)
 			req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewBuffer(requestBody))
 			if err != nil {
 				log.Error().Err(errors.WithStack(err)).Msg("Error creating TokenReview HTTP request")
@@ -182,7 +184,6 @@ func (k *KCPValidation) validateTokenHandler() func(http.Handler) http.Handler {
 				log.Debug().Str("username", tokenReviewResponse.Status.User.Username).Msg("Authenticated user")
 			}
 			next.ServeHTTP(w, r.WithContext(ctx))
-
 		})
 	}
 }

@@ -28,6 +28,9 @@ type Config struct {
 	JWT struct {
 		UserIDClaim string `envconfig:"default=sub"`
 	}
+	KCP struct {
+		Kubeconfig string `envconfig:"optional"`
+	}
 }
 
 // NewFromEnv creates a Config from environment values

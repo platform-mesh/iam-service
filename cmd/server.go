@@ -91,7 +91,10 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 		}
 	}(database)
 
-	tr := tenant.NewTenantReader(log, database)
+	tr, err := tenant.NewTenantReader(log, database, appConfig)
+	if err != nil {
+		log.Panic().Err(err).Msg("failed to create tenant reader")
+	}
 
 	resolver.SetDefaultScheme("passthrough")
 	log.Info().Str("addr", appConfig.Openfga.ListenAddr).Msg("starting grpc server")
@@ -136,6 +139,11 @@ func serveFunc() { // nolint: funlen,cyclop,gocognit
 	mws := pmmws.CreateMiddleware(log, true)
 	ctr := policy_services.NewCustomTenantRetriever(tr)
 	mws = append(mws, middleware.StoreTenantIdCtxValue(ctr))
+	kcpValidationMws, err := middleware.NewKCPValidation(appConfig.KCP.Kubeconfig)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create kcp validation middleware")
+	}
+	mws = append(mws, kcpValidationMws.ValidateTokenHandler())
 
 	// create Resolver
 	svc := iamservice.New(database, compatService, log)

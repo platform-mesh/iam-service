@@ -3,6 +3,7 @@ bin
 .env
 .DS_Store
 .vscode/launch.json
+.secret
 
 __debug_bin*
 .env-dataloader

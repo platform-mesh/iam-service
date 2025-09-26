@@ -22,7 +22,7 @@ func (tp *middlewareProvider) storeTenantIdCtxValue() func(http.Handler) http.Ha
 			tenantId, err := tp.retriever.RetrieveTenant(ctx)
 			if err != nil {
 				log.Error().Err(err).Msg("Error while retrieving the tenant from the iam service")
-				http.Error(w, "Error while retrieving the tenant from the iam service", http.StatusInternalServerError)
+				http.Error(w, "invalid tenant", http.StatusForbidden)
 				return
 			}
 
