@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +16,32 @@ import (
 )
 
 const publicErrorMessage = "Error while validating token"
+
+// TokenReview structs based on Kubernetes API
+type TokenReview struct {
+	APIVersion string            `json:"apiVersion"`
+	Kind       string            `json:"kind"`
+	Spec       TokenReviewSpec   `json:"spec"`
+	Status     TokenReviewStatus `json:"status,omitempty"`
+}
+
+type TokenReviewSpec struct {
+	Token     string   `json:"token"`
+	Audiences []string `json:"audiences,omitempty"`
+}
+
+type TokenReviewStatus struct {
+	Authenticated bool   `json:"authenticated"`
+	Error         string `json:"error,omitempty"`
+	User          *User  `json:"user,omitempty"`
+}
+
+type User struct {
+	Username string              `json:"username,omitempty"`
+	UID      string              `json:"uid,omitempty"`
+	Groups   []string            `json:"groups,omitempty"`
+	Extra    map[string][]string `json:"extra,omitempty"`
+}
 
 type KCPValidation struct {
 	restConfig *rest.Config
@@ -56,33 +84,55 @@ func (k *KCPValidation) validateTokenHandler() func(http.Handler) http.Handler {
 			}
 
 			// call to kcp by creating a TokenReview Request against the KCP URL
-			log.Debug().Msg("Validating token for introspection query")
+			log.Debug().Msg("Validating token using TokenReview API")
 
-			// Use namespaces endpoint for token validation - it's a resource endpoint (not discovery)
-			// so it will use the token authentication instead of being routed to admin credentials
-			apiURL, err := url.JoinPath(k.restConfig.Host, "/api/v1/namespaces")
-			if err != nil {
-				log.Error().Err(errors.WithStack(err)).Msg("Error while constructing the validation request")
-				http.Error(w, publicErrorMessage, http.StatusInternalServerError)
+			// Create TokenReview request
+			tokenReview := TokenReview{
+				APIVersion: "authentication.k8s.io/v1",
+				Kind:       "TokenReview",
+				Spec: TokenReviewSpec{
+					Token: token,
+				},
 			}
 
-			req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
+			// Marshal the TokenReview request to JSON
+			requestBody, err := json.Marshal(tokenReview)
 			if err != nil {
-				log.Error().Err(errors.WithStack(err)).Msg("Error creating NewRequestWithContext")
+				log.Error().Err(errors.WithStack(err)).Msg("Error marshaling TokenReview request")
 				http.Error(w, publicErrorMessage, http.StatusInternalServerError)
+				return
 			}
+
+			// Use TokenReview API endpoint
+			apiURL, err := url.JoinPath(k.restConfig.Host, "/apis/authentication.k8s.io/v1/tokenreviews")
+			if err != nil {
+				log.Error().Err(errors.WithStack(err)).Msg("Error while constructing the TokenReview request URL")
+				http.Error(w, publicErrorMessage, http.StatusInternalServerError)
+				return
+			}
+
+			req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewBuffer(requestBody))
+			if err != nil {
+				log.Error().Err(errors.WithStack(err)).Msg("Error creating TokenReview HTTP request")
+				http.Error(w, publicErrorMessage, http.StatusInternalServerError)
+				return
+			}
+
+			// Set Content-Type header for JSON
+			req.Header.Set("Content-Type", "application/json")
 
 			httpClient, err := rest.HTTPClientFor(k.restConfig)
 			if err != nil {
 				log.Error().Err(errors.WithStack(err)).Msg("Error creating httpClient")
 				http.Error(w, publicErrorMessage, http.StatusInternalServerError)
+				return
 			}
-			httpClient.Transport = &TokenRoundTripper{Token: token}
 
 			resp, err := httpClient.Do(req)
 			if err != nil {
-				log.Error().Err(errors.WithStack(err)).Msg("Token validation request failed")
+				log.Error().Err(errors.WithStack(err)).Msg("TokenReview request failed")
 				http.Error(w, publicErrorMessage, http.StatusInternalServerError)
+				return
 			}
 			defer func(Body io.ReadCloser) {
 				err := Body.Close()
@@ -91,42 +141,48 @@ func (k *KCPValidation) validateTokenHandler() func(http.Handler) http.Handler {
 				}
 			}(resp.Body)
 
-			log.Debug().Int("status", resp.StatusCode).Msg("Token validation response received")
+			log.Debug().Int("status", resp.StatusCode).Msg("TokenReview response received")
 
-			// Check response status
-			switch resp.StatusCode {
-			case http.StatusUnauthorized:
-				log.Debug().Msg("Token validation failed - unauthorized")
-				http.Error(w, "invalid token", http.StatusUnauthorized)
-			case http.StatusOK, http.StatusForbidden:
-				// 200 OK means the token is valid and has access
-				// 403 Forbidden means the token is valid but doesn't have permission (still authenticated)
-				log.Debug().Int("status", resp.StatusCode).Msg("Token validation successful")
-				next.ServeHTTP(w, r.WithContext(ctx))
-			default:
-				// Other status codes indicate an issue with the request or cluster
-				log.Debug().Int("status", resp.StatusCode).Msg("Token validation failed with unexpected status")
+			// Check HTTP response status
+			if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+				log.Debug().Int("status", resp.StatusCode).Msg("TokenReview request failed with unexpected status")
 				http.Error(w, publicErrorMessage, http.StatusInternalServerError)
+				return
 			}
+
+			// Parse the TokenReview response
+			responseBody, err := io.ReadAll(resp.Body)
+			if err != nil {
+				log.Error().Err(errors.WithStack(err)).Msg("Error reading TokenReview response body")
+				http.Error(w, publicErrorMessage, http.StatusInternalServerError)
+				return
+			}
+
+			var tokenReviewResponse TokenReview
+			if err := json.Unmarshal(responseBody, &tokenReviewResponse); err != nil {
+				log.Error().Err(errors.WithStack(err)).Msg("Error unmarshaling TokenReview response")
+				http.Error(w, publicErrorMessage, http.StatusInternalServerError)
+				return
+			}
+
+			// Check if token is authenticated
+			if !tokenReviewResponse.Status.Authenticated {
+				if tokenReviewResponse.Status.Error != "" {
+					log.Debug().Str("error", tokenReviewResponse.Status.Error).Msg("Token validation failed with error")
+				} else {
+					log.Debug().Msg("Token validation failed - not authenticated")
+				}
+				http.Error(w, "invalid token", http.StatusUnauthorized)
+				return
+			}
+
+			// Token is valid and authenticated
+			log.Debug().Msg("Token validation successful")
+			if tokenReviewResponse.Status.User != nil {
+				log.Debug().Str("username", tokenReviewResponse.Status.User.Username).Msg("Authenticated user")
+			}
+			next.ServeHTTP(w, r.WithContext(ctx))
 
 		})
 	}
-}
-
-type TokenRoundTripper struct {
-	Token     string
-	Transport http.RoundTripper
-}
-
-func (trt *TokenRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	req2 := req.Clone(req.Context())
-	req2.Header.Set("Authorization", "Bearer "+trt.Token)
-	return trt.transport().RoundTrip(req2)
-}
-
-func (trt *TokenRoundTripper) transport() http.RoundTripper {
-	if trt.Transport != nil {
-		return trt.Transport
-	}
-	return http.DefaultTransport
 }
