@@ -10,8 +10,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2
 	github.com/openfga/api/proto v0.0.0-20250909173124-0ac19aac54f2
-	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20250428093642-7aeebe78bbfe
-	github.com/openfga/openfga v1.10.1
+	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20250919191407-efa08b02a76a
+	github.com/openfga/openfga v1.10.2
 	github.com/pkg/errors v0.9.1
 	github.com/platform-mesh/golang-commons v0.5.0
 	github.com/prometheus/client_golang v1.23.2
