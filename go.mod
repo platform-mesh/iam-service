@@ -13,7 +13,7 @@ require (
 	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20250919191407-efa08b02a76a
 	github.com/openfga/openfga v1.10.2
 	github.com/pkg/errors v0.9.1
-	github.com/platform-mesh/golang-commons v0.5.0
+	github.com/platform-mesh/golang-commons v0.5.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/r3labs/diff/v3 v3.0.2
 	github.com/rs/zerolog v1.34.0
