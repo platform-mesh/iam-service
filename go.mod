@@ -13,7 +13,7 @@ require (
 	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20250919191407-efa08b02a76a
 	github.com/openfga/openfga v1.10.2
 	github.com/pkg/errors v0.9.1
-	github.com/platform-mesh/golang-commons v0.5.1
+	github.com/platform-mesh/golang-commons v0.5.2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/r3labs/diff/v3 v3.0.2
 	github.com/rs/zerolog v1.34.0
@@ -27,7 +27,7 @@ require (
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.0
-	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
+	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/yaml v1.6.0
 )
 
