@@ -13,7 +13,7 @@ require (
 	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20250919191407-efa08b02a76a
 	github.com/openfga/openfga v1.10.2
 	github.com/pkg/errors v0.9.1
-	github.com/platform-mesh/golang-commons v0.5.2
+	github.com/platform-mesh/golang-commons v0.5.3
 	github.com/prometheus/client_golang v1.23.2
 	github.com/r3labs/diff/v3 v3.0.2
 	github.com/rs/zerolog v1.34.0
@@ -83,7 +83,7 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/exp v0.0.0-20250911091902-df9299821621 // indirect
+	golang.org/x/exp v0.0.0-20251002181428-27f1f14c8bb9 // indirect
 	golang.org/x/sync v0.17.0 // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
