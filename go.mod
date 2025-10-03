@@ -6,7 +6,7 @@ require (
 	github.com/99designs/gqlgen v0.17.81
 	github.com/agiledragon/gomonkey/v2 v2.13.0
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a
-	github.com/go-jose/go-jose/v4 v4.1.2
+	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2
 	github.com/openfga/api/proto v0.0.0-20250909173124-0ac19aac54f2
