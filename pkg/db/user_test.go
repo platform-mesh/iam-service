@@ -19,6 +19,7 @@ import (
 
 	"github.com/platform-mesh/golang-commons/jwt"
 	"github.com/platform-mesh/golang-commons/logger"
+
 	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/platform-mesh/iam-service/pkg/db/mocks"
 	"github.com/platform-mesh/iam-service/pkg/graph"
@@ -161,6 +162,39 @@ func TestUser_GetOrCreateUser(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, existingResult)
 	assert.Equal(t, result.UserID, existingResult.UserID)
+}
+
+func TestUser_GetOrCreateUser_UpdateEmail(t *testing.T) {
+	gormDB := setupSQLiteDB(t)
+
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
+
+	database, err := db.New(getDbCfg(), gormDB, log, true, false)
+	assert.NoError(t, err)
+
+	ctx := context.TODO()
+	tenantID := "tenant1"
+	existingUser := graph.User{
+		UserID:   uuid.New().String(),
+		TenantID: tenantID,
+		Email:    "old@example.com",
+	}
+	require.NoError(t, gormDB.Create(&existingUser).Error)
+
+	input := graph.UserInput{
+		UserID: existingUser.UserID,
+		Email:  "new@example.com",
+	}
+
+	updatedUser, err := database.GetOrCreateUser(ctx, tenantID, input)
+	require.NoError(t, err)
+	require.NotNil(t, updatedUser)
+	assert.Equal(t, input.Email, updatedUser.Email)
+
+	var dbUser graph.User
+	require.NoError(t, gormDB.Where("tenant_id = ?", tenantID).Where("user_id = ?", existingUser.UserID).First(&dbUser).Error)
+	assert.Equal(t, input.Email, dbUser.Email)
 }
 
 func TestUser_GetOrCreateUser_CreateError(t *testing.T) {

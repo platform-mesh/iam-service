@@ -129,6 +129,13 @@ func (d *Database) GetOrCreateUser(ctx context.Context, tenantID string, input g
 	}
 
 	if existingUser != nil {
+		if input.Email != "" && existingUser.Email != input.Email {
+			existingUser.Email = input.Email
+			if err := d.db.Model(existingUser).Updates(map[string]any{"email": input.Email}).Error; err != nil {
+				return nil, errors.Wrap(err, "could not update user email")
+			}
+		}
+
 		return existingUser, nil
 	}
 
