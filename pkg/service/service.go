@@ -6,8 +6,12 @@ import (
 	"slices"
 	"strings"
 
+	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
 	"github.com/platform-mesh/golang-commons/errors"
 	"github.com/platform-mesh/golang-commons/logger"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/cluster"
+	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 
 	"gorm.io/gorm"
 
@@ -51,6 +55,7 @@ type Service struct {
 	Db  db.Service
 	Fga fga.Service
 	log *logger.Logger
+	mgr mcmanager.Manager
 }
 
 func (s *Service) Login(ctx context.Context) (bool, error) {
@@ -100,11 +105,12 @@ var (
 	one      = 1  // nolint: gochecknoglobals
 )
 
-func New(db db.Service, fga fga.Service, log *logger.Logger) *Service {
+func New(db db.Service, fga fga.Service, mgr mcmanager.Manager, log *logger.Logger) *Service {
 	return &Service{
 		Db:  db,
 		Fga: fga,
 		log: log,
+		mgr: mgr,
 	}
 }
 
@@ -241,14 +247,28 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 	if err := VerifyLimitsWithOverride(limit, page); err != nil {
 		return nil, err
 	}
-	logger := setupLogger(ctx)
+	log := setupLogger(ctx)
+
+	// determine fgaEntity ID
+	accInfo := &accountsv1alpha1.AccountInfo{}
+	var cl cluster.Cluster
+	cl, err := s.mgr.GetCluster(ctx, entity.EntityID)
+	if err != nil {
+		log.Error().Err(err).Str("cluster", entity.EntityID).Msg("unable to get cluster for entityID")
+		return nil, err
+	}
+	err = cl.GetClient().Get(ctx, client.ObjectKey{Name: "account"}, accInfo)
+	if err != nil {
+		log.Error().Err(err).Str("cluster", entity.EntityID).Msg("unable to get account info for entityID")
+		return nil, err
+	}
+	fgaEntityId := fmt.Sprintf("%s/%s", accInfo.Spec.Account.OriginClusterId, accInfo.Spec.Account.Name)
 
 	var userIDToRoles map[string][]string
-	var err error
 	if len(rolesfilter) > 0 {
-		userIDToRoles, err = s.Fga.UsersForEntityRolefilter(ctx, tenantID, entity.EntityID, entity.EntityType, rolesfilter)
+		userIDToRoles, err = s.Fga.UsersForEntityRolefilter(ctx, tenantID, fgaEntityId, entity.EntityType, rolesfilter)
 	} else {
-		userIDToRoles, err = s.Fga.UsersForEntity(ctx, tenantID, entity.EntityID, entity.EntityType)
+		userIDToRoles, err = s.Fga.UsersForEntity(ctx, tenantID, fgaEntityId, entity.EntityType)
 	}
 	if err != nil {
 		return nil, err
@@ -277,7 +297,7 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 	users, err := s.Db.GetUsersByUserIDs(ctx, tenantID, userIDs, *limit, *page, searchTerm, sortBy)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("unable to get users by id")
+		log.Error().Err(err).Msg("unable to get users by id")
 		return nil, err
 	}
 
@@ -321,7 +341,7 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 
 	invites, err := s.Db.GetInvitesForEntity(ctx, tenantID, entity.EntityType, entity.EntityID)
 	if err != nil {
-		logger.Error().Err(err).Str("EntityType", entity.EntityType).
+		log.Error().Err(err).Str("EntityType", entity.EntityType).
 			Str("EntityID", entity.EntityID).
 			Msg("unable to get invitations users for scope")
 		return nil, err

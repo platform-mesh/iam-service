@@ -3,13 +3,13 @@ package service
 import (
 	"context"
 	"math"
-	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
 
 	"github.com/platform-mesh/golang-commons/context/keys"
 	"github.com/platform-mesh/golang-commons/logger"
+
 	"github.com/platform-mesh/iam-service/internal/pkg/utils"
 	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/platform-mesh/iam-service/pkg/graph"
@@ -136,14 +136,9 @@ func FilterInvites(invites []db.Invite, s *string, filterRoles []*graph.RoleInpu
 }
 
 func GetUserIDsFromUserIDRoles(userIDToRoles map[string][]string) []string {
-	ownerCount := 0
 	userIDs := make([]string, 0, len(userIDToRoles))
-	for userID, UserRoles := range userIDToRoles {
+	for userID, _ := range userIDToRoles {
 		userIDs = append(userIDs, userID)
-
-		if slices.Contains(UserRoles, "owner") {
-			ownerCount++
-		}
 	}
 
 	return userIDs

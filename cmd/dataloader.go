@@ -87,10 +87,10 @@ func NewDataLoader(
 
 // loadDataToDB loads data to the database.
 func (d *DataLoader) loadDataToDB() error {
-	err := d.Database.LoadTenantConfigData(d.cfg.Database.LocalData.DataPathTenantConfiguration)
-	if err != nil {
-		log.Panic().Err(err).Msg("Error loading tenant config data")
-	}
+	//err := d.Database.LoadTenantConfigData(d.cfg.Database.LocalData.DataPathTenantConfiguration)
+	//if err != nil {
+	//	log.Panic().Err(err).Msg("Error loading tenant config data")
+	//}
 
 	if d.cfg.Database.LocalData.DataPathRoles != "" {
 		err := d.Database.LoadRoleData(d.cfg.Database.LocalData.DataPathRoles)

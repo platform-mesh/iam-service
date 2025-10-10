@@ -138,22 +138,22 @@ func New(cfg ConfigDatabase, dbConn *gorm.DB, logger *logger.Logger, migrate boo
 
 	// initialize DB with bootstrap data for local mode
 	if isLocal { // nolint: nestif
-		users, err := database.LoadUserData(cfg.LocalData.DataPathUser)
-		if err != nil {
-			logger.Error().Err(err).Str("filePath", cfg.LocalData.DataPathUser).Msg("failed to load user data")
-		}
+		//users, err := database.LoadUserData(cfg.LocalData.DataPathUser)
+		//if err != nil {
+		//	logger.Error().Err(err).Str("filePath", cfg.LocalData.DataPathUser).Msg("failed to load user data")
+		//}
 		err = database.LoadInvitationData(cfg.LocalData.DataPathInvitations)
 		if err != nil {
 			logger.Error().Err(err).Str("filePath", cfg.LocalData.DataPathInvitations).Msg("failed to load invitation data")
 		}
-		err = database.LoadTeamData(cfg.LocalData.DataPathTeam, users)
-		if err != nil {
-			logger.Error().Err(err).Str("filePath", cfg.LocalData.DataPathTeam).Msg("failed to load team data")
-		}
-		err = database.LoadTenantConfigData(cfg.LocalData.DataPathTenantConfiguration)
-		if err != nil {
-			logger.Error().Err(err).Str("filePath", cfg.LocalData.DataPathTenantConfiguration).Msg("failed to load tenant config data")
-		}
+		//err = database.LoadTeamData(cfg.LocalData.DataPathTeam, users)
+		//if err != nil {
+		//	logger.Error().Err(err).Str("filePath", cfg.LocalData.DataPathTeam).Msg("failed to load team data")
+		//}
+		//err = database.LoadTenantConfigData(cfg.LocalData.DataPathTenantConfiguration)
+		//if err != nil {
+		//	logger.Error().Err(err).Str("filePath", cfg.LocalData.DataPathTenantConfiguration).Msg("failed to load tenant config data")
+		//}
 		err = database.LoadRoleData(cfg.LocalData.DataPathRoles)
 		if err != nil {
 			logger.Error().Err(err).Str("filePath", cfg.LocalData.DataPathRoles).Msg("failed to load role data")

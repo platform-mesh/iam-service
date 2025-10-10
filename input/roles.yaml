@@ -1,20 +1,7 @@
 - displayName: Owner
   technicalName: owner
-  entityType: project
+  entityType: core_platform-mesh_io_account
 - displayName: Member
   technicalName: member
-  entityType: project
-- displayName: Vault Maintainer
-  technicalName: vault_maintainer
-  entityType: project
-
-- displayName: Owner
-  technicalName: owner
-  entityType: team
-- displayName: Member
-  technicalName: member
-  entityType: team
-- displayName: Vault Maintainer
-  technicalName: vault_maintainer
-  entityType: team
+  entityType: core_platform-mesh_io_account
 

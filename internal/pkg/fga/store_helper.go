@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/golang-lru/v2/expirable"
@@ -25,19 +24,13 @@ func NewStoreHelper() *StoreHelper {
 
 var _ openmfpfga.FGAStoreHelper = (*StoreHelper)(nil)
 
-func (d StoreHelper) GetStoreIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error) {
+func (d StoreHelper) GetStoreIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgName string) (string, error) {
 
-	cacheKey := "store-" + orgID
+	cacheKey := "store-" + orgName
 	s, ok := d.cache.Get(cacheKey)
 	if ok && s != "" {
 		return s, nil
 	}
-
-	orgIDSplit := strings.Split(orgID, "/")
-	if len(orgIDSplit) != 2 {
-		return "", fmt.Errorf("invalid tenant id expecting format `cluster/name`")
-	}
-	orgName := orgIDSplit[1]
 
 	stores, err := conn.ListStores(ctx, &openfgav1.ListStoresRequest{})
 	if err != nil {
@@ -49,7 +42,7 @@ func (d StoreHelper) GetStoreIDForTenant(ctx context.Context, conn openfgav1.Ope
 		return store.Name == orgName
 	})
 	if idx == -1 {
-		return "", fmt.Errorf("store with name %s not found", orgID)
+		return "", fmt.Errorf("store with name %s not found", orgName)
 	}
 
 	storeID := stores.Stores[idx].Id

@@ -13,6 +13,8 @@ import (
 	commonsfga "github.com/platform-mesh/golang-commons/fga/store"
 	"github.com/rs/zerolog/log"
 	"github.com/vektah/gqlparser/v2/gqlerror"
+
+	"github.com/platform-mesh/iam-service/internal/pkg/middleware"
 )
 
 func extractNestedKeyFromArgs(args map[string]any, paramName string) (string, error) {
@@ -84,12 +86,25 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next gqlgen.
 		return nil, err
 	}
 
-	tenantID, err := extractNestedKeyFromArgs(fieldCtx.Args, "tenantId")
-	if err != nil {
-		return nil, err
+	tenantId, err := pmctx.GetTenantFromContext(ctx)
+	if err != nil || tenantId == "" {
+		return nil, fmt.Errorf("tenant not found in context: %w", err)
 	}
 
-	storeID, err := a.StoreHelper.GetStoreIDForTenant(ctx, a.openfgaClient, tenantID)
+	if entityID != tenantId {
+		return nil, fmt.Errorf("entityID %s does not match tenantId %s", entityID, tenantId)
+	}
+
+	organizationAccountName := ctx.Value(middleware.OrganizationAccountName).(string)
+	if organizationAccountName == "" {
+		return nil, fmt.Errorf("organization account name not found in context")
+	}
+	parentClusterId := ctx.Value(middleware.ParentClusterId).(string)
+	if parentClusterId == "" {
+		return nil, fmt.Errorf("parentClusterId account name not found in context")
+	}
+
+	storeID, err := a.StoreHelper.GetStoreIDForTenant(ctx, a.openfgaClient, organizationAccountName)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +120,7 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next gqlgen.
 		TupleKey: &openfgav1.CheckRequestTupleKey{
 			User:     fmt.Sprintf("user:%s", user.Mail), // FIXME: for now, as the email is not the subject of the token
 			Relation: relation,
-			Object:   fmt.Sprintf("core_platform-mesh_io_account:%s", entityID),
+			Object:   fmt.Sprintf("core_platform-mesh_io_account:%s/%s", parentClusterId, organizationAccountName),
 		},
 	}
 

@@ -5,18 +5,15 @@ import (
 	"fmt"
 	"regexp"
 
+	kcptenancyv1alpha1 "github.com/kcp-dev/kcp/sdk/apis/tenancy/v1alpha1"
+	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
 	commonsCtx "github.com/platform-mesh/golang-commons/context"
 	"github.com/platform-mesh/golang-commons/errors"
 	"github.com/platform-mesh/golang-commons/logger"
 	"github.com/platform-mesh/golang-commons/policy_services"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/platform-mesh/iam-service/internal/pkg/config"
-	"github.com/platform-mesh/iam-service/pkg/db"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 )
 
 var accountsGVR = schema.GroupVersionResource{
@@ -24,25 +21,23 @@ var accountsGVR = schema.GroupVersionResource{
 	Version:  "v1alpha1",
 	Resource: "accounts",
 }
-
-type TenantReader struct {
-	log       *logger.Logger
-	dynClient dynamic.Interface
+var workspaceGVR = schema.GroupVersionResource{
+	Group:    "tenancy.kcp.io",
+	Version:  "v1alpha1",
+	Resource: "workspaces",
 }
 
-func NewTenantReader(logger *logger.Logger, database db.Service, appConfig config.Config) (policy_services.TenantIdReader, error) { // nolint: ireturn
-	cfg, err := clientcmd.BuildConfigFromFlags("", appConfig.KCP.Kubeconfig)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to build kcp rest config")
-	}
+type TenantReader struct {
+	log             *logger.Logger
+	mgr             mcmanager.Manager
+	orgsClusterName string
+}
 
-	dynClient, err := dynamic.NewForConfig(cfg)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create dynamic client")
-	}
+func NewTenantReader(logger *logger.Logger, mgr mcmanager.Manager, orgsClusterName string) (policy_services.TenantIdReader, error) { // nolint: ireturn
 	return &TenantReader{
-		log:       logger,
-		dynClient: dynClient,
+		log:             logger,
+		mgr:             mgr,
+		orgsClusterName: orgsClusterName,
 	}, nil
 }
 
@@ -71,6 +66,11 @@ func (s *TenantReader) GetTenantForContext(ctx context.Context) (string, error) 
 		return "", err
 	}
 
+	cluster, err := s.mgr.GetCluster(ctx, s.orgsClusterName)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get orgs cluster from multicluster manager")
+	}
+
 	// Parse realm from issuer
 	regex := regexp.MustCompile(`^.*\/realms\/(.*?)\/?$`)
 	if !regex.MatchString(tokenInfo.Issuer) {
@@ -84,22 +84,25 @@ func (s *TenantReader) GetTenantForContext(ctx context.Context) (string, error) 
 		return "", errors.New("invalid tenant")
 	}
 
-	unstructuredAccount, err := s.dynClient.Resource(accountsGVR).Get(ctx, realm, metav1.GetOptions{})
+	acc := &accountsv1alpha1.Account{}
+	err = cluster.GetClient().Get(ctx, client.ObjectKey{Name: realm}, acc)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get account from kcp")
 	}
 
-	val, found, err := unstructured.NestedString(unstructuredAccount.UnstructuredContent(), "spec", "type")
-	if !found || err != nil {
-		return "", errors.New("account type not found in kcp")
-	}
-
-	if val != "org" {
+	if acc.Spec.Type != "org" {
 		return "", errors.New("invalid account type, expected 'org'")
 	}
-	clusterId, found, err := unstructured.NestedString(unstructuredAccount.UnstructuredContent(), "metadata", "annotations", "kcp.io/cluster")
-	if !found || err != nil {
-		return "", errors.New("clusterid not found")
+
+	ws := &kcptenancyv1alpha1.Workspace{}
+	err = cluster.GetClient().Get(ctx, client.ObjectKey{Name: acc.Name}, ws)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get workspace from kcp")
 	}
-	return fmt.Sprintf("%s/%s", clusterId, realm), nil
+
+	parentClusterId := ws.Annotations["kcp.io/cluster"]
+	if parentClusterId == "" {
+		return "", errors.New("parent cluster not found")
+	}
+	return fmt.Sprintf("%s/%s/%s", parentClusterId, realm, ws.Spec.Cluster), nil
 }
