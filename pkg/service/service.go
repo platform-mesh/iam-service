@@ -9,6 +9,8 @@ import (
 	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
 	"github.com/platform-mesh/golang-commons/errors"
 	"github.com/platform-mesh/golang-commons/logger"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
@@ -23,6 +25,7 @@ import (
 	"go.opentelemetry.io/otel"
 
 	"github.com/platform-mesh/iam-service/internal/pkg/config"
+	"github.com/platform-mesh/iam-service/internal/pkg/middleware"
 	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/platform-mesh/iam-service/pkg/fga"
 	"github.com/platform-mesh/iam-service/pkg/graph"
@@ -264,11 +267,16 @@ func (s *Service) UsersOfEntity( // nolint: funlen, cyclop, gocognit
 	}
 	fgaEntityId := fmt.Sprintf("%s/%s", accInfo.Spec.Account.OriginClusterId, accInfo.Spec.Account.Name)
 
+	organizationName := ctx.Value(middleware.OrganizationAccountName).(string)
+	if organizationName == "" {
+		return nil, status.Error(codes.Internal, "organization name is missing in context")
+	}
+
 	var userIDToRoles map[string][]string
 	if len(rolesfilter) > 0 {
-		userIDToRoles, err = s.Fga.UsersForEntityRolefilter(ctx, tenantID, fgaEntityId, entity.EntityType, rolesfilter)
+		userIDToRoles, err = s.Fga.UsersForEntityRolefilter(ctx, organizationName, fgaEntityId, entity.EntityType, rolesfilter)
 	} else {
-		userIDToRoles, err = s.Fga.UsersForEntity(ctx, tenantID, fgaEntityId, entity.EntityType)
+		userIDToRoles, err = s.Fga.UsersForEntity(ctx, organizationName, fgaEntityId, entity.EntityType)
 	}
 	if err != nil {
 		return nil, err

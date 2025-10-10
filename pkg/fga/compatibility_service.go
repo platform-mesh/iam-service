@@ -23,7 +23,6 @@ import (
 	commonsSentry "github.com/platform-mesh/golang-commons/sentry"
 
 	"github.com/platform-mesh/iam-service/internal/pkg/config"
-	"github.com/platform-mesh/iam-service/internal/pkg/middleware"
 	"github.com/platform-mesh/iam-service/internal/pkg/utils"
 	"github.com/platform-mesh/iam-service/pkg/db"
 	"github.com/platform-mesh/iam-service/pkg/fga/middleware/principal"
@@ -195,12 +194,7 @@ func (s *CompatService) UsersForEntity(
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.GrantedUsers")
 	defer span.End()
 
-	organizationName := ctx.Value(middleware.OrganizationAccountName).(string)
-	if organizationName == "" {
-		return nil, status.Error(codes.Internal, "organization name is missing in context")
-	}
-
-	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, organizationName)
+	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -263,12 +257,7 @@ func (s *CompatService) UsersForEntityRolefilter(
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.GrantedUsers")
 	defer span.End()
 
-	organizationName := ctx.Value(middleware.OrganizationAccountName).(string)
-	if organizationName == "" {
-		return nil, status.Error(codes.Internal, "organization name is missing in context")
-	}
-
-	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, organizationName)
+	storeID, err := s.helper.GetStoreIDForTenant(ctx, s.upstream, tenantID)
 	if err != nil {
 		return nil, err
 	}
