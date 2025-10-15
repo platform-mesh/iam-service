@@ -2,23 +2,20 @@ package resolver
 
 import (
 	"github.com/platform-mesh/golang-commons/logger"
-	"github.com/platform-mesh/iam-service/pkg/service"
+
+	"github.com/platform-mesh/iam-service/pkg/resolver/api"
 )
 
-//go:generate go run github.com/99designs/gqlgen@v0.17.72 generate
-
-// This file will not be regenerated automatically.
-//
-// It serves as dependency injection for your app, add any dependencies you require here.
+//go:generate go run github.com/99designs/gqlgen@v0.17.81 generate
 
 type Resolver struct {
-	service service.ServiceInterface
-	logger  *logger.Logger
+	svc    api.ResolverService
+	logger *logger.Logger
 }
 
-func New(service service.ServiceInterface, logger *logger.Logger) *Resolver {
+func New(svc api.ResolverService, logger *logger.Logger) *Resolver {
 	return &Resolver{
-		service: service,
-		logger:  logger,
+		svc:    svc,
+		logger: logger,
 	}
 }

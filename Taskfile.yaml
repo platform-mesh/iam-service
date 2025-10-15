@@ -18,6 +18,11 @@ tasks:
       - test -s {{.LOCAL_BIN}}/go-test-coverage || GOBIN=$(pwd)/{{.LOCAL_BIN}} go install github.com/vladopajic/go-test-coverage/v2@latest
 
   ## Development
+  generate:
+    deps: [mockery]
+    cmds:
+      - task: mockery
+      - go generate ./...
   mockery:
     deps: [setup:mockery]
     cmds:

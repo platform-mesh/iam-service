@@ -22,10 +22,10 @@ type ConfigDatabase struct {
 }
 
 type DatabaseLocalData struct {
-	DataPathUser                string `envconfig:"default=input/user.yaml"`
-	DataPathInvitations         string `envconfig:"default=input/invitations.yaml"`
-	DataPathTeam                string `envconfig:"default=input/team.yaml"`
-	DataPathTenantConfiguration string `envconfig:"default=input/tenantConfigurations.yaml"`
-	DataPathRoles               string `envconfig:"optional"`
-	DataPathDomainConfiguration string `envconfig:"default=input/domainConfigurations.yaml"`
+	//DataPathUser                string `envconfig:"default=input/user.yaml"`
+	//DataPathInvitations         string `envconfig:"default=input/invitations.yaml"`
+	//DataPathTeam                string `envconfig:"default=input/team.yaml"`
+	//DataPathTenantConfiguration string `envconfig:"default=input/tenantConfigurations.yaml"`
+	DataPathRoles string `envconfig:"default=input/roles.yaml"`
+	//DataPathDomainConfiguration string `envconfig:"default=input/domainConfigurations.yaml"`
 }

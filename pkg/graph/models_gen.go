@@ -15,15 +15,20 @@ type Mutation struct {
 type Query struct {
 }
 
-// Holds a payload of a role input - label, id, display name and technical name
-type RoleInput struct {
-	DisplayName   string `json:"displayName"`
-	TechnicalName string `json:"technicalName"`
+type Resource struct {
+	Name      string  `json:"name"`
+	Namespace *string `json:"namespace,omitempty"`
 }
 
 type SortByInput struct {
 	Field     SortableFields `json:"field"`
 	Direction SortDirection  `json:"direction"`
+}
+
+// Holds the information about a specific user and and a list of roles that should be assigned to the user
+type UserRoleChange struct {
+	UserID string   `json:"userId"`
+	Roles  []string `json:"roles"`
 }
 
 type SortDirection string
