@@ -1,15 +1,21 @@
 package cmd
 
 import (
+	apisv1alpha1 "github.com/kcp-dev/kcp/sdk/apis/apis/v1alpha1"
+	tenancyv1alpha1 "github.com/kcp-dev/kcp/sdk/apis/tenancy/v1alpha1"
+	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
 	platformmeshcontext "github.com/platform-mesh/golang-commons/config"
 	"github.com/platform-mesh/golang-commons/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/platform-mesh/iam-service/internal/config"
 )
 
 var (
+	scheme     = runtime.NewScheme()
 	serviceCfg = &config.ServiceConfig{}
 	defaultCfg *platformmeshcontext.CommonServiceConfig
 	v          *viper.Viper
@@ -22,6 +28,9 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
+	utilruntime.Must(accountsv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(tenancyv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(apisv1alpha1.AddToScheme(scheme))
 	rootCmd.AddCommand(serverCmd)
 
 	var err error
@@ -29,10 +38,12 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
 	err = platformmeshcontext.BindConfigToFlags(v, serverCmd, serviceCfg)
 	if err != nil {
 		panic(err)
 	}
+	v.SetDefault("idm-excluded-tenants", []string{"welcome"})
 
 	cobra.OnInitialize(initLog)
 }

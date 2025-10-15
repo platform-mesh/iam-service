@@ -8,9 +8,15 @@ type ServiceConfig struct {
 	JWT struct {
 		UserIDClaim string `mapstructure:"jwt-user-id-claim" default:"sub"`
 	} `mapstructure:",squash"`
+	KCP struct {
+		OrgsClusterName string `mapstructure:"kcp-orgs-cluster-name"`
+	} `mapstructure:",squash"`
+	IDM struct {
+		ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
+	} `mapstructure:",squash"`
 	Keycloak struct {
 		BaseURL      string `mapstructure:"keycloak-base-url" default:"https://portal.dev.local:8443/keycloak"`
-		ClientID     string `mapstructure:"keycloak-client-id" default:"iam-service"`
+		ClientID     string `mapstructure:"keycloak-client-id" default:"admin-cli"`
 		User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
 		PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
 	} `mapstructure:",squash"`

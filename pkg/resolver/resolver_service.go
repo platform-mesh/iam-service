@@ -21,6 +21,6 @@ func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, idmClient idm.
 	}
 }
 
-func (s *Service) UserById(ctx context.Context, userID string) (*graph.User, error) {
-	panic("implement me")
+func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, error) {
+	return s.idmClient.UserByMail(ctx, userID)
 }

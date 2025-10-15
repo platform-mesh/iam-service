@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -10,20 +11,29 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/kcp-dev/multicluster-provider/apiexport"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	pmmws "github.com/platform-mesh/golang-commons/middleware"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-
-	"github.com/platform-mesh/iam-service/internal/config"
-	"github.com/platform-mesh/iam-service/pkg/resolver"
+	"k8s.io/client-go/rest"
+	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 
 	"github.com/platform-mesh/golang-commons/logger"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+
+	"github.com/platform-mesh/iam-service/internal/config"
+	kcpmiddleware "github.com/platform-mesh/iam-service/pkg/middleware/kcp"
+	keycloakmw "github.com/platform-mesh/iam-service/pkg/middleware/keycloak"
+	"github.com/platform-mesh/iam-service/pkg/resolver"
+	"github.com/platform-mesh/iam-service/pkg/service/idm/keycloak"
 
 	pmcontext "github.com/platform-mesh/golang-commons/context"
+
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	iamRouter "github.com/platform-mesh/iam-service/internal/pkg/router"
 )
@@ -41,6 +51,38 @@ func serveFunc() {
 	ctx, _, shutdown := pmcontext.StartContext(log, serviceCfg, defaultCfg.ShutdownTimeout)
 	defer shutdown()
 
+	mgr := setupManagerAsync(ctx, log)
+	router := setupRouter(ctx, mgr, setupFGAClient())
+	start(serviceCfg, router, ctx, log, defaultCfg.IsLocal)
+}
+
+func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1.OpenFGAServiceClient) *chi.Mux {
+	kcpmw := kcpmiddleware.New(mgr, serviceCfg, log, &keycloakmw.KeycloakIDMRetriever{})
+	mws := pmmws.CreateMiddleware(log, true)
+	mws = append(mws, kcpmw.SetKCPUserContext())
+	//tr := tenant.NewTenantReader(log, database)
+	//ctr := policy_services.NewCustomTenantRetriever(tr)
+	//mws = append(mws, middleware.StoreTenantIdCtxValue(ctr))
+
+	// Prepare Directives
+	//directives := iamRouter.WithAuthorizedDirective(ad.Authorized)
+
+	// create Resolver Service
+	idmClient, err := keycloak.New(ctx, serviceCfg)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create keycloak client")
+	}
+	svc := resolver.NewResolverService(fgaClient, idmClient)
+	//.New(database, compatService, log)
+	//ad := directives.NewAuthorizedDirective(fgaStoreHelper, openfgaClient)
+
+	res := resolver.New(svc, log.ComponentLogger("resolver"))
+	//router := iamRouter.CreateRouter(serviceCfg, res, log, mws, directives)
+	router := iamRouter.CreateRouter(defaultCfg, serviceCfg, res, log, mws)
+	return router
+}
+
+func setupFGAClient() openfgav1.OpenFGAServiceClient {
 	fgaConn, err := grpc.NewClient(serviceCfg.OpenFGA.GRPCAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
@@ -50,29 +92,55 @@ func serveFunc() {
 	}
 
 	fgaClient := openfgav1.NewOpenFGAServiceClient(fgaConn)
+	return fgaClient
+}
 
-	// Prepare Middlewares
-	mws := pmmws.CreateMiddleware(log, true)
-	//tr := tenant.NewTenantReader(log, database)
-	//ctr := policy_services.NewCustomTenantRetriever(tr)
-	//mws = append(mws, middleware.StoreTenantIdCtxValue(ctr))
+func setupManagerAsync(ctx context.Context, log *logger.Logger) mcmanager.Manager {
+	restCfg := ctrl.GetConfigOrDie()
+	restCfg.Wrap(func(rt http.RoundTripper) http.RoundTripper {
+		return otelhttp.NewTransport(rt)
+	})
+	providerCfg := rest.CopyConfig(restCfg)
+	provider, err := apiexport.New(providerCfg, apiexport.Options{Scheme: scheme})
+	if err != nil {
+		log.Fatal().Err(err).Msg("unable to construct APIExport provider")
+	}
+	var tlsOpts []func(*tls.Config)
+	disableHTTP2 := func(c *tls.Config) {
+		log.Info().Msg("disabling http/2")
+		c.NextProtos = []string{"http/1.1"}
+	}
+	if !defaultCfg.EnableHTTP2 {
+		tlsOpts = append(tlsOpts, disableHTTP2)
+	}
+	mgr, err := mcmanager.New(providerCfg, provider, mcmanager.Options{
+		Scheme: scheme,
+		Metrics: metricsserver.Options{
+			BindAddress:   defaultCfg.Metrics.BindAddress,
+			SecureServing: defaultCfg.Metrics.Secure,
+			TLSOpts:       tlsOpts,
+		},
+		BaseContext:            func() context.Context { return ctx },
+		HealthProbeBindAddress: defaultCfg.HealthProbeBindAddress,
+		LeaderElection:         false,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("unable to start manager")
+	}
+	log.Info().Msg("starting APIExport provider")
+	go func() {
+		if err := provider.Run(ctx, mgr); err != nil {
+			log.Fatal().Err(err).Msg("problem running APIExport provider")
+		}
+	}()
 
-	// Prepare Directives
-	//directives := iamRouter.WithAuthorizedDirective(ad.Authorized)
-
-	// create Resolver Service
-	idmClient := keycloak.New()
-	svc := resolver.NewResolverService(fgaClient)
-	//.New(database, compatService, log)
-	//ad := directives.NewAuthorizedDirective(fgaStoreHelper, openfgaClient)
-
-	res := resolver.New(svc, log.ComponentLogger("resolver"))
-	//router := iamRouter.CreateRouter(serviceCfg, res, log, mws, directives)
-	router := iamRouter.CreateRouter(defaultCfg, serviceCfg, res, log, mws)
-	setupObsHandler(router, log)
-
-	log.Info().Msg("Resolver created")
-	start(serviceCfg, router, ctx, log, defaultCfg.IsLocal)
+	log.Info().Msg("starting manager")
+	go func() {
+		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+			log.Fatal().Err(err).Msg("problem running manager")
+		}
+	}()
+	return mgr
 }
 
 func start(serviceCfg *config.ServiceConfig, router *chi.Mux, ctx context.Context, log *logger.Logger, isLocal bool) {
@@ -103,21 +171,4 @@ func start(serviceCfg *config.ServiceConfig, router *chi.Mux, ctx context.Contex
 	if err != nil {
 		log.Panic().Err(err).Msg("Graceful shutdown failed")
 	}
-}
-
-func setupObsHandler(router *chi.Mux, log *logger.Logger) {
-	metricsHandler := promhttp.Handler()
-	router.Handle("/metrics", metricsHandler)
-	router.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		_, err := w.Write([]byte("OK"))
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to write response for health check")
-		}
-	})
-	router.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
-		_, err := w.Write([]byte("OK"))
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to write response for readiness check")
-		}
-	})
 }
