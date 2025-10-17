@@ -27,8 +27,8 @@ func (r *queryResolver) Roles(ctx context.Context, context graph.ResourceContext
 }
 
 // Users is the resolver for the users field.
-func (r *queryResolver) Users(ctx context.Context, context graph.ResourceContext, roleFilters []string, sortBy *graph.SortByInput) (*graph.GrantedUserConnection, error) {
-	panic(fmt.Errorf("not implemented: Users - users"))
+func (r *queryResolver) Users(ctx context.Context, context graph.ResourceContext, roleFilters []string, sortBy *graph.SortByInput) (*graph.UserConnection, error) {
+	return r.svc.Users(ctx, context, roleFilters, sortBy)
 }
 
 // User is the resolver for the user field.

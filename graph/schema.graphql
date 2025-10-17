@@ -25,11 +25,6 @@ type PageInfo {
     hasPreviousPage: Boolean!
 }
 
-""" List of the users """
-type UserConnection {
-    users: [User!]!
-    pageInfo: PageInfo
-}
 
 """ Represents a user """
 type User {
@@ -49,14 +44,14 @@ type Role {
 }
 
 """ Contains all roles that are granted to a user """
-type GrantedUser {
+type UserRoles {
     user: User!
-    roles: [Role!]
+    roles: [Role!]!
 }
 
 """ Is a list of the users and their roles """
-type GrantedUserConnection {
-    users: [GrantedUser!]!
+type UserConnection {
+    users: [UserRoles!]!
     """ number of granted users in the list """
     pageInfo: PageInfo!
 }
@@ -64,7 +59,7 @@ type GrantedUserConnection {
 """ Result of role assignment operation """
 type RoleAssignmentResult {
     success: Boolean!
-    errors: [String!]!
+    errors: [String!]
     assignedCount: Int!
 }
 
@@ -111,7 +106,7 @@ type Query {
     """ roles returns the list of assignable roles for a particular groupResource/resource e.g. What roles can be assigned for a specific core_platform-mesh_io_account"""
     roles(context: ResourceContext!): [Role]! # read_roles permission required get_iam_roles
     """ returns all users that have roles assigned for a particular groupResource/resource."""
-    users(context: ResourceContext!, roleFilters: [String!], sortBy: SortByInput): GrantedUserConnection! # you need to be a "member" of the project get_iam_users
+    users(context: ResourceContext!, roleFilters: [String!], sortBy: SortByInput): UserConnection! # you need to be a "member" of the project get_iam_users
     """ returns a specific user by userId"""
     user(userId: String!): User # you need to be a "member" of the organization get_iam_users
     """ returns my user information"""

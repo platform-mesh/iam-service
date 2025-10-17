@@ -9,19 +9,6 @@ import (
 	"strconv"
 )
 
-// Contains all roles that are granted to a user
-type GrantedUser struct {
-	User  *User   `json:"user"`
-	Roles []*Role `json:"roles,omitempty"`
-}
-
-// Is a list of the users and their roles
-type GrantedUserConnection struct {
-	Users []*GrantedUser `json:"users"`
-	//  number of granted users in the list
-	PageInfo *PageInfo `json:"pageInfo"`
-}
-
 type Mutation struct {
 }
 
@@ -65,7 +52,7 @@ type Role struct {
 // Result of role assignment operation
 type RoleAssignmentResult struct {
 	Success       bool     `json:"success"`
-	Errors        []string `json:"errors"`
+	Errors        []string `json:"errors,omitempty"`
 	AssignedCount int      `json:"assignedCount"`
 }
 
@@ -89,16 +76,23 @@ type User struct {
 	LastName  *string `json:"lastName,omitempty"`
 }
 
-// List of the users
+// Is a list of the users and their roles
 type UserConnection struct {
-	Users    []*User   `json:"users"`
-	PageInfo *PageInfo `json:"pageInfo,omitempty"`
+	Users []*UserRoles `json:"users"`
+	//  number of granted users in the list
+	PageInfo *PageInfo `json:"pageInfo"`
 }
 
 // Holds information about a specific user and a list of roles that should be assigned to the user
 type UserRoleChange struct {
 	UserID string   `json:"userId"`
 	Roles  []string `json:"roles"`
+}
+
+// Contains all roles that are granted to a user
+type UserRoles struct {
+	User  *User   `json:"user"`
+	Roles []*Role `json:"roles"`
 }
 
 type SortDirection string

@@ -32,6 +32,9 @@ func (s *Service) User(ctx context.Context, userID string) (*graph.User, error) 
 	return s.keycloakService.UserByMail(ctx, userID)
 }
 
+func (s *Service) Users(ctx context.Context, context graph.ResourceContext, roleFilters []string, sortBy *graph.SortByInput) (*graph.UserConnection, error) {
+	panic("not implemented")
+}
 func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycloak.Service) *Service {
 	return &Service{
 		fgaClient:       fgaClient,
