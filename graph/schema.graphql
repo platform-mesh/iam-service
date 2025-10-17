@@ -1,3 +1,8 @@
+# TODO
+# - invites
+# - remove role from myself?
+# - authorization directives
+
 ## enums
 enum SortableFields {
     user
@@ -85,84 +90,7 @@ type Mutation {
     assignRolesToUsers(groupResource: String!, resource: Resource!, accountPath: String!, changes: [UserRoleChange!]!): Boolean! # manage_roles permission required manage_iam_roles
     removeRole(groupResource: String!, resource: Resource!, accountPath: String!, userId: String!, role: String!): Boolean! # manage_roles permission required manage_iam_roles
 }
-
-# TODO
-# - invites
-# - remove role from myself?
-
 schema{
     query: Query
     mutation: Mutation
 }
-
-# Directives
-#directive @tenant(peers: Boolean!) on FIELD_DEFINITION
-#directive @user(peers: Boolean!) on FIELD_DEFINITION
-#directive @peersOnly on FIELD_DEFINITION
-#directive @authorized(
-#    relation: String!
-#    entityType: String
-#    entityTypeParamName: String
-#    entityParamName: String!
-#) on FIELD_DEFINITION
-
-
-#Archive
-
-#type Mutation {
-    #    inviteUser(tenantId: String!, invite: Invite!, notifyByEmail: Boolean!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
-    #
-    #    deleteInvite(tenantId: String!, invite: Invite!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
-    #    assignRoleBindings(tenantId: ID!, entityType: String!, entityId: ID!, input: [Change]!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
-    #    removeFromEntity(tenantId: ID!, entityType: String!, userId: ID!, entityId: ID!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
-    #    leaveEntity(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @authorized(relation: "member", entityTypeParamName: "entityType", entityParamName: "entityId")
-    #
-    #    ## Only for administrative use
-    #    createUser(tenantId: String!, input: UserInput!): User! @peersOnly
-    #    removeUser(tenantId:String!, userId: String, email: String): Boolean @peersOnly
-    #
-    #    """ Creates or updates an user corresponding to the web token passed in an HTTP header """
-    #    login: Boolean!
-#}
-
-#type Query {
-#        usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false, searchTerm: String, roles: [RoleInput], sortBy: SortByInput): GrantedUserConnection @authorized(relation: "create", entityParamName: "tenantId", entityType: "core_platform-mesh_io_account")
-#        rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @authorized(relation: "create", entityParamName: "tenantId", entityType: "core_platform-mesh_io_account")
-#        availableRolesForEntity(tenantId: ID!, entity: EntityInput!): [Role]! @authorized(relation: "member", entityTypeParamName: "entity.entityType", entityParamName: "entity.entityId")
-#        availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
-#        user(tenantId:String!, userId:String!): User  @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
-#        userByEmail(tenantId:String!, email:String!): User  @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
-#        usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @authorized(relation: "create", entityParamName: "tenantId", entityType: "core_platform-mesh_io_account")
-#        searchUsers(query: String!) : [User]!
-#        tenantInfo(tenantId: String): TenantInfo!
-#        usersByIds(tenantId: String!, userIds: [String!]!): [User]! @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
-#}
-
-#""" Holds a payload of any Entity (team, project etc.) - type and id """
-#input EntityInput {
-#    """ The type of entity e.g. team, project etc. """
-#    entityType: String!
-#    """ The identifier for the entity itself e.g. name or id"""
-#    entityId: ID!
-#}
-#
-#""" Holds a payload of a role input - label, id, display name and technical name """
-#input RoleInput {
-#    displayName: String!
-#    technicalName: String!
-#}
-#""" Holds a payload to create a new user """
-#input UserInput {
-#    userId: String!
-#    email: String!
-#    firstName: String
-#    lastName: String
-#    invitationOutstanding: Boolean
-#}
-#
-#""" Answer the question who is invited, to which entity and which roles should be assigned """
-#input Invite {
-#    email: String!
-#    entity: EntityInput!
-#    roles: [String!]!
-#}
