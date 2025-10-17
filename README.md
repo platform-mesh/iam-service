@@ -15,16 +15,38 @@ go run ./main.go serve
 
 ## Description
 
-The Platform Mesh iam-service exposes a graphql API that is primarily used by user management UIs.
+The Platform Mesh IAM service is a Go-based microservice that provides a GraphQL API for user management and authorization. The service uses:
+
+- **OpenFGA** for fine-grained authorization backend
+- **KCP** for multi-cluster resource management
+- **Keycloak** for identity management
 
 ## Features
-- Backend for frontend API's to manage user data
+- GraphQL API for user and role management
+- Multi-tenant authorization through OpenFGA
+- Multi-cluster resource coordination via KCP
+- Keycloak integration for identity provider support
 
+## Architecture
 
-#### Prerequisites
+This service has been refactored to eliminate traditional database dependencies, instead using:
+- OpenFGA as the authorization data backend
+- KCP for Kubernetes resource management
+- Keycloak for user identity management
 
-1. Platform Mesh installation (openfga and KCP)
+## Quick Start
 
+### Prerequisites
+1. Go 1.25.1+
+2. Platform Mesh installation (OpenFGA and KCP)
+3. Task runner (optional)
+
+### Development Setup
+1. Copy `.env.sample` to `.env` and configure services
+2. Run the service: `go run ./main.go serve`
+3. Load test data: `go run main.go dataload --schema=$SCHEMA_PATH --file=$DATA_PATH --tenants=tenant1,tenant2`
+
+For detailed development information, architecture details, and contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Releasing
 
