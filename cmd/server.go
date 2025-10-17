@@ -120,6 +120,7 @@ func setupManagerAsync(ctx context.Context, log *logger.Logger) mcmanager.Manage
 			SecureServing: defaultCfg.Metrics.Secure,
 			TLSOpts:       tlsOpts,
 		},
+
 		BaseContext:            func() context.Context { return ctx },
 		HealthProbeBindAddress: defaultCfg.HealthProbeBindAddress,
 		LeaderElection:         false,

@@ -19,7 +19,7 @@ import (
 type ContextKey string
 
 const (
-	UserContextKey ContextKey = "UserContext"
+	UserContextKey ContextKey = "KCPContext"
 )
 
 type Middleware struct {
@@ -64,28 +64,28 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 		})
 	}
 }
-func GetKcpUserContext(ctx context.Context) (UserContext, error) {
+func GetKcpUserContext(ctx context.Context) (KCPContext, error) {
 	val := ctx.Value(UserContextKey)
 	if val == nil {
-		return UserContext{}, errors.New("kcp user context not found in context")
+		return KCPContext{}, errors.New("kcp user context not found in context")
 	}
 
-	kctx, ok := val.(UserContext)
+	kctx, ok := val.(KCPContext)
 	if !ok {
-		return UserContext{}, errors.New("invalid kcp user context type")
+		return KCPContext{}, errors.New("invalid kcp user context type")
 	}
 
 	return kctx, nil
 }
 
-type UserContext struct {
+type KCPContext struct {
 	ParentClusterId string
 	IDMTenant       string
 	ClusterId       string
 }
 
-func (s *Middleware) getKcpInfosForContext(ctx context.Context) (UserContext, error) {
-	kctx := UserContext{}
+func (s *Middleware) getKcpInfosForContext(ctx context.Context) (KCPContext, error) {
+	kctx := KCPContext{}
 	tokenInfo, err := pmcontext.GetWebTokenFromContext(ctx)
 	if err != nil {
 		return kctx, err
@@ -123,12 +123,7 @@ func (s *Middleware) getKcpInfosForContext(ctx context.Context) (UserContext, er
 		return kctx, errors.Wrap(err, "failed to get workspace from kcp")
 	}
 
-	parentClusterId := ws.Annotations["kcp.io/cluster"]
-	if parentClusterId == "" {
-		return kctx, errors.New("parent cluster not found")
-	}
-
-	kctx.ParentClusterId = parentClusterId
+	kctx.ParentClusterId = s.cfg.KCP.OrgsClusterName
 	kctx.IDMTenant = idmTenant
 	kctx.ClusterId = ws.Spec.Cluster
 	return kctx, nil

@@ -38,6 +38,9 @@ tasks:
   build:
     cmds:
       - go build ./...
+  run:
+    cmds:
+      - go run ./main.go serve
   unittest:
     env:
       GO111MODULE: on

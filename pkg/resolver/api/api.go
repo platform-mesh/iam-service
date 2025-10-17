@@ -7,5 +7,6 @@ import (
 )
 
 type ResolverService interface {
-	UserByMail(ctx context.Context, userID string) (*graph.User, error)
+	Me(ctx context.Context) (*graph.User, error)
+	User(ctx context.Context, userID string) (*graph.User, error)
 }

@@ -8,10 +8,7 @@ import (
 	"context"
 	"fmt"
 
-	pmcontext "github.com/platform-mesh/golang-commons/context"
-
 	"github.com/platform-mesh/iam-service/pkg/graph"
-	"github.com/platform-mesh/iam-service/pkg/resolver/errors"
 )
 
 // AssignRolesToUsers is the resolver for the assignRolesToUsers field.
@@ -35,18 +32,13 @@ func (r *queryResolver) Users(ctx context.Context, groupResource string, resourc
 }
 
 // User is the resolver for the user field.
-func (r *queryResolver) User(ctx context.Context, userId string) (*graph.User, error) {
-	return r.svc.UserByMail(ctx, userId)
+func (r *queryResolver) User(ctx context.Context, userID string) (*graph.User, error) {
+	return r.svc.User(ctx, userID)
 }
 
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*graph.User, error) {
-	// Get Current User
-	webtoken, err := pmcontext.GetWebTokenFromContext(ctx)
-	if err != nil {
-		return nil, errors.InternalError
-	}
-	return r.svc.UserByMail(ctx, webtoken.Mail)
+	return r.svc.Me(ctx)
 }
 
 // Mutation returns graph.MutationResolver implementation.

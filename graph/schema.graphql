@@ -71,19 +71,19 @@ input SortByInput {
 # Query and Mutations
 type Query {
     """ roles returns the list of assignable roles for a particular groupResource/resource e.g. What roles can be assigned for a specific core_platform-mesh_io_account"""
-    roles(groupResource: String!, resource: Resource!, accountPath: String!): [Role]! # read_roles permission required
+    roles(groupResource: String!, resource: Resource!, accountPath: String!): [Role]! # read_roles permission required get_iam_roles
     """ returns all users that have roles assigned for a particular groupResource/resource."""
-    users(groupResource: String!, resource: Resource!, accountPath: String!, roleFilters: [String!],sortBy: SortByInput): [GrantedUserConnection]! # you need to be a "member" of the project
+    users(groupResource: String!, resource: Resource!, accountPath: String!, roleFilters: [String!], sortBy: SortByInput): [GrantedUserConnection]! # you need to be a "member" of the project get_iam_users
     """ returns a specific user by userId"""
-    user(userId: String!): User # you need to be a "member" of the organization
+    user(userId: String!): User # you need to be a "member" of the organization get_iam_users
     """ returns my user information"""
-    me: User # only me can access this
+    me: User # only me can access this public
 }
 
 
 type Mutation {
-    assignRolesToUsers(groupResource: String!, resource: Resource!, accountPath: String!, changes: [UserRoleChange!]!): Boolean! # manage_roles permission required
-    removeRole(groupResource: String!, resource: Resource!, accountPath: String!, userId: String!, role: String!): Boolean! # manage_roles permission required
+    assignRolesToUsers(groupResource: String!, resource: Resource!, accountPath: String!, changes: [UserRoleChange!]!): Boolean! # manage_roles permission required manage_iam_roles
+    removeRole(groupResource: String!, resource: Resource!, accountPath: String!, userId: String!, role: String!): Boolean! # manage_roles permission required manage_iam_roles
 }
 
 # TODO

@@ -9,7 +9,26 @@ import (
 	"strconv"
 )
 
+// Contains all roles that are granted to an user
+type GrantedUser struct {
+	User  *User   `json:"user"`
+	Roles []*Role `json:"roles,omitempty"`
+}
+
+// Is a list of the users and their roles
+type GrantedUserConnection struct {
+	Users []*GrantedUser `json:"users,omitempty"`
+	//  a number of granted users in the list
+	PageInfo *PageInfo `json:"pageInfo"`
+}
+
 type Mutation struct {
+}
+
+// Holds additional information about the retrieved data
+type PageInfo struct {
+	OwnerCount int `json:"ownerCount"`
+	TotalCount int `json:"totalCount"`
 }
 
 type Query struct {
@@ -20,9 +39,31 @@ type Resource struct {
 	Namespace *string `json:"namespace,omitempty"`
 }
 
+// Represents a role that can be granted to an user or group of users
+type Role struct {
+	//  Is a human readable name of the role
+	DisplayName string `json:"displayName"`
+	//  Is an identifier of the role
+	TechnicalName string `json:"technicalName"`
+}
+
 type SortByInput struct {
 	Field     SortableFields `json:"field"`
 	Direction SortDirection  `json:"direction"`
+}
+
+// Represents an user
+type User struct {
+	UserID    string  `json:"userId"`
+	Email     string  `json:"email"`
+	FirstName *string `json:"firstName,omitempty"`
+	LastName  *string `json:"lastName,omitempty"`
+}
+
+// List of the users
+type UserConnection struct {
+	User     []*User   `json:"user"`
+	PageInfo *PageInfo `json:"pageInfo,omitempty"`
 }
 
 // Holds the information about a specific user and and a list of roles that should be assigned to the user
