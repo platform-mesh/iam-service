@@ -9,14 +9,14 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/resolver/api"
 	"github.com/platform-mesh/iam-service/pkg/resolver/errors"
-	"github.com/platform-mesh/iam-service/pkg/service/idm"
+	"github.com/platform-mesh/iam-service/pkg/service/keycloak"
 )
 
 var _ api.ResolverService = (*Service)(nil)
 
 type Service struct {
-	fgaClient openfgav1.OpenFGAServiceClient
-	idmClient idm.Service
+	fgaClient       openfgav1.OpenFGAServiceClient
+	keycloakService *keycloak.Service
 }
 
 func (s *Service) Me(ctx context.Context) (*graph.User, error) {
@@ -25,16 +25,16 @@ func (s *Service) Me(ctx context.Context) (*graph.User, error) {
 	if err != nil {
 		return nil, errors.InternalError
 	}
-	return s.idmClient.UserByMail(ctx, webToken.Mail)
+	return s.keycloakService.UserByMail(ctx, webToken.Mail)
 }
 
 func (s *Service) User(ctx context.Context, userID string) (*graph.User, error) {
-	return s.idmClient.UserByMail(ctx, userID)
+	return s.keycloakService.UserByMail(ctx, userID)
 }
 
-func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, idmClient idm.Service) *Service {
+func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycloak.Service) *Service {
 	return &Service{
-		fgaClient: fgaClient,
-		idmClient: idmClient,
+		fgaClient:       fgaClient,
+		keycloakService: service,
 	}
 }

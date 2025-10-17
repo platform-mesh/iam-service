@@ -15,10 +15,7 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/middleware/kcp"
-	"github.com/platform-mesh/iam-service/pkg/service/idm"
 )
-
-var _ idm.Service = (*Service)(nil)
 
 type keycloakUser struct {
 	ID              string   `json:"id,omitempty"`

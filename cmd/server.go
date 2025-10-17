@@ -29,7 +29,7 @@ import (
 	kcpmiddleware "github.com/platform-mesh/iam-service/pkg/middleware/kcp"
 	keycloakmw "github.com/platform-mesh/iam-service/pkg/middleware/keycloak"
 	"github.com/platform-mesh/iam-service/pkg/resolver"
-	"github.com/platform-mesh/iam-service/pkg/service/idm/keycloak"
+	"github.com/platform-mesh/iam-service/pkg/service/keycloak"
 
 	pmcontext "github.com/platform-mesh/golang-commons/context"
 
