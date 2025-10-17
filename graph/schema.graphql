@@ -4,8 +4,11 @@
 # - authorization directives
 
 ## enums
-enum SortableFields {
-    user
+enum UserSortField {
+    USER_ID
+    EMAIL
+    FIRST_NAME
+    LAST_NAME
 }
 
 enum SortDirection {
@@ -16,17 +19,19 @@ enum SortDirection {
 ## Types
 """ Holds additional information about the retrieved data """
 type PageInfo {
-    ownerCount: Int!
+    count: Int!
     totalCount: Int!
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
 }
 
 """ List of the users """
 type UserConnection {
-    user: [User!]!
+    users: [User!]!
     pageInfo: PageInfo
 }
 
-""" Represents an user """
+""" Represents a user """
 type User {
     userId: String!
     email: String!
@@ -35,7 +40,7 @@ type User {
 #    invitationOutstanding: Boolean!
 }
 
-""" Represents a role that can be granted to an user or group of users """
+""" Represents a role that can be granted to a user or group of users """
 type Role {
     """ Is a human readable name of the role """
     displayName: String!
@@ -43,7 +48,7 @@ type Role {
     technicalName: String!
 }
 
-""" Contains all roles that are granted to an user """
+""" Contains all roles that are granted to a user """
 type GrantedUser {
     user: User!
     roles: [Role!]
@@ -51,9 +56,23 @@ type GrantedUser {
 
 """ Is a list of the users and their roles """
 type GrantedUserConnection {
-    users: [GrantedUser]
-    """ a number of granted users in the list """
+    users: [GrantedUser!]!
+    """ number of granted users in the list """
     pageInfo: PageInfo!
+}
+
+""" Result of role assignment operation """
+type RoleAssignmentResult {
+    success: Boolean!
+    errors: [String!]!
+    assignedCount: Int!
+}
+
+""" Result of role removal operation """
+type RoleRemovalResult {
+    success: Boolean!
+    error: String
+    wasAssigned: Boolean!
 }
 
 ## Inputs
@@ -62,13 +81,27 @@ input Resource {
     namespace: String
 }
 
-""" Holds the information about a specific user and and a list of roles that should be assigned to the user """
+""" Common resource context used across queries and mutations """
+input ResourceContext {
+    groupResource: String!
+    resource: Resource!
+    accountPath: String!
+}
+
+""" Holds information about a specific user and a list of roles that should be assigned to the user """
 input UserRoleChange {
     userId: String!
     roles: [String!]!
 }
+
+""" Input for removing a role from a user """
+input RemoveRoleInput {
+    userId: String!
+    role: String!
+}
+
 input SortByInput {
-    field: SortableFields!
+    field: UserSortField!
     direction: SortDirection!
 }
 
@@ -76,9 +109,9 @@ input SortByInput {
 # Query and Mutations
 type Query {
     """ roles returns the list of assignable roles for a particular groupResource/resource e.g. What roles can be assigned for a specific core_platform-mesh_io_account"""
-    roles(groupResource: String!, resource: Resource!, accountPath: String!): [Role]! # read_roles permission required get_iam_roles
+    roles(context: ResourceContext!): [Role]! # read_roles permission required get_iam_roles
     """ returns all users that have roles assigned for a particular groupResource/resource."""
-    users(groupResource: String!, resource: Resource!, accountPath: String!, roleFilters: [String!], sortBy: SortByInput): [GrantedUserConnection]! # you need to be a "member" of the project get_iam_users
+    users(context: ResourceContext!, roleFilters: [String!], sortBy: SortByInput): GrantedUserConnection! # you need to be a "member" of the project get_iam_users
     """ returns a specific user by userId"""
     user(userId: String!): User # you need to be a "member" of the organization get_iam_users
     """ returns my user information"""
@@ -87,8 +120,8 @@ type Query {
 
 
 type Mutation {
-    assignRolesToUsers(groupResource: String!, resource: Resource!, accountPath: String!, changes: [UserRoleChange!]!): Boolean! # manage_roles permission required manage_iam_roles
-    removeRole(groupResource: String!, resource: Resource!, accountPath: String!, userId: String!, role: String!): Boolean! # manage_roles permission required manage_iam_roles
+    assignRolesToUsers(context: ResourceContext!, changes: [UserRoleChange!]!): RoleAssignmentResult! # manage_roles permission required manage_iam_roles
+    removeRole(context: ResourceContext!, input: RemoveRoleInput!): RoleRemovalResult! # manage_roles permission required manage_iam_roles
 }
 schema{
     query: Query

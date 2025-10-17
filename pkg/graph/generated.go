@@ -56,25 +56,39 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AssignRolesToUsers func(childComplexity int, groupResource string, resource Resource, accountPath string, changes []*UserRoleChange) int
-		RemoveRole         func(childComplexity int, groupResource string, resource Resource, accountPath string, userID string, role string) int
+		AssignRolesToUsers func(childComplexity int, context ResourceContext, changes []*UserRoleChange) int
+		RemoveRole         func(childComplexity int, context ResourceContext, input RemoveRoleInput) int
 	}
 
 	PageInfo struct {
-		OwnerCount func(childComplexity int) int
-		TotalCount func(childComplexity int) int
+		Count           func(childComplexity int) int
+		HasNextPage     func(childComplexity int) int
+		HasPreviousPage func(childComplexity int) int
+		TotalCount      func(childComplexity int) int
 	}
 
 	Query struct {
 		Me    func(childComplexity int) int
-		Roles func(childComplexity int, groupResource string, resource Resource, accountPath string) int
+		Roles func(childComplexity int, context ResourceContext) int
 		User  func(childComplexity int, userID string) int
-		Users func(childComplexity int, groupResource string, resource Resource, accountPath string, roleFilters []string, sortBy *SortByInput) int
+		Users func(childComplexity int, context ResourceContext, roleFilters []string, sortBy *SortByInput) int
 	}
 
 	Role struct {
 		DisplayName   func(childComplexity int) int
 		TechnicalName func(childComplexity int) int
+	}
+
+	RoleAssignmentResult struct {
+		AssignedCount func(childComplexity int) int
+		Errors        func(childComplexity int) int
+		Success       func(childComplexity int) int
+	}
+
+	RoleRemovalResult struct {
+		Error       func(childComplexity int) int
+		Success     func(childComplexity int) int
+		WasAssigned func(childComplexity int) int
 	}
 
 	User struct {
@@ -86,17 +100,17 @@ type ComplexityRoot struct {
 
 	UserConnection struct {
 		PageInfo func(childComplexity int) int
-		User     func(childComplexity int) int
+		Users    func(childComplexity int) int
 	}
 }
 
 type MutationResolver interface {
-	AssignRolesToUsers(ctx context.Context, groupResource string, resource Resource, accountPath string, changes []*UserRoleChange) (bool, error)
-	RemoveRole(ctx context.Context, groupResource string, resource Resource, accountPath string, userID string, role string) (bool, error)
+	AssignRolesToUsers(ctx context.Context, context ResourceContext, changes []*UserRoleChange) (*RoleAssignmentResult, error)
+	RemoveRole(ctx context.Context, context ResourceContext, input RemoveRoleInput) (*RoleRemovalResult, error)
 }
 type QueryResolver interface {
-	Roles(ctx context.Context, groupResource string, resource Resource, accountPath string) ([]*Role, error)
-	Users(ctx context.Context, groupResource string, resource Resource, accountPath string, roleFilters []string, sortBy *SortByInput) ([]*GrantedUserConnection, error)
+	Roles(ctx context.Context, context ResourceContext) ([]*Role, error)
+	Users(ctx context.Context, context ResourceContext, roleFilters []string, sortBy *SortByInput) (*GrantedUserConnection, error)
 	User(ctx context.Context, userID string) (*User, error)
 	Me(ctx context.Context) (*User, error)
 }
@@ -156,7 +170,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AssignRolesToUsers(childComplexity, args["groupResource"].(string), args["resource"].(Resource), args["accountPath"].(string), args["changes"].([]*UserRoleChange)), true
+		return e.complexity.Mutation.AssignRolesToUsers(childComplexity, args["context"].(ResourceContext), args["changes"].([]*UserRoleChange)), true
 	case "Mutation.removeRole":
 		if e.complexity.Mutation.RemoveRole == nil {
 			break
@@ -167,14 +181,26 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.RemoveRole(childComplexity, args["groupResource"].(string), args["resource"].(Resource), args["accountPath"].(string), args["userId"].(string), args["role"].(string)), true
+		return e.complexity.Mutation.RemoveRole(childComplexity, args["context"].(ResourceContext), args["input"].(RemoveRoleInput)), true
 
-	case "PageInfo.ownerCount":
-		if e.complexity.PageInfo.OwnerCount == nil {
+	case "PageInfo.count":
+		if e.complexity.PageInfo.Count == nil {
 			break
 		}
 
-		return e.complexity.PageInfo.OwnerCount(childComplexity), true
+		return e.complexity.PageInfo.Count(childComplexity), true
+	case "PageInfo.hasNextPage":
+		if e.complexity.PageInfo.HasNextPage == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.HasNextPage(childComplexity), true
+	case "PageInfo.hasPreviousPage":
+		if e.complexity.PageInfo.HasPreviousPage == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.HasPreviousPage(childComplexity), true
 	case "PageInfo.totalCount":
 		if e.complexity.PageInfo.TotalCount == nil {
 			break
@@ -198,7 +224,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Roles(childComplexity, args["groupResource"].(string), args["resource"].(Resource), args["accountPath"].(string)), true
+		return e.complexity.Query.Roles(childComplexity, args["context"].(ResourceContext)), true
 	case "Query.user":
 		if e.complexity.Query.User == nil {
 			break
@@ -220,7 +246,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Users(childComplexity, args["groupResource"].(string), args["resource"].(Resource), args["accountPath"].(string), args["roleFilters"].([]string), args["sortBy"].(*SortByInput)), true
+		return e.complexity.Query.Users(childComplexity, args["context"].(ResourceContext), args["roleFilters"].([]string), args["sortBy"].(*SortByInput)), true
 
 	case "Role.displayName":
 		if e.complexity.Role.DisplayName == nil {
@@ -234,6 +260,44 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Role.TechnicalName(childComplexity), true
+
+	case "RoleAssignmentResult.assignedCount":
+		if e.complexity.RoleAssignmentResult.AssignedCount == nil {
+			break
+		}
+
+		return e.complexity.RoleAssignmentResult.AssignedCount(childComplexity), true
+	case "RoleAssignmentResult.errors":
+		if e.complexity.RoleAssignmentResult.Errors == nil {
+			break
+		}
+
+		return e.complexity.RoleAssignmentResult.Errors(childComplexity), true
+	case "RoleAssignmentResult.success":
+		if e.complexity.RoleAssignmentResult.Success == nil {
+			break
+		}
+
+		return e.complexity.RoleAssignmentResult.Success(childComplexity), true
+
+	case "RoleRemovalResult.error":
+		if e.complexity.RoleRemovalResult.Error == nil {
+			break
+		}
+
+		return e.complexity.RoleRemovalResult.Error(childComplexity), true
+	case "RoleRemovalResult.success":
+		if e.complexity.RoleRemovalResult.Success == nil {
+			break
+		}
+
+		return e.complexity.RoleRemovalResult.Success(childComplexity), true
+	case "RoleRemovalResult.wasAssigned":
+		if e.complexity.RoleRemovalResult.WasAssigned == nil {
+			break
+		}
+
+		return e.complexity.RoleRemovalResult.WasAssigned(childComplexity), true
 
 	case "User.email":
 		if e.complexity.User.Email == nil {
@@ -266,12 +330,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.UserConnection.PageInfo(childComplexity), true
-	case "UserConnection.user":
-		if e.complexity.UserConnection.User == nil {
+	case "UserConnection.users":
+		if e.complexity.UserConnection.Users == nil {
 			break
 		}
 
-		return e.complexity.UserConnection.User(childComplexity), true
+		return e.complexity.UserConnection.Users(childComplexity), true
 
 	}
 	return 0, false
@@ -281,7 +345,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputRemoveRoleInput,
 		ec.unmarshalInputResource,
+		ec.unmarshalInputResourceContext,
 		ec.unmarshalInputSortByInput,
 		ec.unmarshalInputUserRoleChange,
 	)
@@ -381,9 +447,17 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "../../graph/schema.graphql", Input: `## enums
-enum SortableFields {
-    user
+	{Name: "../../graph/schema.graphql", Input: `# TODO
+# - invites
+# - remove role from myself?
+# - authorization directives
+
+## enums
+enum UserSortField {
+    USER_ID
+    EMAIL
+    FIRST_NAME
+    LAST_NAME
 }
 
 enum SortDirection {
@@ -394,17 +468,19 @@ enum SortDirection {
 ## Types
 """ Holds additional information about the retrieved data """
 type PageInfo {
-    ownerCount: Int!
+    count: Int!
     totalCount: Int!
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
 }
 
 """ List of the users """
 type UserConnection {
-    user: [User!]!
+    users: [User!]!
     pageInfo: PageInfo
 }
 
-""" Represents an user """
+""" Represents a user """
 type User {
     userId: String!
     email: String!
@@ -413,7 +489,7 @@ type User {
 #    invitationOutstanding: Boolean!
 }
 
-""" Represents a role that can be granted to an user or group of users """
+""" Represents a role that can be granted to a user or group of users """
 type Role {
     """ Is a human readable name of the role """
     displayName: String!
@@ -421,7 +497,7 @@ type Role {
     technicalName: String!
 }
 
-""" Contains all roles that are granted to an user """
+""" Contains all roles that are granted to a user """
 type GrantedUser {
     user: User!
     roles: [Role!]
@@ -429,9 +505,23 @@ type GrantedUser {
 
 """ Is a list of the users and their roles """
 type GrantedUserConnection {
-    users: [GrantedUser]
-    """ a number of granted users in the list """
+    users: [GrantedUser!]!
+    """ number of granted users in the list """
     pageInfo: PageInfo!
+}
+
+""" Result of role assignment operation """
+type RoleAssignmentResult {
+    success: Boolean!
+    errors: [String!]!
+    assignedCount: Int!
+}
+
+""" Result of role removal operation """
+type RoleRemovalResult {
+    success: Boolean!
+    error: String
+    wasAssigned: Boolean!
 }
 
 ## Inputs
@@ -440,13 +530,27 @@ input Resource {
     namespace: String
 }
 
-""" Holds the information about a specific user and and a list of roles that should be assigned to the user """
+""" Common resource context used across queries and mutations """
+input ResourceContext {
+    groupResource: String!
+    resource: Resource!
+    accountPath: String!
+}
+
+""" Holds information about a specific user and a list of roles that should be assigned to the user """
 input UserRoleChange {
     userId: String!
     roles: [String!]!
 }
+
+""" Input for removing a role from a user """
+input RemoveRoleInput {
+    userId: String!
+    role: String!
+}
+
 input SortByInput {
-    field: SortableFields!
+    field: UserSortField!
     direction: SortDirection!
 }
 
@@ -454,9 +558,9 @@ input SortByInput {
 # Query and Mutations
 type Query {
     """ roles returns the list of assignable roles for a particular groupResource/resource e.g. What roles can be assigned for a specific core_platform-mesh_io_account"""
-    roles(groupResource: String!, resource: Resource!, accountPath: String!): [Role]! # read_roles permission required get_iam_roles
+    roles(context: ResourceContext!): [Role]! # read_roles permission required get_iam_roles
     """ returns all users that have roles assigned for a particular groupResource/resource."""
-    users(groupResource: String!, resource: Resource!, accountPath: String!, roleFilters: [String!], sortBy: SortByInput): [GrantedUserConnection]! # you need to be a "member" of the project get_iam_users
+    users(context: ResourceContext!, roleFilters: [String!], sortBy: SortByInput): GrantedUserConnection! # you need to be a "member" of the project get_iam_users
     """ returns a specific user by userId"""
     user(userId: String!): User # you need to be a "member" of the organization get_iam_users
     """ returns my user information"""
@@ -465,90 +569,13 @@ type Query {
 
 
 type Mutation {
-    assignRolesToUsers(groupResource: String!, resource: Resource!, accountPath: String!, changes: [UserRoleChange!]!): Boolean! # manage_roles permission required manage_iam_roles
-    removeRole(groupResource: String!, resource: Resource!, accountPath: String!, userId: String!, role: String!): Boolean! # manage_roles permission required manage_iam_roles
+    assignRolesToUsers(context: ResourceContext!, changes: [UserRoleChange!]!): RoleAssignmentResult! # manage_roles permission required manage_iam_roles
+    removeRole(context: ResourceContext!, input: RemoveRoleInput!): RoleRemovalResult! # manage_roles permission required manage_iam_roles
 }
-
-# TODO
-# - invites
-# - remove role from myself?
-
 schema{
     query: Query
     mutation: Mutation
-}
-
-# Directives
-#directive @tenant(peers: Boolean!) on FIELD_DEFINITION
-#directive @user(peers: Boolean!) on FIELD_DEFINITION
-#directive @peersOnly on FIELD_DEFINITION
-#directive @authorized(
-#    relation: String!
-#    entityType: String
-#    entityTypeParamName: String
-#    entityParamName: String!
-#) on FIELD_DEFINITION
-
-
-#Archive
-
-#type Mutation {
-    #    inviteUser(tenantId: String!, invite: Invite!, notifyByEmail: Boolean!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
-    #
-    #    deleteInvite(tenantId: String!, invite: Invite!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "invite.entity.entityType", entityParamName: "invite.entity.entityId")
-    #    assignRoleBindings(tenantId: ID!, entityType: String!, entityId: ID!, input: [Change]!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
-    #    removeFromEntity(tenantId: ID!, entityType: String!, userId: ID!, entityId: ID!): Boolean! @authorized(relation: "member_manage", entityTypeParamName: "entityType", entityParamName: "entityId")
-    #    leaveEntity(tenantId: ID!, entityType: String!, entityId: ID!): Boolean! @authorized(relation: "member", entityTypeParamName: "entityType", entityParamName: "entityId")
-    #
-    #    ## Only for administrative use
-    #    createUser(tenantId: String!, input: UserInput!): User! @peersOnly
-    #    removeUser(tenantId:String!, userId: String, email: String): Boolean @peersOnly
-    #
-    #    """ Creates or updates an user corresponding to the web token passed in an HTTP header """
-    #    login: Boolean!
-#}
-
-#type Query {
-#        usersOfEntity(tenantId:ID!, entity: EntityInput!, limit: Int = 10, page: Int = 1, showInvitees: Boolean = false, searchTerm: String, roles: [RoleInput], sortBy: SortByInput): GrantedUserConnection @authorized(relation: "create", entityParamName: "tenantId", entityType: "core_platform-mesh_io_account")
-#        rolesForUserOfEntity(tenantId: ID!, entity: EntityInput!, userId: String!): [Role]! @authorized(relation: "create", entityParamName: "tenantId", entityType: "core_platform-mesh_io_account")
-#        availableRolesForEntity(tenantId: ID!, entity: EntityInput!): [Role]! @authorized(relation: "member", entityTypeParamName: "entity.entityType", entityParamName: "entity.entityId")
-#        availableRolesForEntityType(tenantId: ID!, entityType: String!): [Role]! @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
-#        user(tenantId:String!, userId:String!): User  @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
-#        userByEmail(tenantId:String!, email:String!): User  @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
-#        usersConnection(tenantId:String!, limit: Int = 10, page: Int = 1): UserConnection!  @authorized(relation: "create", entityParamName: "tenantId", entityType: "core_platform-mesh_io_account")
-#        searchUsers(query: String!) : [User]!
-#        tenantInfo(tenantId: String): TenantInfo!
-#        usersByIds(tenantId: String!, userIds: [String!]!): [User]! @authorized(relation: "create", entityType: "core_platform-mesh_io_account", entityParamName: "tenantId")
-#}
-
-#""" Holds a payload of any Entity (team, project etc.) - type and id """
-#input EntityInput {
-#    """ The type of entity e.g. team, project etc. """
-#    entityType: String!
-#    """ The identifier for the entity itself e.g. name or id"""
-#    entityId: ID!
-#}
-#
-#""" Holds a payload of a role input - label, id, display name and technical name """
-#input RoleInput {
-#    displayName: String!
-#    technicalName: String!
-#}
-#""" Holds a payload to create a new user """
-#input UserInput {
-#    userId: String!
-#    email: String!
-#    firstName: String
-#    lastName: String
-#    invitationOutstanding: Boolean
-#}
-#
-#""" Answer the question who is invited, to which entity and which roles should be assigned """
-#input Invite {
-#    email: String!
-#    entity: EntityInput!
-#    roles: [String!]!
-#}`, BuiltIn: false},
+}`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -559,57 +586,32 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_assignRolesToUsers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "groupResource", ec.unmarshalNString2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "context", ec.unmarshalNResourceContext2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐResourceContext)
 	if err != nil {
 		return nil, err
 	}
-	args["groupResource"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "resource", ec.unmarshalNResource2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐResource)
+	args["context"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "changes", ec.unmarshalNUserRoleChange2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserRoleChangeᚄ)
 	if err != nil {
 		return nil, err
 	}
-	args["resource"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "accountPath", ec.unmarshalNString2string)
-	if err != nil {
-		return nil, err
-	}
-	args["accountPath"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "changes", ec.unmarshalNUserRoleChange2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserRoleChangeᚄ)
-	if err != nil {
-		return nil, err
-	}
-	args["changes"] = arg3
+	args["changes"] = arg1
 	return args, nil
 }
 
 func (ec *executionContext) field_Mutation_removeRole_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "groupResource", ec.unmarshalNString2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "context", ec.unmarshalNResourceContext2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐResourceContext)
 	if err != nil {
 		return nil, err
 	}
-	args["groupResource"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "resource", ec.unmarshalNResource2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐResource)
+	args["context"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRemoveRoleInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRemoveRoleInput)
 	if err != nil {
 		return nil, err
 	}
-	args["resource"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "accountPath", ec.unmarshalNString2string)
-	if err != nil {
-		return nil, err
-	}
-	args["accountPath"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNString2string)
-	if err != nil {
-		return nil, err
-	}
-	args["userId"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "role", ec.unmarshalNString2string)
-	if err != nil {
-		return nil, err
-	}
-	args["role"] = arg4
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -627,21 +629,11 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_roles_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "groupResource", ec.unmarshalNString2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "context", ec.unmarshalNResourceContext2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐResourceContext)
 	if err != nil {
 		return nil, err
 	}
-	args["groupResource"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "resource", ec.unmarshalNResource2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐResource)
-	if err != nil {
-		return nil, err
-	}
-	args["resource"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "accountPath", ec.unmarshalNString2string)
-	if err != nil {
-		return nil, err
-	}
-	args["accountPath"] = arg2
+	args["context"] = arg0
 	return args, nil
 }
 
@@ -659,31 +651,21 @@ func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs m
 func (ec *executionContext) field_Query_users_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "groupResource", ec.unmarshalNString2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "context", ec.unmarshalNResourceContext2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐResourceContext)
 	if err != nil {
 		return nil, err
 	}
-	args["groupResource"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "resource", ec.unmarshalNResource2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐResource)
+	args["context"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "roleFilters", ec.unmarshalOString2ᚕstringᚄ)
 	if err != nil {
 		return nil, err
 	}
-	args["resource"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "accountPath", ec.unmarshalNString2string)
+	args["roleFilters"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "sortBy", ec.unmarshalOSortByInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortByInput)
 	if err != nil {
 		return nil, err
 	}
-	args["accountPath"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "roleFilters", ec.unmarshalOString2ᚕstringᚄ)
-	if err != nil {
-		return nil, err
-	}
-	args["roleFilters"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "sortBy", ec.unmarshalOSortByInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortByInput)
-	if err != nil {
-		return nil, err
-	}
-	args["sortBy"] = arg4
+	args["sortBy"] = arg2
 	return args, nil
 }
 
@@ -823,9 +805,9 @@ func (ec *executionContext) _GrantedUserConnection_users(ctx context.Context, fi
 			return obj.Users, nil
 		},
 		nil,
-		ec.marshalOGrantedUser2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUser,
+		ec.marshalNGrantedUser2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUserᚄ,
 		true,
-		false,
+		true,
 	)
 }
 
@@ -872,10 +854,14 @@ func (ec *executionContext) fieldContext_GrantedUserConnection_pageInfo(_ contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "ownerCount":
-				return ec.fieldContext_PageInfo_ownerCount(ctx, field)
+			case "count":
+				return ec.fieldContext_PageInfo_count(ctx, field)
 			case "totalCount":
 				return ec.fieldContext_PageInfo_totalCount(ctx, field)
+			case "hasNextPage":
+				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+			case "hasPreviousPage":
+				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
 		},
@@ -891,10 +877,10 @@ func (ec *executionContext) _Mutation_assignRolesToUsers(ctx context.Context, fi
 		ec.fieldContext_Mutation_assignRolesToUsers,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().AssignRolesToUsers(ctx, fc.Args["groupResource"].(string), fc.Args["resource"].(Resource), fc.Args["accountPath"].(string), fc.Args["changes"].([]*UserRoleChange))
+			return ec.resolvers.Mutation().AssignRolesToUsers(ctx, fc.Args["context"].(ResourceContext), fc.Args["changes"].([]*UserRoleChange))
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		ec.marshalNRoleAssignmentResult2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleAssignmentResult,
 		true,
 		true,
 	)
@@ -907,7 +893,15 @@ func (ec *executionContext) fieldContext_Mutation_assignRolesToUsers(ctx context
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_RoleAssignmentResult_success(ctx, field)
+			case "errors":
+				return ec.fieldContext_RoleAssignmentResult_errors(ctx, field)
+			case "assignedCount":
+				return ec.fieldContext_RoleAssignmentResult_assignedCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RoleAssignmentResult", field.Name)
 		},
 	}
 	defer func() {
@@ -932,10 +926,10 @@ func (ec *executionContext) _Mutation_removeRole(ctx context.Context, field grap
 		ec.fieldContext_Mutation_removeRole,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().RemoveRole(ctx, fc.Args["groupResource"].(string), fc.Args["resource"].(Resource), fc.Args["accountPath"].(string), fc.Args["userId"].(string), fc.Args["role"].(string))
+			return ec.resolvers.Mutation().RemoveRole(ctx, fc.Args["context"].(ResourceContext), fc.Args["input"].(RemoveRoleInput))
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		ec.marshalNRoleRemovalResult2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleRemovalResult,
 		true,
 		true,
 	)
@@ -948,7 +942,15 @@ func (ec *executionContext) fieldContext_Mutation_removeRole(ctx context.Context
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_RoleRemovalResult_success(ctx, field)
+			case "error":
+				return ec.fieldContext_RoleRemovalResult_error(ctx, field)
+			case "wasAssigned":
+				return ec.fieldContext_RoleRemovalResult_wasAssigned(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RoleRemovalResult", field.Name)
 		},
 	}
 	defer func() {
@@ -965,14 +967,14 @@ func (ec *executionContext) fieldContext_Mutation_removeRole(ctx context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _PageInfo_ownerCount(ctx context.Context, field graphql.CollectedField, obj *PageInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PageInfo_count(ctx context.Context, field graphql.CollectedField, obj *PageInfo) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_PageInfo_ownerCount,
+		ec.fieldContext_PageInfo_count,
 		func(ctx context.Context) (any, error) {
-			return obj.OwnerCount, nil
+			return obj.Count, nil
 		},
 		nil,
 		ec.marshalNInt2int,
@@ -981,7 +983,7 @@ func (ec *executionContext) _PageInfo_ownerCount(ctx context.Context, field grap
 	)
 }
 
-func (ec *executionContext) fieldContext_PageInfo_ownerCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_PageInfo_count(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "PageInfo",
 		Field:      field,
@@ -1023,6 +1025,64 @@ func (ec *executionContext) fieldContext_PageInfo_totalCount(_ context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *PageInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PageInfo_hasNextPage,
+		func(ctx context.Context) (any, error) {
+			return obj.HasNextPage, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PageInfo_hasNextPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PageInfo_hasPreviousPage(ctx context.Context, field graphql.CollectedField, obj *PageInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PageInfo_hasPreviousPage,
+		func(ctx context.Context) (any, error) {
+			return obj.HasPreviousPage, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PageInfo_hasPreviousPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_roles(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1031,7 +1091,7 @@ func (ec *executionContext) _Query_roles(ctx context.Context, field graphql.Coll
 		ec.fieldContext_Query_roles,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Roles(ctx, fc.Args["groupResource"].(string), fc.Args["resource"].(Resource), fc.Args["accountPath"].(string))
+			return ec.resolvers.Query().Roles(ctx, fc.Args["context"].(ResourceContext))
 		},
 		nil,
 		ec.marshalNRole2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRole,
@@ -1078,10 +1138,10 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 		ec.fieldContext_Query_users,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Users(ctx, fc.Args["groupResource"].(string), fc.Args["resource"].(Resource), fc.Args["accountPath"].(string), fc.Args["roleFilters"].([]string), fc.Args["sortBy"].(*SortByInput))
+			return ec.resolvers.Query().Users(ctx, fc.Args["context"].(ResourceContext), fc.Args["roleFilters"].([]string), fc.Args["sortBy"].(*SortByInput))
 		},
 		nil,
-		ec.marshalNGrantedUserConnection2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUserConnection,
+		ec.marshalNGrantedUserConnection2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUserConnection,
 		true,
 		true,
 	)
@@ -1373,6 +1433,180 @@ func (ec *executionContext) fieldContext_Role_technicalName(_ context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _RoleAssignmentResult_success(ctx context.Context, field graphql.CollectedField, obj *RoleAssignmentResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RoleAssignmentResult_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RoleAssignmentResult_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RoleAssignmentResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RoleAssignmentResult_errors(ctx context.Context, field graphql.CollectedField, obj *RoleAssignmentResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RoleAssignmentResult_errors,
+		func(ctx context.Context) (any, error) {
+			return obj.Errors, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RoleAssignmentResult_errors(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RoleAssignmentResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RoleAssignmentResult_assignedCount(ctx context.Context, field graphql.CollectedField, obj *RoleAssignmentResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RoleAssignmentResult_assignedCount,
+		func(ctx context.Context) (any, error) {
+			return obj.AssignedCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RoleAssignmentResult_assignedCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RoleAssignmentResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RoleRemovalResult_success(ctx context.Context, field graphql.CollectedField, obj *RoleRemovalResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RoleRemovalResult_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RoleRemovalResult_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RoleRemovalResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RoleRemovalResult_error(ctx context.Context, field graphql.CollectedField, obj *RoleRemovalResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RoleRemovalResult_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RoleRemovalResult_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RoleRemovalResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RoleRemovalResult_wasAssigned(ctx context.Context, field graphql.CollectedField, obj *RoleRemovalResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RoleRemovalResult_wasAssigned,
+		func(ctx context.Context) (any, error) {
+			return obj.WasAssigned, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RoleRemovalResult_wasAssigned(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RoleRemovalResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_userId(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1489,14 +1723,14 @@ func (ec *executionContext) fieldContext_User_lastName(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _UserConnection_user(ctx context.Context, field graphql.CollectedField, obj *UserConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserConnection_users(ctx context.Context, field graphql.CollectedField, obj *UserConnection) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_UserConnection_user,
+		ec.fieldContext_UserConnection_users,
 		func(ctx context.Context) (any, error) {
-			return obj.User, nil
+			return obj.Users, nil
 		},
 		nil,
 		ec.marshalNUser2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserᚄ,
@@ -1505,7 +1739,7 @@ func (ec *executionContext) _UserConnection_user(ctx context.Context, field grap
 	)
 }
 
-func (ec *executionContext) fieldContext_UserConnection_user(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_UserConnection_users(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "UserConnection",
 		Field:      field,
@@ -1552,10 +1786,14 @@ func (ec *executionContext) fieldContext_UserConnection_pageInfo(_ context.Conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "ownerCount":
-				return ec.fieldContext_PageInfo_ownerCount(ctx, field)
+			case "count":
+				return ec.fieldContext_PageInfo_count(ctx, field)
 			case "totalCount":
 				return ec.fieldContext_PageInfo_totalCount(ctx, field)
+			case "hasNextPage":
+				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+			case "hasPreviousPage":
+				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
 		},
@@ -3009,6 +3247,40 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputRemoveRoleInput(ctx context.Context, obj any) (RemoveRoleInput, error) {
+	var it RemoveRoleInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"userId", "role"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "userId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UserID = data
+		case "role":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Role = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputResource(ctx context.Context, obj any) (Resource, error) {
 	var it Resource
 	asMap := map[string]any{}
@@ -3043,6 +3315,47 @@ func (ec *executionContext) unmarshalInputResource(ctx context.Context, obj any)
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputResourceContext(ctx context.Context, obj any) (ResourceContext, error) {
+	var it ResourceContext
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"groupResource", "resource", "accountPath"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "groupResource":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("groupResource"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.GroupResource = data
+		case "resource":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("resource"))
+			data, err := ec.unmarshalNResource2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐResource(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Resource = data
+		case "accountPath":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("accountPath"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AccountPath = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSortByInput(ctx context.Context, obj any) (SortByInput, error) {
 	var it SortByInput
 	asMap := map[string]any{}
@@ -3059,7 +3372,7 @@ func (ec *executionContext) unmarshalInputSortByInput(ctx context.Context, obj a
 		switch k {
 		case "field":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
-			data, err := ec.unmarshalNSortableFields2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortableFields(ctx, v)
+			data, err := ec.unmarshalNUserSortField2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserSortField(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3173,6 +3486,9 @@ func (ec *executionContext) _GrantedUserConnection(ctx context.Context, sel ast.
 			out.Values[i] = graphql.MarshalString("GrantedUserConnection")
 		case "users":
 			out.Values[i] = ec._GrantedUserConnection_users(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "pageInfo":
 			out.Values[i] = ec._GrantedUserConnection_pageInfo(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -3268,13 +3584,23 @@ func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet,
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("PageInfo")
-		case "ownerCount":
-			out.Values[i] = ec._PageInfo_ownerCount(ctx, field, obj)
+		case "count":
+			out.Values[i] = ec._PageInfo_count(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "totalCount":
 			out.Values[i] = ec._PageInfo_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hasNextPage":
+			out.Values[i] = ec._PageInfo_hasNextPage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hasPreviousPage":
+			out.Values[i] = ec._PageInfo_hasPreviousPage(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3477,6 +3803,101 @@ func (ec *executionContext) _Role(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var roleAssignmentResultImplementors = []string{"RoleAssignmentResult"}
+
+func (ec *executionContext) _RoleAssignmentResult(ctx context.Context, sel ast.SelectionSet, obj *RoleAssignmentResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, roleAssignmentResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RoleAssignmentResult")
+		case "success":
+			out.Values[i] = ec._RoleAssignmentResult_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "errors":
+			out.Values[i] = ec._RoleAssignmentResult_errors(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "assignedCount":
+			out.Values[i] = ec._RoleAssignmentResult_assignedCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var roleRemovalResultImplementors = []string{"RoleRemovalResult"}
+
+func (ec *executionContext) _RoleRemovalResult(ctx context.Context, sel ast.SelectionSet, obj *RoleRemovalResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, roleRemovalResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RoleRemovalResult")
+		case "success":
+			out.Values[i] = ec._RoleRemovalResult_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "error":
+			out.Values[i] = ec._RoleRemovalResult_error(ctx, field, obj)
+		case "wasAssigned":
+			out.Values[i] = ec._RoleRemovalResult_wasAssigned(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var userImplementors = []string{"User"}
 
 func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *User) graphql.Marshaler {
@@ -3536,8 +3957,8 @@ func (ec *executionContext) _UserConnection(ctx context.Context, sel ast.Selecti
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("UserConnection")
-		case "user":
-			out.Values[i] = ec._UserConnection_user(ctx, field, obj)
+		case "users":
+			out.Values[i] = ec._UserConnection_users(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3917,7 +4338,7 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNGrantedUserConnection2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUserConnection(ctx context.Context, sel ast.SelectionSet, v []*GrantedUserConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNGrantedUser2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*GrantedUser) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3941,7 +4362,7 @@ func (ec *executionContext) marshalNGrantedUserConnection2ᚕᚖgithubᚗcomᚋp
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOGrantedUserConnection2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUserConnection(ctx, sel, v[i])
+			ret[i] = ec.marshalNGrantedUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUser(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3952,7 +4373,37 @@ func (ec *executionContext) marshalNGrantedUserConnection2ᚕᚖgithubᚗcomᚋp
 	}
 	wg.Wait()
 
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
+}
+
+func (ec *executionContext) marshalNGrantedUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUser(ctx context.Context, sel ast.SelectionSet, v *GrantedUser) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._GrantedUser(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNGrantedUserConnection2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUserConnection(ctx context.Context, sel ast.SelectionSet, v GrantedUserConnection) graphql.Marshaler {
+	return ec._GrantedUserConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNGrantedUserConnection2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUserConnection(ctx context.Context, sel ast.SelectionSet, v *GrantedUserConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._GrantedUserConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, error) {
@@ -3981,8 +4432,18 @@ func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋplatformᚑmesh�
 	return ec._PageInfo(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNResource2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐResource(ctx context.Context, v any) (Resource, error) {
+func (ec *executionContext) unmarshalNRemoveRoleInput2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRemoveRoleInput(ctx context.Context, v any) (RemoveRoleInput, error) {
+	res, err := ec.unmarshalInputRemoveRoleInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNResource2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐResource(ctx context.Context, v any) (*Resource, error) {
 	res, err := ec.unmarshalInputResource(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNResourceContext2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐResourceContext(ctx context.Context, v any) (ResourceContext, error) {
+	res, err := ec.unmarshalInputResourceContext(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -4034,6 +4495,34 @@ func (ec *executionContext) marshalNRole2ᚖgithubᚗcomᚋplatformᚑmeshᚋiam
 	return ec._Role(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNRoleAssignmentResult2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleAssignmentResult(ctx context.Context, sel ast.SelectionSet, v RoleAssignmentResult) graphql.Marshaler {
+	return ec._RoleAssignmentResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRoleAssignmentResult2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleAssignmentResult(ctx context.Context, sel ast.SelectionSet, v *RoleAssignmentResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RoleAssignmentResult(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRoleRemovalResult2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleRemovalResult(ctx context.Context, sel ast.SelectionSet, v RoleRemovalResult) graphql.Marshaler {
+	return ec._RoleRemovalResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRoleRemovalResult2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleRemovalResult(ctx context.Context, sel ast.SelectionSet, v *RoleRemovalResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RoleRemovalResult(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNSortDirection2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortDirection(ctx context.Context, v any) (SortDirection, error) {
 	var res SortDirection
 	err := res.UnmarshalGQL(v)
@@ -4041,16 +4530,6 @@ func (ec *executionContext) unmarshalNSortDirection2githubᚗcomᚋplatformᚑme
 }
 
 func (ec *executionContext) marshalNSortDirection2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortDirection(ctx context.Context, sel ast.SelectionSet, v SortDirection) graphql.Marshaler {
-	return v
-}
-
-func (ec *executionContext) unmarshalNSortableFields2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortableFields(ctx context.Context, v any) (SortableFields, error) {
-	var res SortableFields
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNSortableFields2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐSortableFields(ctx context.Context, sel ast.SelectionSet, v SortableFields) graphql.Marshaler {
 	return v
 }
 
@@ -4172,6 +4651,16 @@ func (ec *executionContext) unmarshalNUserRoleChange2ᚕᚖgithubᚗcomᚋplatfo
 func (ec *executionContext) unmarshalNUserRoleChange2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserRoleChange(ctx context.Context, v any) (*UserRoleChange, error) {
 	res, err := ec.unmarshalInputUserRoleChange(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUserSortField2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserSortField(ctx context.Context, v any) (UserSortField, error) {
+	var res UserSortField
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUserSortField2githubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserSortField(ctx context.Context, sel ast.SelectionSet, v UserSortField) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -4455,61 +4944,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	_ = ctx
 	res := graphql.MarshalBoolean(*v)
 	return res
-}
-
-func (ec *executionContext) marshalOGrantedUser2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUser(ctx context.Context, sel ast.SelectionSet, v []*GrantedUser) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOGrantedUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUser(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	return ret
-}
-
-func (ec *executionContext) marshalOGrantedUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUser(ctx context.Context, sel ast.SelectionSet, v *GrantedUser) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._GrantedUser(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOGrantedUserConnection2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐGrantedUserConnection(ctx context.Context, sel ast.SelectionSet, v *GrantedUserConnection) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._GrantedUserConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOPageInfo2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *PageInfo) graphql.Marshaler {

@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-// Contains all roles that are granted to an user
+// Contains all roles that are granted to a user
 type GrantedUser struct {
 	User  *User   `json:"user"`
 	Roles []*Role `json:"roles,omitempty"`
@@ -17,8 +17,8 @@ type GrantedUser struct {
 
 // Is a list of the users and their roles
 type GrantedUserConnection struct {
-	Users []*GrantedUser `json:"users,omitempty"`
-	//  a number of granted users in the list
+	Users []*GrantedUser `json:"users"`
+	//  number of granted users in the list
 	PageInfo *PageInfo `json:"pageInfo"`
 }
 
@@ -27,11 +27,19 @@ type Mutation struct {
 
 // Holds additional information about the retrieved data
 type PageInfo struct {
-	OwnerCount int `json:"ownerCount"`
-	TotalCount int `json:"totalCount"`
+	Count           int  `json:"count"`
+	TotalCount      int  `json:"totalCount"`
+	HasNextPage     bool `json:"hasNextPage"`
+	HasPreviousPage bool `json:"hasPreviousPage"`
 }
 
 type Query struct {
+}
+
+// Input for removing a role from a user
+type RemoveRoleInput struct {
+	UserID string `json:"userId"`
+	Role   string `json:"role"`
 }
 
 type Resource struct {
@@ -39,7 +47,14 @@ type Resource struct {
 	Namespace *string `json:"namespace,omitempty"`
 }
 
-// Represents a role that can be granted to an user or group of users
+// Common resource context used across queries and mutations
+type ResourceContext struct {
+	GroupResource string    `json:"groupResource"`
+	Resource      *Resource `json:"resource"`
+	AccountPath   string    `json:"accountPath"`
+}
+
+// Represents a role that can be granted to a user or group of users
 type Role struct {
 	//  Is a human readable name of the role
 	DisplayName string `json:"displayName"`
@@ -47,12 +62,26 @@ type Role struct {
 	TechnicalName string `json:"technicalName"`
 }
 
-type SortByInput struct {
-	Field     SortableFields `json:"field"`
-	Direction SortDirection  `json:"direction"`
+// Result of role assignment operation
+type RoleAssignmentResult struct {
+	Success       bool     `json:"success"`
+	Errors        []string `json:"errors"`
+	AssignedCount int      `json:"assignedCount"`
 }
 
-// Represents an user
+// Result of role removal operation
+type RoleRemovalResult struct {
+	Success     bool    `json:"success"`
+	Error       *string `json:"error,omitempty"`
+	WasAssigned bool    `json:"wasAssigned"`
+}
+
+type SortByInput struct {
+	Field     UserSortField `json:"field"`
+	Direction SortDirection `json:"direction"`
+}
+
+// Represents a user
 type User struct {
 	UserID    string  `json:"userId"`
 	Email     string  `json:"email"`
@@ -62,11 +91,11 @@ type User struct {
 
 // List of the users
 type UserConnection struct {
-	User     []*User   `json:"user"`
+	Users    []*User   `json:"users"`
 	PageInfo *PageInfo `json:"pageInfo,omitempty"`
 }
 
-// Holds the information about a specific user and and a list of roles that should be assigned to the user
+// Holds information about a specific user and a list of roles that should be assigned to the user
 type UserRoleChange struct {
 	UserID string   `json:"userId"`
 	Roles  []string `json:"roles"`
@@ -127,46 +156,52 @@ func (e SortDirection) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-type SortableFields string
+type UserSortField string
 
 const (
-	SortableFieldsUser SortableFields = "user"
+	UserSortFieldUserID    UserSortField = "USER_ID"
+	UserSortFieldEmail     UserSortField = "EMAIL"
+	UserSortFieldFirstName UserSortField = "FIRST_NAME"
+	UserSortFieldLastName  UserSortField = "LAST_NAME"
 )
 
-var AllSortableFields = []SortableFields{
-	SortableFieldsUser,
+var AllUserSortField = []UserSortField{
+	UserSortFieldUserID,
+	UserSortFieldEmail,
+	UserSortFieldFirstName,
+	UserSortFieldLastName,
 }
 
-func (e SortableFields) IsValid() bool {
+func (e UserSortField) IsValid() bool {
 	switch e {
-	case SortableFieldsUser:
+	case UserSortFieldUserID, UserSortFieldEmail, UserSortFieldFirstName, UserSortFieldLastName:
 		return true
 	}
 	return false
 }
 
-func (e SortableFields) String() string {
+func (e UserSortField) String() string {
 	return string(e)
 }
 
-func (e *SortableFields) UnmarshalGQL(v any) error {
+func (e *UserSortField) UnmarshalGQL(v any) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
 	}
 
-	*e = SortableFields(str)
+	*e = UserSortField(str)
 	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid SortableFields", str)
+		return fmt.Errorf("%s is not a valid UserSortField", str)
 	}
 	return nil
 }
 
-func (e SortableFields) MarshalGQL(w io.Writer) {
+func (e UserSortField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-func (e *SortableFields) UnmarshalJSON(b []byte) error {
+func (e *UserSortField) UnmarshalJSON(b []byte) error {
 	s, err := strconv.Unquote(string(b))
 	if err != nil {
 		return err
@@ -174,7 +209,7 @@ func (e *SortableFields) UnmarshalJSON(b []byte) error {
 	return e.UnmarshalGQL(s)
 }
 
-func (e SortableFields) MarshalJSON() ([]byte, error) {
+func (e UserSortField) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

@@ -12,22 +12,22 @@ import (
 )
 
 // AssignRolesToUsers is the resolver for the assignRolesToUsers field.
-func (r *mutationResolver) AssignRolesToUsers(ctx context.Context, groupResource string, resource graph.Resource, accountPath string, changes []*graph.UserRoleChange) (bool, error) {
+func (r *mutationResolver) AssignRolesToUsers(ctx context.Context, context graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
 	panic(fmt.Errorf("not implemented: AssignRolesToUsers - assignRolesToUsers"))
 }
 
 // RemoveRole is the resolver for the removeRole field.
-func (r *mutationResolver) RemoveRole(ctx context.Context, groupResource string, resource graph.Resource, accountPath string, userID string, role string) (bool, error) {
+func (r *mutationResolver) RemoveRole(ctx context.Context, context graph.ResourceContext, input graph.RemoveRoleInput) (*graph.RoleRemovalResult, error) {
 	panic(fmt.Errorf("not implemented: RemoveRole - removeRole"))
 }
 
 // Roles is the resolver for the roles field.
-func (r *queryResolver) Roles(ctx context.Context, groupResource string, resource graph.Resource, accountPath string) ([]*graph.Role, error) {
+func (r *queryResolver) Roles(ctx context.Context, context graph.ResourceContext) ([]*graph.Role, error) {
 	panic(fmt.Errorf("not implemented: Roles - roles"))
 }
 
 // Users is the resolver for the users field.
-func (r *queryResolver) Users(ctx context.Context, groupResource string, resource graph.Resource, accountPath string, roleFilters []string, sortBy *graph.SortByInput) ([]*graph.GrantedUserConnection, error) {
+func (r *queryResolver) Users(ctx context.Context, context graph.ResourceContext, roleFilters []string, sortBy *graph.SortByInput) (*graph.GrantedUserConnection, error) {
 	panic(fmt.Errorf("not implemented: Users - users"))
 }
 
