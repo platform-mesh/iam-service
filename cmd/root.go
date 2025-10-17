@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
-	"github.com/platform-mesh/iam-service/internal/config"
+	"github.com/platform-mesh/iam-service/pkg/config"
 )
 
 var (

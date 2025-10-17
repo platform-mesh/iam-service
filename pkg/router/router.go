@@ -16,7 +16,7 @@ import (
 	"github.com/rs/cors"
 	"github.com/vektah/gqlparser/v2/ast"
 
-	"github.com/platform-mesh/iam-service/internal/config"
+	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 

@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 
-	"github.com/platform-mesh/iam-service/internal/config"
+	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/middleware/kcp"
 	"github.com/platform-mesh/iam-service/pkg/service/idm"

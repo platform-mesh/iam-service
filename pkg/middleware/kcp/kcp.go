@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 
-	"github.com/platform-mesh/iam-service/internal/config"
+	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/middleware/idm"
 )
 

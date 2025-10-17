@@ -25,7 +25,7 @@ import (
 	"github.com/platform-mesh/golang-commons/logger"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	"github.com/platform-mesh/iam-service/internal/config"
+	"github.com/platform-mesh/iam-service/pkg/config"
 	kcpmiddleware "github.com/platform-mesh/iam-service/pkg/middleware/kcp"
 	keycloakmw "github.com/platform-mesh/iam-service/pkg/middleware/keycloak"
 	"github.com/platform-mesh/iam-service/pkg/resolver"
@@ -35,7 +35,7 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	iamRouter "github.com/platform-mesh/iam-service/internal/pkg/router"
+	iamRouter "github.com/platform-mesh/iam-service/pkg/router"
 )
 
 var serverCmd = &cobra.Command{
