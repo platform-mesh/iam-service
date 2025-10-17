@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	"github.com/platform-mesh/golang-commons/errors"
-	openmfpfga "github.com/platform-mesh/golang-commons/fga/store"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/status"
 )
@@ -23,9 +22,7 @@ func NewStoreHelper() *StoreHelper {
 	return &StoreHelper{cache: expirable.NewLRU[string, string](10, nil, 10*time.Minute)}
 }
 
-var _ openmfpfga.FGAStoreHelper = (*StoreHelper)(nil)
-
-func (d StoreHelper) GetStoreIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error) {
+func (d StoreHelper) GetStoreID(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error) {
 
 	cacheKey := "store-" + orgID
 	s, ok := d.cache.Get(cacheKey)
@@ -57,7 +54,7 @@ func (d StoreHelper) GetStoreIDForTenant(ctx context.Context, conn openfgav1.Ope
 	return storeID, nil
 }
 
-func (d StoreHelper) GetModelIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error) {
+func (d StoreHelper) GetModelID(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error) {
 
 	cacheKey := "model-" + orgID
 	s, ok := d.cache.Get(cacheKey)
@@ -65,7 +62,7 @@ func (d StoreHelper) GetModelIDForTenant(ctx context.Context, conn openfgav1.Ope
 		return s, nil
 	}
 
-	storeID, err := d.GetStoreIDForTenant(ctx, conn, orgID)
+	storeID, err := d.GetStoreID(ctx, conn, orgID)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get store ID for tenant %s", orgID)
 	}

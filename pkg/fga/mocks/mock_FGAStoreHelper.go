@@ -27,7 +27,7 @@ func (_m *FGAStoreHelper) GetModelIDForTenant(ctx context.Context, conn openfgav
 	ret := _m.Called(ctx, conn, tenantID)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetModelIDForTenant")
+		panic("no return value specified for GetModelID")
 	}
 
 	var r0 string
@@ -50,7 +50,7 @@ func (_m *FGAStoreHelper) GetModelIDForTenant(ctx context.Context, conn openfgav
 	return r0, r1
 }
 
-// FGAStoreHelper_GetModelIDForTenant_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetModelIDForTenant'
+// FGAStoreHelper_GetModelIDForTenant_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetModelID'
 type FGAStoreHelper_GetModelIDForTenant_Call struct {
 	*mock.Call
 }
@@ -60,7 +60,7 @@ type FGAStoreHelper_GetModelIDForTenant_Call struct {
 //   - conn openfgav1.OpenFGAServiceClient
 //   - tenantID string
 func (_e *FGAStoreHelper_Expecter) GetModelIDForTenant(ctx interface{}, conn interface{}, tenantID interface{}) *FGAStoreHelper_GetModelIDForTenant_Call {
-	return &FGAStoreHelper_GetModelIDForTenant_Call{Call: _e.mock.On("GetModelIDForTenant", ctx, conn, tenantID)}
+	return &FGAStoreHelper_GetModelIDForTenant_Call{Call: _e.mock.On("GetModelID", ctx, conn, tenantID)}
 }
 
 func (_c *FGAStoreHelper_GetModelIDForTenant_Call) Run(run func(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string)) *FGAStoreHelper_GetModelIDForTenant_Call {
@@ -85,7 +85,7 @@ func (_m *FGAStoreHelper) GetStoreIDForTenant(ctx context.Context, conn openfgav
 	ret := _m.Called(ctx, conn, tenantID)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetStoreIDForTenant")
+		panic("no return value specified for GetStoreID")
 	}
 
 	var r0 string
@@ -108,7 +108,7 @@ func (_m *FGAStoreHelper) GetStoreIDForTenant(ctx context.Context, conn openfgav
 	return r0, r1
 }
 
-// FGAStoreHelper_GetStoreIDForTenant_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetStoreIDForTenant'
+// FGAStoreHelper_GetStoreIDForTenant_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetStoreID'
 type FGAStoreHelper_GetStoreIDForTenant_Call struct {
 	*mock.Call
 }
@@ -118,7 +118,7 @@ type FGAStoreHelper_GetStoreIDForTenant_Call struct {
 //   - conn openfgav1.OpenFGAServiceClient
 //   - tenantID string
 func (_e *FGAStoreHelper_Expecter) GetStoreIDForTenant(ctx interface{}, conn interface{}, tenantID interface{}) *FGAStoreHelper_GetStoreIDForTenant_Call {
-	return &FGAStoreHelper_GetStoreIDForTenant_Call{Call: _e.mock.On("GetStoreIDForTenant", ctx, conn, tenantID)}
+	return &FGAStoreHelper_GetStoreIDForTenant_Call{Call: _e.mock.On("GetStoreID", ctx, conn, tenantID)}
 }
 
 func (_c *FGAStoreHelper_GetStoreIDForTenant_Call) Run(run func(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string)) *FGAStoreHelper_GetStoreIDForTenant_Call {

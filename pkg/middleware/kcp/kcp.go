@@ -80,8 +80,9 @@ func GetKcpUserContext(ctx context.Context) (KCPContext, error) {
 }
 
 type KCPContext struct {
-	IDMTenant string
-	ClusterId string
+	IDMTenant        string
+	ClusterId        string
+	OrganizationName string
 }
 
 func (s *Middleware) getKcpInfosForContext(ctx context.Context) (KCPContext, error) {
@@ -125,5 +126,6 @@ func (s *Middleware) getKcpInfosForContext(ctx context.Context) (KCPContext, err
 
 	kctx.IDMTenant = idmTenant
 	kctx.ClusterId = ws.Spec.Cluster
+	kctx.OrganizationName = acc.Name
 	return kctx, nil
 }

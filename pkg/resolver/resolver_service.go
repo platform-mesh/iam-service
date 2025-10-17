@@ -9,13 +9,14 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/resolver/api"
 	"github.com/platform-mesh/iam-service/pkg/resolver/errors"
+	"github.com/platform-mesh/iam-service/pkg/service/fga"
 	"github.com/platform-mesh/iam-service/pkg/service/keycloak"
 )
 
 var _ api.ResolverService = (*Service)(nil)
 
 type Service struct {
-	fgaClient       openfgav1.OpenFGAServiceClient
+	fgaService      *fga.Service
 	keycloakService *keycloak.Service
 }
 
@@ -33,11 +34,15 @@ func (s *Service) User(ctx context.Context, userID string) (*graph.User, error) 
 }
 
 func (s *Service) Users(ctx context.Context, context graph.ResourceContext, roleFilters []string, sortBy *graph.SortByInput) (*graph.UserConnection, error) {
-	panic("not implemented")
+	// Retrieve users with roles from fga
+	s.fgaService.UsersForResource(ctx, context, roleFilters)
+	return nil, nil
+
+	// Fill users from keycloak with metadata
 }
 func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycloak.Service) *Service {
 	return &Service{
-		fgaClient:       fgaClient,
+		fgaService:      fga.New(fgaClient),
 		keycloakService: service,
 	}
 }
