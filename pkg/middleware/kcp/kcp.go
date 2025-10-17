@@ -23,21 +23,23 @@ const (
 )
 
 type Middleware struct {
-	mgr                mcmanager.Manager
-	cfg                *config.ServiceConfig
-	log                *logger.Logger
-	tenantRetriever    idm.IDMTenantRetriever
-	excludedIDMTenants []string
+	mgr                      mcmanager.Manager
+	cfg                      *config.ServiceConfig
+	log                      *logger.Logger
+	tenantRetriever          idm.IDMTenantRetriever
+	excludedIDMTenants       []string
+	orgsWorkspaceClusterName string
 }
 
-func New(mgr mcmanager.Manager, cfg *config.ServiceConfig, log *logger.Logger, tenantRetriever idm.IDMTenantRetriever) *Middleware {
+func New(mgr mcmanager.Manager, cfg *config.ServiceConfig, log *logger.Logger, tenantRetriever idm.IDMTenantRetriever, orgsWorkspaceClusterName string) *Middleware {
 	excludedIDMTenants := cfg.IDM.ExcludedTenants
 	return &Middleware{
-		mgr:                mgr,
-		cfg:                cfg,
-		log:                log,
-		tenantRetriever:    tenantRetriever,
-		excludedIDMTenants: excludedIDMTenants,
+		mgr:                      mgr,
+		cfg:                      cfg,
+		log:                      log,
+		tenantRetriever:          tenantRetriever,
+		excludedIDMTenants:       excludedIDMTenants,
+		orgsWorkspaceClusterName: orgsWorkspaceClusterName,
 	}
 }
 
@@ -55,7 +57,6 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 
 			ctx = context.WithValue(ctx, UserContextKey, kctx)
 			log.Trace().
-				Str("ParentClusterId", kctx.ParentClusterId).
 				Str("IDMTenant", kctx.IDMTenant).
 				Str("ClusterId", kctx.ClusterId).
 				Msg("Added information to context was added to the context")
@@ -79,9 +80,8 @@ func GetKcpUserContext(ctx context.Context) (KCPContext, error) {
 }
 
 type KCPContext struct {
-	ParentClusterId string
-	IDMTenant       string
-	ClusterId       string
+	IDMTenant string
+	ClusterId string
 }
 
 func (s *Middleware) getKcpInfosForContext(ctx context.Context) (KCPContext, error) {
@@ -91,7 +91,7 @@ func (s *Middleware) getKcpInfosForContext(ctx context.Context) (KCPContext, err
 		return kctx, err
 	}
 
-	cluster, err := s.mgr.GetCluster(ctx, s.cfg.KCP.OrgsClusterName)
+	cluster, err := s.mgr.GetCluster(ctx, s.orgsWorkspaceClusterName)
 	if err != nil {
 		return kctx, errors.Wrap(err, "failed to get orgs cluster from multicluster manager")
 	}
@@ -123,7 +123,6 @@ func (s *Middleware) getKcpInfosForContext(ctx context.Context) (KCPContext, err
 		return kctx, errors.Wrap(err, "failed to get workspace from kcp")
 	}
 
-	kctx.ParentClusterId = s.cfg.KCP.OrgsClusterName
 	kctx.IDMTenant = idmTenant
 	kctx.ClusterId = ws.Spec.Cluster
 	return kctx, nil

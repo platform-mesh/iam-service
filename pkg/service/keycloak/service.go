@@ -2,10 +2,7 @@ package keycloak
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/url"
 	"os"
 
 	"github.com/coreos/go-oidc"
@@ -14,19 +11,13 @@ import (
 
 	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/graph"
+	keycloakClient "github.com/platform-mesh/iam-service/pkg/keycloak/client"
 	"github.com/platform-mesh/iam-service/pkg/middleware/kcp"
 )
 
-type keycloakUser struct {
-	ID              string   `json:"id,omitempty"`
-	Email           string   `json:"email,omitempty"`
-	RequiredActions []string `json:"requiredActions,omitempty"`
-	Enabled         bool     `json:"enabled,omitempty"`
-}
-
 type Service struct {
-	cfg    *config.ServiceConfig
-	client *http.Client
+	cfg            *config.ServiceConfig
+	keycloakClient KeycloakClientInterface
 }
 
 func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, error) {
@@ -35,39 +26,51 @@ func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, e
 		return nil, err
 	}
 
-	v := url.Values{
-		"email":               {userID},
-		"max":                 {"1"},
-		"briefRepresentation": {"true"},
+	// Configure search parameters
+	briefRepresentation := true
+	maxResults := int32(1)
+	exact := true
+	params := &keycloakClient.GetUsersParams{
+		Email:               &userID,
+		Max:                 &maxResults,
+		BriefRepresentation: &briefRepresentation,
+		Exact:               &exact,
 	}
-	res, err := s.client.Get(fmt.Sprintf("%s/admin/realms/%s/users?%s", s.cfg.Keycloak.BaseURL, kctx.IDMTenant, v.Encode()))
+
+	// Query users using the generated client
+	resp, err := s.keycloakClient.GetUsersWithResponse(ctx, kctx.IDMTenant, params)
 	if err != nil { // coverage-ignore
 		log.Err(err).Msg("Failed to query users")
 		return nil, err
 	}
-	defer res.Body.Close() //nolint:errcheck
-	if res.StatusCode != http.StatusOK {
-		return nil, err
+
+	if resp.StatusCode() != 200 {
+		log.Error().Int("status_code", resp.StatusCode()).Msg("Non-200 response from Keycloak")
+		return nil, fmt.Errorf("keycloak API returned status %d", resp.StatusCode())
 	}
 
-	var users []keycloakUser
-	if err = json.NewDecoder(res.Body).Decode(&users); err != nil { // coverage-ignore
-		return nil, err
+	if resp.JSON200 == nil {
+		return nil, nil
 	}
 
+	users := *resp.JSON200
 	if len(users) == 0 {
 		return nil, nil
 	}
 	if len(users) != 1 {
-		log.Info().Str("email", userID).Msg("unexpected user count")
-		return nil, err
+		log.Info().Str("email", userID).Int("count", len(users)).Msg("unexpected user count")
+		return nil, fmt.Errorf("expected 1 user, got %d", len(users))
 	}
 
-	return &graph.User{
-		UserID: users[0].ID,
-		Email:  users[0].Email,
-	}, nil
+	user := users[0]
+	result := &graph.User{
+		UserID:    *user.Id,
+		Email:     *user.Email,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+	}
 
+	return result, nil
 }
 
 func New(ctx context.Context, cfg *config.ServiceConfig) (*Service, error) {
@@ -88,8 +91,20 @@ func New(ctx context.Context, cfg *config.ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
+	// Create authenticated HTTP client
+	httpClient := oauthC.Client(ctx, token)
+
+	// Create Keycloak client with the authenticated HTTP client
+	kcClient, err := keycloakClient.NewClientWithResponses(
+		cfg.Keycloak.BaseURL,
+		keycloakClient.WithHTTPClient(httpClient),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Keycloak client: %w", err)
+	}
+
 	return &Service{
-		cfg:    cfg,
-		client: oauthC.Client(ctx, token),
+		cfg:            cfg,
+		keycloakClient: kcClient,
 	}, nil
 }

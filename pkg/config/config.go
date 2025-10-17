@@ -8,9 +8,6 @@ type ServiceConfig struct {
 	JWT struct {
 		UserIDClaim string `mapstructure:"jwt-user-id-claim" default:"sub"`
 	} `mapstructure:",squash"`
-	KCP struct {
-		OrgsClusterName string `mapstructure:"kcp-orgs-cluster-name"`
-	} `mapstructure:",squash"`
 	IDM struct {
 		ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
 	} `mapstructure:",squash"`

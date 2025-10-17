@@ -30,6 +30,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	utilruntime.Must(accountsv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(tenancyv1alpha1.AddToScheme(scheme))
+	//utilruntime.Must(apisv1alpha2.AddToScheme(scheme))
 	utilruntime.Must(apisv1alpha1.AddToScheme(scheme))
 	rootCmd.AddCommand(serverCmd)
 

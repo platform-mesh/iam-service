@@ -16,6 +16,10 @@ tasks:
     internal: true
     cmds:
       - test -s {{.LOCAL_BIN}}/go-test-coverage || GOBIN=$(pwd)/{{.LOCAL_BIN}} go install github.com/vladopajic/go-test-coverage/v2@latest
+  setup:oapi-codegen:
+    internal: true
+    cmds:
+      - test -s {{.LOCAL_BIN}}/oapi-codegen || GOBIN=$(pwd)/{{.LOCAL_BIN}} go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
 
   ## Development
   generate:
@@ -23,6 +27,12 @@ tasks:
     cmds:
       - task: mockery
       - go generate ./...
+  generate:keycloak:
+    desc: "Generate minimal Keycloak client from OpenAPI spec"
+    deps: [setup:oapi-codegen]
+    cmds:
+      - "{{.LOCAL_BIN}}/oapi-codegen -config oapi-codegen.yaml keycloak-minimal.json"
+      - echo "Generated minimal Keycloak client in pkg/keycloak/client/client.go"
   mockery:
     deps: [setup:mockery]
     cmds:

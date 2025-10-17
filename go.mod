@@ -8,8 +8,9 @@ require (
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a
 	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2
-	github.com/kcp-dev/kcp/sdk v0.28.1-0.20250926104223-cec2e15f24c6
-	github.com/kcp-dev/multicluster-provider v0.2.0
+	github.com/kcp-dev/kcp/sdk v0.28.3
+	github.com/kcp-dev/multicluster-provider v0.2.1
+	github.com/oapi-codegen/runtime v1.1.2
 	github.com/openfga/api/proto v0.0.0-20250909173124-0ac19aac54f2
 	github.com/platform-mesh/account-operator v0.5.3
 	github.com/platform-mesh/golang-commons v0.6.3
@@ -22,13 +23,13 @@ require (
 	go.opentelemetry.io/otel v1.38.0
 	golang.org/x/oauth2 v0.32.0
 	google.golang.org/grpc v1.76.0
-	gorm.io/gorm v1.31.0
 	k8s.io/client-go v0.34.1
 	sigs.k8s.io/controller-runtime v0.22.3
 	sigs.k8s.io/multicluster-runtime v0.21.0-alpha.9
 )
 
 require (
+	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

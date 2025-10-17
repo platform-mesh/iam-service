@@ -1,0 +1,397 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Keycloak Admin API - Minimal",
+    "description": "Minimal Keycloak Admin API spec containing only the endpoints currently used by the IAM service",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "paths": {
+    "/admin/realms/{realm}/users": {
+      "get": {
+        "summary": "Get users",
+        "description": "Return a paginated list of all users, filtered according to query parameters",
+        "operationId": "getUsers",
+        "parameters": [
+          {
+            "name": "realm",
+            "in": "path",
+            "description": "Realm name (not id!)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "briefRepresentation",
+            "in": "query",
+            "description": "Boolean which defines whether brief representations are returned (default: false)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "description": "A String contained in email, or the complete email, if param \"exact\" is true",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "emailVerified",
+            "in": "query",
+            "description": "whether the email has been verified",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "enabled",
+            "in": "query",
+            "description": "Boolean representing if user is enabled or not",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "exact",
+            "in": "query",
+            "description": "Boolean which defines whether the params \"last\", \"first\", \"email\" and \"username\" must match exactly",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "first",
+            "in": "query",
+            "description": "Pagination offset",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "firstName",
+            "in": "query",
+            "description": "A String contained in firstName, or the complete firstName, if param \"exact\" is true",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idpAlias",
+            "in": "query",
+            "description": "The alias of an Identity Provider linked to the user",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idpUserId",
+            "in": "query",
+            "description": "The userId at an Identity Provider linked to the user",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lastName",
+            "in": "query",
+            "description": "A String contained in lastName, or the complete lastName, if param \"exact\" is true",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "max",
+            "in": "query",
+            "description": "Maximum results size (defaults to 100)",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "A query to search for custom attributes, in the format 'key1:value2 key2:value2'",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "A String contained in username, first or last name, or email. Default search behavior is prefix-based (e.g., foo or foo*). Use *foo* for infix search and \"foo\" for exact search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "description": "A String contained in username, or the complete username, if param \"exact\" is true",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserRepresentation"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "UserRepresentation": {
+        "type": "object",
+        "properties": {
+          "access": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "clientConsents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserConsentRepresentation"
+            }
+          },
+          "clientRoles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "createdTimestamp": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "credentials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CredentialRepresentation"
+            }
+          },
+          "disableableCredentialTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "email": {
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "federatedIdentities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FederatedIdentityRepresentation"
+            }
+          },
+          "federationLink": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "notBefore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "realmRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requiredActions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "self": {
+            "type": "string"
+          },
+          "serviceAccountClientId": {
+            "type": "string"
+          },
+          "totp": {
+            "type": "boolean"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "UserConsentRepresentation": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "createdDate": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "grantedClientScopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "grantedRealmRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "lastUpdatedDate": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CredentialRepresentation": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "string"
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "counter": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdDate": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "credentialData": {
+            "type": "string"
+          },
+          "device": {
+            "type": "string"
+          },
+          "digits": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hashIterations": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hashedSaltedValue": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "period": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "priority": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "salt": {
+            "type": "string"
+          },
+          "secretData": {
+            "type": "string"
+          },
+          "temporary": {
+            "type": "boolean"
+          },
+          "type": {
+            "type": "string"
+          },
+          "userLabel": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "FederatedIdentityRepresentation": {
+        "type": "object",
+        "properties": {
+          "identityProvider": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
