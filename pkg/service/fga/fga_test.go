@@ -3,6 +3,7 @@ package fga
 import (
 	"context"
 	"errors"
+	"sort"
 	"testing"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
@@ -122,13 +123,24 @@ func TestService_ListUsers_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 
-	// Verify the results
-	expected := UserIDToRoles{
+	// Verify the results - convert to map for easier testing
+	resultMap := make(map[string][]string)
+	for _, userRoles := range result {
+		var roleNames []string
+		for _, role := range userRoles.Roles {
+			roleNames = append(roleNames, role.TechnicalName)
+		}
+		sort.Strings(roleNames) // Sort for deterministic comparison
+		resultMap[userRoles.User.Email] = roleNames
+	}
+
+	expected := map[string][]string{
 		"user1": []string{"owner"},
-		"user2": []string{"owner", "member"},
+		"user2": []string{"member", "owner"}, // sorted alphabetically
 		"user3": []string{"member"},
 	}
-	assert.Equal(t, expected, result)
+
+	assert.Equal(t, expected, resultMap)
 }
 
 func TestService_ListUsers_NoKCPContext(t *testing.T) {
@@ -295,11 +307,23 @@ func TestService_ListUsers_EmptyRoleFilters(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 
-	expected := UserIDToRoles{
+	// Verify the results - convert to map for easier testing
+	resultMap := make(map[string][]string)
+	for _, userRoles := range result {
+		var roleNames []string
+		for _, role := range userRoles.Roles {
+			roleNames = append(roleNames, role.TechnicalName)
+		}
+		sort.Strings(roleNames) // Sort for deterministic comparison
+		resultMap[userRoles.User.Email] = roleNames
+	}
+
+	expected := map[string][]string{
 		"user1": []string{"owner"},
 		"user2": []string{"member"},
 	}
-	assert.Equal(t, expected, result)
+
+	assert.Equal(t, expected, resultMap)
 }
 
 func TestApplyRoleFilter_WithFilters(t *testing.T) {
