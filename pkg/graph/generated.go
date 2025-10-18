@@ -65,8 +65,9 @@ type ComplexityRoot struct {
 	}
 
 	Role struct {
-		DisplayName   func(childComplexity int) int
-		TechnicalName func(childComplexity int) int
+		Description func(childComplexity int) int
+		DisplayName func(childComplexity int) int
+		ID          func(childComplexity int) int
 	}
 
 	RoleAssignmentResult struct {
@@ -217,18 +218,24 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.Users(childComplexity, args["context"].(ResourceContext), args["roleFilters"].([]string), args["sortBy"].(*SortByInput), args["page"].(*PageInput)), true
 
+	case "Role.description":
+		if e.complexity.Role.Description == nil {
+			break
+		}
+
+		return e.complexity.Role.Description(childComplexity), true
 	case "Role.displayName":
 		if e.complexity.Role.DisplayName == nil {
 			break
 		}
 
 		return e.complexity.Role.DisplayName(childComplexity), true
-	case "Role.technicalName":
-		if e.complexity.Role.TechnicalName == nil {
+	case "Role.id":
+		if e.complexity.Role.ID == nil {
 			break
 		}
 
-		return e.complexity.Role.TechnicalName(childComplexity), true
+		return e.complexity.Role.ID(childComplexity), true
 
 	case "RoleAssignmentResult.assignedCount":
 		if e.complexity.RoleAssignmentResult.AssignedCount == nil {
@@ -469,10 +476,12 @@ type User {
 
 """ Represents a role that can be granted to a user or group of users """
 type Role {
+    """ Is the unique identifier of the role """
+    id: String!
     """ Is a human readable name of the role """
     displayName: String!
-    """ Is an identifier of the role """
-    technicalName: String!
+    """ Is a description of what the role provides """
+    description: String!
 }
 
 """ Contains all roles that are granted to a user """
@@ -947,10 +956,12 @@ func (ec *executionContext) fieldContext_Query_roles(ctx context.Context, field 
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "id":
+				return ec.fieldContext_Role_id(ctx, field)
 			case "displayName":
 				return ec.fieldContext_Role_displayName(ctx, field)
-			case "technicalName":
-				return ec.fieldContext_Role_technicalName(ctx, field)
+			case "description":
+				return ec.fieldContext_Role_description(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Role", field.Name)
 		},
@@ -1214,6 +1225,35 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _Role_id(ctx context.Context, field graphql.CollectedField, obj *Role) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Role_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Role_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Role",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Role_displayName(ctx context.Context, field graphql.CollectedField, obj *Role) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1243,14 +1283,14 @@ func (ec *executionContext) fieldContext_Role_displayName(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Role_technicalName(ctx context.Context, field graphql.CollectedField, obj *Role) (ret graphql.Marshaler) {
+func (ec *executionContext) _Role_description(ctx context.Context, field graphql.CollectedField, obj *Role) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Role_technicalName,
+		ec.fieldContext_Role_description,
 		func(ctx context.Context) (any, error) {
-			return obj.TechnicalName, nil
+			return obj.Description, nil
 		},
 		nil,
 		ec.marshalNString2string,
@@ -1259,7 +1299,7 @@ func (ec *executionContext) _Role_technicalName(ctx context.Context, field graph
 	)
 }
 
-func (ec *executionContext) fieldContext_Role_technicalName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Role_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Role",
 		Field:      field,
@@ -1699,10 +1739,12 @@ func (ec *executionContext) fieldContext_UserRoles_roles(_ context.Context, fiel
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "id":
+				return ec.fieldContext_Role_id(ctx, field)
 			case "displayName":
 				return ec.fieldContext_Role_displayName(ctx, field)
-			case "technicalName":
-				return ec.fieldContext_Role_technicalName(ctx, field)
+			case "description":
+				return ec.fieldContext_Role_description(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Role", field.Name)
 		},
@@ -3635,13 +3677,18 @@ func (ec *executionContext) _Role(ctx context.Context, sel ast.SelectionSet, obj
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Role")
+		case "id":
+			out.Values[i] = ec._Role_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "displayName":
 			out.Values[i] = ec._Role_displayName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "technicalName":
-			out.Values[i] = ec._Role_technicalName(ctx, field, obj)
+		case "description":
+			out.Values[i] = ec._Role_description(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

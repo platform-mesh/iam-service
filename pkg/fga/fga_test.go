@@ -16,7 +16,42 @@ import (
 	fgamocks "github.com/platform-mesh/iam-service/pkg/fga/mocks"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/middleware/kcp"
+	"github.com/platform-mesh/iam-service/pkg/roles"
 )
+
+// MockRolesRetriever is a mock implementation of RolesRetriever for testing
+type MockRolesRetriever struct {
+	mock.Mock
+}
+
+func (m *MockRolesRetriever) GetAvailableRoles(groupResource string) ([]string, error) {
+	args := m.Called(groupResource)
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockRolesRetriever) GetRoleDefinitions(groupResource string) ([]roles.RoleDefinition, error) {
+	args := m.Called(groupResource)
+	return args.Get(0).([]roles.RoleDefinition), args.Error(1)
+}
+
+func (m *MockRolesRetriever) Reload() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+// createTestService creates a test service with a mock roles retriever
+func createTestService(t *testing.T) (*Service, *fgamocks.OpenFGAServiceClient, *MockRolesRetriever) {
+	client := fgamocks.NewOpenFGAServiceClient(t)
+	mockRoles := &MockRolesRetriever{}
+	// Set up default behavior for core_platform-mesh_io_account
+	mockRoles.On("GetAvailableRoles", "core_platform-mesh_io_account").Return([]string{"owner", "member"}, nil)
+	mockRoles.On("GetRoleDefinitions", "core_platform-mesh_io_account").Return([]roles.RoleDefinition{
+		{ID: "owner", DisplayName: "Owner", Description: "Full access to all resources within the account."},
+		{ID: "member", DisplayName: "Member", Description: "Limited access to resources within the account. Can view and interact with resources but cannot administrate them."},
+	}, nil)
+	service := NewWithRolesRetriever(client, nil, mockRoles)
+	return service, client, mockRoles
+}
 
 func TestNew(t *testing.T) {
 	client := fgamocks.NewOpenFGAServiceClient(t)
@@ -25,11 +60,11 @@ func TestNew(t *testing.T) {
 	assert.NotNil(t, service)
 	assert.Equal(t, client, service.client)
 	assert.NotNil(t, service.helper)
+	assert.NotNil(t, service.rolesRetriever)
 }
 
 func TestService_ListUsers_Success(t *testing.T) {
-	client := fgamocks.NewOpenFGAServiceClient(t)
-	service := New(client)
+	service, client, _ := createTestService(t)
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
@@ -39,9 +74,9 @@ func TestService_ListUsers_Success(t *testing.T) {
 	})
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
@@ -108,7 +143,7 @@ func TestService_ListUsers_Success(t *testing.T) {
 	client.EXPECT().ListUsers(mock.Anything, mock.MatchedBy(func(req *openfgav1.ListUsersRequest) bool {
 		return req.StoreId == storeID &&
 			req.Object.Type == "role" &&
-			req.Object.Id == "apps.v1/deployments/cluster-123/test-deployment/owner" &&
+			req.Object.Id == "core_platform-mesh_io_account/cluster-123/test-account/owner" &&
 			req.Relation == "assignee"
 	})).Return(ownerUsersResponse, nil)
 
@@ -116,7 +151,7 @@ func TestService_ListUsers_Success(t *testing.T) {
 	client.EXPECT().ListUsers(mock.Anything, mock.MatchedBy(func(req *openfgav1.ListUsersRequest) bool {
 		return req.StoreId == storeID &&
 			req.Object.Type == "role" &&
-			req.Object.Id == "apps.v1/deployments/cluster-123/test-deployment/member" &&
+			req.Object.Id == "core_platform-mesh_io_account/cluster-123/test-account/member" &&
 			req.Relation == "assignee"
 	})).Return(memberUsersResponse, nil)
 
@@ -130,7 +165,7 @@ func TestService_ListUsers_Success(t *testing.T) {
 	for _, userRoles := range result {
 		var roleNames []string
 		for _, role := range userRoles.Roles {
-			roleNames = append(roleNames, role.TechnicalName)
+			roleNames = append(roleNames, role.ID)
 		}
 		sort.Strings(roleNames) // Sort for deterministic comparison
 		resultMap[userRoles.User.Email] = roleNames
@@ -152,11 +187,12 @@ func TestService_ListUsers_NoKCPContext(t *testing.T) {
 	ctx := context.Background()
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
+		AccountPath: "test-account",
 	}
 
 	result, err := service.ListUsers(ctx, rCtx, []string{"owner"})
@@ -178,11 +214,12 @@ func TestService_ListUsers_StoreHelperError(t *testing.T) {
 	})
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
+		AccountPath: "test-account",
 	}
 
 	// Mock ListStores call to fail
@@ -207,11 +244,12 @@ func TestService_ListUsers_ListUsersError(t *testing.T) {
 	})
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
+		AccountPath: "test-account",
 	}
 
 	storeID := "store-123"
@@ -249,11 +287,12 @@ func TestService_ListUsers_EmptyRoleFilters(t *testing.T) {
 	})
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
+		AccountPath: "test-account",
 	}
 
 	storeID := "store-123"
@@ -297,11 +336,11 @@ func TestService_ListUsers_EmptyRoleFilters(t *testing.T) {
 	}
 
 	client.EXPECT().ListUsers(mock.Anything, mock.MatchedBy(func(req *openfgav1.ListUsersRequest) bool {
-		return req.Object.Id == "apps.v1/deployments/cluster-123/test-deployment/owner"
+		return req.Object.Id == "core_platform-mesh_io_account/cluster-123/test-account/owner"
 	})).Return(ownerUsersResponse, nil)
 
 	client.EXPECT().ListUsers(mock.Anything, mock.MatchedBy(func(req *openfgav1.ListUsersRequest) bool {
-		return req.Object.Id == "apps.v1/deployments/cluster-123/test-deployment/member"
+		return req.Object.Id == "core_platform-mesh_io_account/cluster-123/test-account/member"
 	})).Return(memberUsersResponse, nil)
 
 	result, err := service.ListUsers(ctx, rCtx, []string{}) // Empty role filters
@@ -314,7 +353,7 @@ func TestService_ListUsers_EmptyRoleFilters(t *testing.T) {
 	for _, userRoles := range result {
 		var roleNames []string
 		for _, role := range userRoles.Roles {
-			roleNames = append(roleNames, role.TechnicalName)
+			roleNames = append(roleNames, role.ID)
 		}
 		sort.Strings(roleNames) // Sort for deterministic comparison
 		resultMap[userRoles.User.Email] = roleNames
@@ -332,9 +371,11 @@ func TestApplyRoleFilter_WithFilters(t *testing.T) {
 	// Create a logger for testing
 	log, _ := logger.New(logger.DefaultConfig())
 
+	service, _, _ := createTestService(t)
 	roleFilters := []string{"owner"}
-	result := applyRoleFilter(roleFilters, log)
+	result, err := service.applyRoleFilter("core_platform-mesh_io_account", roleFilters, log)
 
+	assert.NoError(t, err)
 	expected := []string{"owner"}
 	assert.Equal(t, expected, result)
 }
@@ -343,9 +384,11 @@ func TestApplyRoleFilter_WithMultipleFilters(t *testing.T) {
 	// Create a logger for testing
 	log, _ := logger.New(logger.DefaultConfig())
 
+	service, _, _ := createTestService(t)
 	roleFilters := []string{"owner", "member", "invalid-role"}
-	result := applyRoleFilter(roleFilters, log)
+	result, err := service.applyRoleFilter("core_platform-mesh_io_account", roleFilters, log)
 
+	assert.NoError(t, err)
 	expected := []string{"owner", "member"}
 	assert.Equal(t, expected, result)
 }
@@ -354,9 +397,11 @@ func TestApplyRoleFilter_EmptyFilters(t *testing.T) {
 	// Create a logger for testing
 	log, _ := logger.New(logger.DefaultConfig())
 
+	service, _, _ := createTestService(t)
 	roleFilters := []string{}
-	result := applyRoleFilter(roleFilters, log)
+	result, err := service.applyRoleFilter("core_platform-mesh_io_account", roleFilters, log)
 
+	assert.NoError(t, err)
 	expected := []string{"owner", "member"}
 	assert.Equal(t, expected, result)
 }
@@ -365,8 +410,10 @@ func TestApplyRoleFilter_NilFilters(t *testing.T) {
 	// Create a logger for testing
 	log, _ := logger.New(logger.DefaultConfig())
 
-	result := applyRoleFilter(nil, log)
+	service, _, _ := createTestService(t)
+	result, err := service.applyRoleFilter("core_platform-mesh_io_account", nil, log)
 
+	assert.NoError(t, err)
 	expected := []string{"owner", "member"}
 	assert.Equal(t, expected, result)
 }
@@ -389,9 +436,46 @@ func TestContainsString_EmptyArray(t *testing.T) {
 	assert.False(t, result)
 }
 
+func TestService_GetRoles_Success(t *testing.T) {
+	service, _, _ := createTestService(t)
+
+	ctx := context.Background()
+	rCtx := graph.ResourceContext{
+		GroupResource: "core_platform-mesh_io_account",
+		Resource: &graph.Resource{
+			Name:      "test-account",
+			Namespace: stringPtr("default"),
+		},
+		AccountPath: "test-account",
+	}
+
+	result, err := service.GetRoles(ctx, rCtx)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Len(t, result, 2)
+
+	// Check the roles are properly mapped
+	roleMap := make(map[string]*graph.Role)
+	for _, role := range result {
+		roleMap[role.ID] = role
+	}
+
+	ownerRole, exists := roleMap["owner"]
+	assert.True(t, exists)
+	assert.Equal(t, "owner", ownerRole.ID)
+	assert.Equal(t, "Owner", ownerRole.DisplayName)
+	assert.Equal(t, "Full access to all resources within the account.", ownerRole.Description)
+
+	memberRole, exists := roleMap["member"]
+	assert.True(t, exists)
+	assert.Equal(t, "member", memberRole.ID)
+	assert.Equal(t, "Member", memberRole.DisplayName)
+	assert.Equal(t, "Limited access to resources within the account. Can view and interact with resources but cannot administrate them.", memberRole.Description)
+}
+
 func TestService_AssignRolesToUsers_Success(t *testing.T) {
-	client := fgamocks.NewOpenFGAServiceClient(t)
-	service := New(client)
+	service, client, _ := createTestService(t)
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
@@ -403,9 +487,9 @@ func TestService_AssignRolesToUsers_Success(t *testing.T) {
 	ctx = logger.SetLoggerInContext(ctx, log)
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
@@ -438,11 +522,11 @@ func TestService_AssignRolesToUsers_Success(t *testing.T) {
 	// Mock Write calls for each role assignment
 	expectedWrites := []string{
 		"user:user1@example.com",
-		"role:apps.v1/deployments/cluster-123/test-deployment/owner",
+		"role:core_platform-mesh_io_account/cluster-123/test-account/owner",
 		"user:user1@example.com",
-		"role:apps.v1/deployments/cluster-123/test-deployment/member",
+		"role:core_platform-mesh_io_account/cluster-123/test-account/member",
 		"user:user2@example.com",
-		"role:apps.v1/deployments/cluster-123/test-deployment/member",
+		"role:core_platform-mesh_io_account/cluster-123/test-account/member",
 	}
 
 	writeCallCount := 0
@@ -476,8 +560,7 @@ func TestService_AssignRolesToUsers_Success(t *testing.T) {
 }
 
 func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
-	client := fgamocks.NewOpenFGAServiceClient(t)
-	service := New(client)
+	service, client, _ := createTestService(t)
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
@@ -489,9 +572,9 @@ func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
 	ctx = logger.SetLoggerInContext(ctx, log)
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
@@ -522,7 +605,7 @@ func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
 		return req.StoreId == storeID &&
 			len(req.Writes.TupleKeys) == 1 &&
 			req.Writes.TupleKeys[0].User == "user:user1@example.com" &&
-			req.Writes.TupleKeys[0].Object == "role:apps.v1/deployments/cluster-123/test-deployment/owner" &&
+			req.Writes.TupleKeys[0].Object == "role:core_platform-mesh_io_account/cluster-123/test-account/owner" &&
 			req.Writes.TupleKeys[0].Relation == "assignee"
 	})).Return(&openfgav1.WriteResponse{}, nil).Once()
 
@@ -537,8 +620,7 @@ func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
 }
 
 func TestService_AssignRolesToUsers_DuplicateTuple(t *testing.T) {
-	client := fgamocks.NewOpenFGAServiceClient(t)
-	service := New(client)
+	service, client, _ := createTestService(t)
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
@@ -550,9 +632,9 @@ func TestService_AssignRolesToUsers_DuplicateTuple(t *testing.T) {
 	ctx = logger.SetLoggerInContext(ctx, log)
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
@@ -580,14 +662,14 @@ func TestService_AssignRolesToUsers_DuplicateTuple(t *testing.T) {
 
 	// Create a duplicate write error similar to the one in the issue
 	duplicateError := status.Error(codes.Code(openfgav1.ErrorCode_write_failed_due_to_invalid_input),
-		"cannot write a tuple which already exists: user: 'user:user1@example.com', relation: 'assignee', object: 'role:apps.v1/deployments/cluster-123/test-deployment/owner': tuple to be written already existed")
+		"cannot write a tuple which already exists: user: 'user:user1@example.com', relation: 'assignee', object: 'role:core_platform-mesh_io_account/cluster-123/test-account/owner': tuple to be written already existed")
 
 	// Mock Write call for owner role - returns duplicate error
 	client.EXPECT().Write(mock.Anything, mock.MatchedBy(func(req *openfgav1.WriteRequest) bool {
 		return req.StoreId == storeID &&
 			len(req.Writes.TupleKeys) == 1 &&
 			req.Writes.TupleKeys[0].User == "user:user1@example.com" &&
-			req.Writes.TupleKeys[0].Object == "role:apps.v1/deployments/cluster-123/test-deployment/owner" &&
+			req.Writes.TupleKeys[0].Object == "role:core_platform-mesh_io_account/cluster-123/test-account/owner" &&
 			req.Writes.TupleKeys[0].Relation == "assignee"
 	})).Return(nil, duplicateError).Once()
 
@@ -596,7 +678,7 @@ func TestService_AssignRolesToUsers_DuplicateTuple(t *testing.T) {
 		return req.StoreId == storeID &&
 			len(req.Writes.TupleKeys) == 1 &&
 			req.Writes.TupleKeys[0].User == "user:user1@example.com" &&
-			req.Writes.TupleKeys[0].Object == "role:apps.v1/deployments/cluster-123/test-deployment/member" &&
+			req.Writes.TupleKeys[0].Object == "role:core_platform-mesh_io_account/cluster-123/test-account/member" &&
 			req.Writes.TupleKeys[0].Relation == "assignee"
 	})).Return(&openfgav1.WriteResponse{}, nil).Once()
 
@@ -616,9 +698,9 @@ func TestService_AssignRolesToUsers_NoKCPContext(t *testing.T) {
 	ctx := context.Background()
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
@@ -639,8 +721,7 @@ func TestService_AssignRolesToUsers_NoKCPContext(t *testing.T) {
 }
 
 func TestService_RemoveRole_Success(t *testing.T) {
-	client := fgamocks.NewOpenFGAServiceClient(t)
-	service := New(client)
+	service, client, _ := createTestService(t)
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
@@ -652,9 +733,9 @@ func TestService_RemoveRole_Success(t *testing.T) {
 	ctx = logger.SetLoggerInContext(ctx, log)
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
@@ -685,7 +766,7 @@ func TestService_RemoveRole_Success(t *testing.T) {
 				Key: &openfgav1.TupleKey{
 					User:     "user:user1@example.com",
 					Relation: "assignee",
-					Object:   "role:apps.v1/deployments/cluster-123/test-deployment/owner",
+					Object:   "role:core_platform-mesh_io_account/cluster-123/test-account/owner",
 				},
 			},
 		},
@@ -693,7 +774,7 @@ func TestService_RemoveRole_Success(t *testing.T) {
 	client.EXPECT().Read(mock.Anything, mock.MatchedBy(func(req *openfgav1.ReadRequest) bool {
 		return req.StoreId == storeID &&
 			req.TupleKey.User == "user:user1@example.com" &&
-			req.TupleKey.Object == "role:apps.v1/deployments/cluster-123/test-deployment/owner" &&
+			req.TupleKey.Object == "role:core_platform-mesh_io_account/cluster-123/test-account/owner" &&
 			req.TupleKey.Relation == "assignee"
 	})).Return(readResponse, nil).Once()
 
@@ -703,7 +784,7 @@ func TestService_RemoveRole_Success(t *testing.T) {
 			req.Deletes != nil &&
 			len(req.Deletes.TupleKeys) == 1 &&
 			req.Deletes.TupleKeys[0].User == "user:user1@example.com" &&
-			req.Deletes.TupleKeys[0].Object == "role:apps.v1/deployments/cluster-123/test-deployment/owner" &&
+			req.Deletes.TupleKeys[0].Object == "role:core_platform-mesh_io_account/cluster-123/test-account/owner" &&
 			req.Deletes.TupleKeys[0].Relation == "assignee"
 	})).Return(&openfgav1.WriteResponse{}, nil).Once()
 
@@ -717,8 +798,7 @@ func TestService_RemoveRole_Success(t *testing.T) {
 }
 
 func TestService_RemoveRole_RoleNotAssigned(t *testing.T) {
-	client := fgamocks.NewOpenFGAServiceClient(t)
-	service := New(client)
+	service, client, _ := createTestService(t)
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
@@ -730,9 +810,9 @@ func TestService_RemoveRole_RoleNotAssigned(t *testing.T) {
 	ctx = logger.SetLoggerInContext(ctx, log)
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
@@ -763,7 +843,7 @@ func TestService_RemoveRole_RoleNotAssigned(t *testing.T) {
 	client.EXPECT().Read(mock.Anything, mock.MatchedBy(func(req *openfgav1.ReadRequest) bool {
 		return req.StoreId == storeID &&
 			req.TupleKey.User == "user:user1@example.com" &&
-			req.TupleKey.Object == "role:apps.v1/deployments/cluster-123/test-deployment/member" &&
+			req.TupleKey.Object == "role:core_platform-mesh_io_account/cluster-123/test-account/member" &&
 			req.TupleKey.Relation == "assignee"
 	})).Return(readResponse, nil).Once()
 
@@ -779,8 +859,7 @@ func TestService_RemoveRole_RoleNotAssigned(t *testing.T) {
 }
 
 func TestService_RemoveRole_InvalidRole(t *testing.T) {
-	client := fgamocks.NewOpenFGAServiceClient(t)
-	service := New(client)
+	service, client, _ := createTestService(t)
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
@@ -792,9 +871,9 @@ func TestService_RemoveRole_InvalidRole(t *testing.T) {
 	ctx = logger.SetLoggerInContext(ctx, log)
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
@@ -831,8 +910,7 @@ func TestService_RemoveRole_InvalidRole(t *testing.T) {
 }
 
 func TestService_RemoveRole_ReadError(t *testing.T) {
-	client := fgamocks.NewOpenFGAServiceClient(t)
-	service := New(client)
+	service, client, _ := createTestService(t)
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
@@ -844,9 +922,9 @@ func TestService_RemoveRole_ReadError(t *testing.T) {
 	ctx = logger.SetLoggerInContext(ctx, log)
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
@@ -885,8 +963,7 @@ func TestService_RemoveRole_ReadError(t *testing.T) {
 }
 
 func TestService_RemoveRole_WriteError(t *testing.T) {
-	client := fgamocks.NewOpenFGAServiceClient(t)
-	service := New(client)
+	service, client, _ := createTestService(t)
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
@@ -898,9 +975,9 @@ func TestService_RemoveRole_WriteError(t *testing.T) {
 	ctx = logger.SetLoggerInContext(ctx, log)
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
@@ -931,7 +1008,7 @@ func TestService_RemoveRole_WriteError(t *testing.T) {
 				Key: &openfgav1.TupleKey{
 					User:     "user:user1@example.com",
 					Relation: "assignee",
-					Object:   "role:apps.v1/deployments/cluster-123/test-deployment/owner",
+					Object:   "role:core_platform-mesh_io_account/cluster-123/test-account/owner",
 				},
 			},
 		},
@@ -959,9 +1036,9 @@ func TestService_RemoveRole_NoKCPContext(t *testing.T) {
 	ctx := context.Background()
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "apps.v1/deployments",
+		GroupResource: "core_platform-mesh_io_account",
 		Resource: &graph.Resource{
-			Name:      "test-deployment",
+			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",

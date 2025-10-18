@@ -13,32 +13,96 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/middleware/kcp"
+	"github.com/platform-mesh/iam-service/pkg/roles"
 )
 
 var (
-	defaultRoles = []string{"owner", "member"}
-	userFilter   = []*openfgav1.UserTypeFilter{{Type: "user"}}
+	userFilter = []*openfgav1.UserTypeFilter{{Type: "user"}}
 )
 
 type UserIDToRoles map[string][]string
 
 type Service struct {
-	client openfgav1.OpenFGAServiceClient
-	helper *StoreHelper
+	client         openfgav1.OpenFGAServiceClient
+	helper         *StoreHelper
+	rolesRetriever roles.RolesRetriever
 }
 
 func New(client openfgav1.OpenFGAServiceClient) *Service {
+	// For backward compatibility, use default roles retriever
+	var rolesRetriever roles.RolesRetriever
+	defaultRetriever, err := roles.NewDefaultRolesRetriever()
+	if err != nil {
+		// Fallback to a basic implementation if file not found
+		rolesRetriever = NewStaticRolesRetriever()
+	} else {
+		rolesRetriever = defaultRetriever
+	}
+
 	return &Service{
-		client: client,
-		helper: NewStoreHelper(),
+		client:         client,
+		helper:         NewStoreHelper(),
+		rolesRetriever: rolesRetriever,
 	}
 }
 
 func NewWithConfig(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) *Service {
-	return &Service{
-		client: client,
-		helper: NewStoreHelperWithTTL(cfg.Keycloak.Cache.TTL),
+	// For backward compatibility, use default roles retriever
+	var rolesRetriever roles.RolesRetriever
+	defaultRetriever, err := roles.NewDefaultRolesRetriever()
+	if err != nil {
+		// Fallback to a basic implementation if file not found
+		rolesRetriever = NewStaticRolesRetriever()
+	} else {
+		rolesRetriever = defaultRetriever
 	}
+
+	return &Service{
+		client:         client,
+		helper:         NewStoreHelperWithTTL(cfg.Keycloak.Cache.TTL),
+		rolesRetriever: rolesRetriever,
+	}
+}
+
+// NewWithRolesRetriever creates a new FGA service with a custom roles retriever
+func NewWithRolesRetriever(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig, rolesRetriever roles.RolesRetriever) *Service {
+	helper := NewStoreHelper()
+	if cfg != nil {
+		helper = NewStoreHelperWithTTL(cfg.Keycloak.Cache.TTL)
+	}
+
+	return &Service{
+		client:         client,
+		helper:         helper,
+		rolesRetriever: rolesRetriever,
+	}
+}
+
+// StaticRolesRetriever provides backward compatibility with hardcoded roles
+type StaticRolesRetriever struct{}
+
+// NewStaticRolesRetriever creates a static roles retriever with hardcoded roles
+func NewStaticRolesRetriever() *StaticRolesRetriever {
+	return &StaticRolesRetriever{}
+}
+
+// GetAvailableRoles returns the static list of roles (backward compatibility)
+func (r *StaticRolesRetriever) GetAvailableRoles(groupResource string) ([]string, error) {
+	// Return the old default roles for backward compatibility
+	return []string{"owner", "member"}, nil
+}
+
+// GetRoleDefinitions returns static role definitions
+func (r *StaticRolesRetriever) GetRoleDefinitions(groupResource string) ([]roles.RoleDefinition, error) {
+	return []roles.RoleDefinition{
+		{ID: "owner", DisplayName: "Owner", Description: "Full access to all resources"},
+		{ID: "member", DisplayName: "Member", Description: "Limited access to resources"},
+	}, nil
+}
+
+// Reload is a no-op for static retriever
+func (r *StaticRolesRetriever) Reload() error {
+	return nil
 }
 
 func (s *Service) ListUsers(ctx context.Context, rCtx graph.ResourceContext, roleFilters []string) ([]*graph.UserRoles, error) {
@@ -56,7 +120,10 @@ func (s *Service) ListUsers(ctx context.Context, rCtx graph.ResourceContext, rol
 		return nil, errors.Wrap(err, "failed to get store ID for organization %s", kctx.OrganizationName)
 	}
 
-	appliedRoles := applyRoleFilter(roleFilters, log)
+	appliedRoles, err := s.applyRoleFilter(rCtx.GroupResource, roleFilters, log)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get available roles for group resource %s", rCtx.GroupResource)
+	}
 
 	// If no roles to process, return empty result
 	if len(appliedRoles) == 0 {
@@ -127,12 +194,25 @@ func (s *Service) listUsersParallel(ctx context.Context, rCtx graph.ResourceCont
 	}
 
 	// Convert UserIDToRoles to []*graph.UserRoles
-	return s.convertToGraphUserRoles(allUserIDToRoles), nil
+	return s.convertToGraphUserRoles(rCtx.GroupResource, allUserIDToRoles), nil
 }
 
 // convertToGraphUserRoles converts UserIDToRoles map to []*graph.UserRoles
-func (s *Service) convertToGraphUserRoles(userIDToRoles UserIDToRoles) []*graph.UserRoles {
+func (s *Service) convertToGraphUserRoles(groupResource string, userIDToRoles UserIDToRoles) []*graph.UserRoles {
 	var result []*graph.UserRoles
+
+	// Get role definitions for this group resource
+	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(groupResource)
+	if err != nil {
+		// Fallback to basic roles if we can't get definitions
+		roleDefinitions = []roles.RoleDefinition{}
+	}
+
+	// Create a map for quick role definition lookup
+	roleDefMap := make(map[string]roles.RoleDefinition)
+	for _, roleDef := range roleDefinitions {
+		roleDefMap[roleDef.ID] = roleDef
+	}
 
 	for userID, roleNames := range userIDToRoles {
 		// Create User with available information (only userID from OpenFGA)
@@ -144,11 +224,23 @@ func (s *Service) convertToGraphUserRoles(userIDToRoles UserIDToRoles) []*graph.
 		// Convert role names to Role objects
 		var roles []*graph.Role
 		for _, roleName := range roleNames {
-			role := &graph.Role{
-				TechnicalName: roleName,
-				DisplayName:   roleName, // Using technical name as display name for now
+			// Try to get the full role definition, fallback to basic info
+			if roleDef, exists := roleDefMap[roleName]; exists {
+				role := &graph.Role{
+					ID:          roleDef.ID,
+					DisplayName: roleDef.DisplayName,
+					Description: roleDef.Description,
+				}
+				roles = append(roles, role)
+			} else {
+				// Fallback for roles not found in definitions
+				role := &graph.Role{
+					ID:          roleName,
+					DisplayName: roleName,
+					Description: "Role definition not available",
+				}
+				roles = append(roles, role)
 			}
-			roles = append(roles, role)
 		}
 
 		// Create UserRoles entry
@@ -163,19 +255,52 @@ func (s *Service) convertToGraphUserRoles(userIDToRoles UserIDToRoles) []*graph.
 	return result
 }
 
-func applyRoleFilter(roleFilters []string, log *logger.Logger) []string {
+func (s *Service) GetRoles(ctx context.Context, rCtx graph.ResourceContext) ([]*graph.Role, error) {
+	log := logger.LoadLoggerFromContext(ctx)
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.GetRoles")
+	defer span.End()
+
+	log.Debug().Str("groupResource", rCtx.GroupResource).Msg("Getting available roles")
+
+	// Get role definitions from the roles retriever
+	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rCtx.GroupResource)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get role definitions for group resource %s", rCtx.GroupResource)
+	}
+
+	// Convert to graph.Role objects
+	var roles []*graph.Role
+	for _, roleDef := range roleDefinitions {
+		role := &graph.Role{
+			ID:          roleDef.ID,
+			DisplayName: roleDef.DisplayName,
+			Description: roleDef.Description,
+		}
+		roles = append(roles, role)
+	}
+
+	log.Debug().Int("roleCount", len(roles)).Msg("Successfully retrieved roles")
+	return roles, nil
+}
+
+func (s *Service) applyRoleFilter(groupResource string, roleFilters []string, log *logger.Logger) ([]string, error) {
+	availableRoles, err := s.rolesRetriever.GetAvailableRoles(groupResource)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get available roles: %w", err)
+	}
+
 	var appliedRoles []string
 	if len(roleFilters) > 0 {
-		log.Debug().Interface("roleFilters", roleFilters).Msg("Applying role filters")
-		for _, role := range defaultRoles {
+		log.Debug().Interface("roleFilters", roleFilters).Interface("availableRoles", availableRoles).Msg("Applying role filters")
+		for _, role := range availableRoles {
 			if contains := containsString(roleFilters, role); contains {
 				appliedRoles = append(appliedRoles, role)
 			}
 		}
 	} else {
-		appliedRoles = defaultRoles
+		appliedRoles = availableRoles
 	}
-	return appliedRoles
+	return appliedRoles, nil
 }
 
 // AssignRolesToUsers creates tuples in FGA for the given users and roles
@@ -201,12 +326,20 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceCon
 	for _, change := range changes {
 		log.Debug().Str("userId", change.UserID).Interface("roles", change.Roles).Msg("Processing role assignment")
 
-		// Validate that only default roles are being assigned
+		// Validate that only available roles are being assigned
+		availableRoles, err := s.rolesRetriever.GetAvailableRoles(rCtx.GroupResource)
+		if err != nil {
+			errMsg := fmt.Sprintf("failed to get available roles for group resource '%s': %v", rCtx.GroupResource, err)
+			allErrors = append(allErrors, errMsg)
+			log.Error().Err(err).Str("groupResource", rCtx.GroupResource).Msg("Failed to retrieve available roles")
+			continue
+		}
+
 		for _, role := range change.Roles {
-			if !containsString(defaultRoles, role) {
-				errMsg := fmt.Sprintf("role '%s' is not allowed for user '%s'. Only roles %v are permitted", role, change.UserID, defaultRoles)
+			if !containsString(availableRoles, role) {
+				errMsg := fmt.Sprintf("role '%s' is not allowed for user '%s'. Only roles %v are permitted", role, change.UserID, availableRoles)
 				allErrors = append(allErrors, errMsg)
-				log.Warn().Str("role", role).Str("userId", change.UserID).Msg("Invalid role assignment attempted")
+				log.Warn().Str("role", role).Str("userId", change.UserID).Interface("availableRoles", availableRoles).Msg("Invalid role assignment attempted")
 				continue
 			}
 
@@ -277,10 +410,21 @@ func (s *Service) RemoveRole(ctx context.Context, rCtx graph.ResourceContext, in
 
 	log.Debug().Str("userId", input.UserID).Str("role", input.Role).Msg("Processing role removal")
 
-	// Validate that only default roles can be removed
-	if !containsString(defaultRoles, input.Role) {
-		errMsg := fmt.Sprintf("role '%s' is not allowed. Only roles %v are permitted", input.Role, defaultRoles)
-		log.Warn().Str("role", input.Role).Str("userId", input.UserID).Msg("Invalid role removal attempted")
+	// Validate that only available roles can be removed
+	availableRoles, err := s.rolesRetriever.GetAvailableRoles(rCtx.GroupResource)
+	if err != nil {
+		errMsg := fmt.Sprintf("failed to get available roles for group resource '%s': %v", rCtx.GroupResource, err)
+		log.Error().Err(err).Str("groupResource", rCtx.GroupResource).Msg("Failed to retrieve available roles")
+		return &graph.RoleRemovalResult{
+			Success:     false,
+			Error:       &errMsg,
+			WasAssigned: false,
+		}, nil
+	}
+
+	if !containsString(availableRoles, input.Role) {
+		errMsg := fmt.Sprintf("role '%s' is not allowed. Only roles %v are permitted", input.Role, availableRoles)
+		log.Warn().Str("role", input.Role).Str("userId", input.UserID).Interface("availableRoles", availableRoles).Msg("Invalid role removal attempted")
 		return &graph.RoleRemovalResult{
 			Success:     false,
 			Error:       &errMsg,

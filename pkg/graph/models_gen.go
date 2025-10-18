@@ -48,10 +48,12 @@ type ResourceContext struct {
 
 // Represents a role that can be granted to a user or group of users
 type Role struct {
+	//  Is the unique identifier of the role
+	ID string `json:"id"`
 	//  Is a human readable name of the role
 	DisplayName string `json:"displayName"`
-	//  Is an identifier of the role
-	TechnicalName string `json:"technicalName"`
+	//  Is a description of what the role provides
+	Description string `json:"description"`
 }
 
 // Result of role assignment operation

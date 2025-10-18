@@ -37,10 +37,12 @@ type User {
 
 """ Represents a role that can be granted to a user or group of users """
 type Role {
+    """ Is the unique identifier of the role """
+    id: String!
     """ Is a human readable name of the role """
     displayName: String!
-    """ Is an identifier of the role """
-    technicalName: String!
+    """ Is a description of what the role provides """
+    description: String!
 }
 
 """ Contains all roles that are granted to a user """

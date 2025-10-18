@@ -6,7 +6,6 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/platform-mesh/iam-service/pkg/graph"
 )
@@ -23,7 +22,7 @@ func (r *mutationResolver) RemoveRole(ctx context.Context, context graph.Resourc
 
 // Roles is the resolver for the roles field.
 func (r *queryResolver) Roles(ctx context.Context, context graph.ResourceContext) ([]*graph.Role, error) {
-	panic(fmt.Errorf("not implemented: Roles - roles"))
+	return r.svc.Roles(ctx, context)
 }
 
 // Users is the resolver for the users field.

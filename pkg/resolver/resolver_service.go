@@ -70,6 +70,10 @@ func (s *Service) RemoveRole(ctx context.Context, context graph.ResourceContext,
 	return s.fgaService.RemoveRole(ctx, context, input)
 }
 
+func (s *Service) Roles(ctx context.Context, context graph.ResourceContext) ([]*graph.Role, error) {
+	return s.fgaService.GetRoles(ctx, context)
+}
+
 func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycloak.Service, cfg *config.ServiceConfig) *Service {
 	return &Service{
 		fgaService:      fga.NewWithConfig(fgaClient, cfg),
