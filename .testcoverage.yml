@@ -1,15 +1,8 @@
 exclude:
   paths:
-    - ^pkg/mocks/.*
-    - ^pkg/graph/*
-    - ^pkg/db/mocks/.*
-    - ^pkg/resolver/*
-    - server.go
-    - ^pkg/fga/mocks
-    - ^pkg/fga/middleware # nothing to test there
-    - ^pkg/fga/server.go
     - cmd/*
-    - internal/pkg/*
+    - pkg/keycloak/client
+    - pkg/fga/mocks
+    - pkg/graph
     - main.go
-    - contract-tests/
 

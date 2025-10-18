@@ -11,8 +11,8 @@ import (
 
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	keycloakClient "github.com/platform-mesh/iam-service/pkg/keycloak/client"
+	"github.com/platform-mesh/iam-service/pkg/keycloak/mocks"
 	"github.com/platform-mesh/iam-service/pkg/middleware/kcp"
-	"github.com/platform-mesh/iam-service/pkg/service/keycloak/mocks"
 )
 
 func TestUserByMail_Success(t *testing.T) {

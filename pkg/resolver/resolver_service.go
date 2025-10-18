@@ -7,12 +7,12 @@ import (
 	pmcontext "github.com/platform-mesh/golang-commons/context"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
+	"github.com/platform-mesh/iam-service/pkg/fga"
 	"github.com/platform-mesh/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/keycloak"
 	"github.com/platform-mesh/iam-service/pkg/pager"
 	"github.com/platform-mesh/iam-service/pkg/resolver/api"
 	"github.com/platform-mesh/iam-service/pkg/resolver/errors"
-	"github.com/platform-mesh/iam-service/pkg/service/fga"
-	"github.com/platform-mesh/iam-service/pkg/service/keycloak"
 	"github.com/platform-mesh/iam-service/pkg/sorter"
 )
 
