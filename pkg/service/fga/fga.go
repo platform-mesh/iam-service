@@ -10,6 +10,7 @@ import (
 	"github.com/platform-mesh/golang-commons/logger"
 	"go.opentelemetry.io/otel"
 
+	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/middleware/kcp"
 )
@@ -30,6 +31,13 @@ func New(client openfgav1.OpenFGAServiceClient) *Service {
 	return &Service{
 		client: client,
 		helper: NewStoreHelper(),
+	}
+}
+
+func NewWithConfig(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) *Service {
+	return &Service{
+		client: client,
+		helper: NewStoreHelperWithTTL(cfg.Keycloak.Cache.TTL),
 	}
 }
 

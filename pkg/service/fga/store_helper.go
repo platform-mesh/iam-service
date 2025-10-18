@@ -21,6 +21,10 @@ func NewStoreHelper() *StoreHelper {
 	return &StoreHelper{cache: expirable.NewLRU[string, string](10, nil, 10*time.Minute)}
 }
 
+func NewStoreHelperWithTTL(ttl time.Duration) *StoreHelper {
+	return &StoreHelper{cache: expirable.NewLRU[string, string](10, nil, ttl)}
+}
+
 func (d StoreHelper) GetStoreID(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error) {
 
 	cacheKey := "store-" + orgID

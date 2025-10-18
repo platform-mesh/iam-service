@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 type ServiceConfig struct {
 	Port    int `mapstructure:"port" default:"8080"`
 	OpenFGA struct {
@@ -17,8 +19,8 @@ type ServiceConfig struct {
 		User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
 		PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
 		Cache        struct {
-			TTL     string `mapstructure:"keycloak-cache-ttl" default:"5m"`
-			Enabled bool   `mapstructure:"keycloak-cache-enabled" default:"true"`
+			TTL     time.Duration `mapstructure:"keycloak-cache-ttl" default:"5m"`
+			Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
 		} `mapstructure:",squash"`
 	} `mapstructure:",squash"`
 	Pagination struct {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/coreos/go-oidc"
 	"github.com/rs/zerolog/log"
@@ -290,12 +289,8 @@ func New(ctx context.Context, cfg *config.ServiceConfig) (*Service, error) {
 	// Initialize cache if enabled
 	var userCache *cache.UserCache
 	if cfg.Keycloak.Cache.Enabled {
-		cacheTTL, err := time.ParseDuration(cfg.Keycloak.Cache.TTL)
-		if err != nil {
-			return nil, fmt.Errorf("invalid cache TTL '%s': %w", cfg.Keycloak.Cache.TTL, err)
-		}
-		userCache = cache.NewUserCache(cacheTTL)
-		log.Info().Dur("ttl", cacheTTL).Msg("Keycloak user cache enabled")
+		userCache = cache.NewUserCache(cfg.Keycloak.Cache.TTL)
+		log.Info().Dur("ttl", cfg.Keycloak.Cache.TTL).Msg("Keycloak user cache enabled")
 	} else {
 		log.Info().Msg("Keycloak user cache disabled")
 	}

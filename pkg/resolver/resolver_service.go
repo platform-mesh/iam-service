@@ -64,7 +64,7 @@ func (s *Service) Users(ctx context.Context, context graph.ResourceContext, role
 
 func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycloak.Service, cfg *config.ServiceConfig) *Service {
 	return &Service{
-		fgaService:      fga.New(fgaClient),
+		fgaService:      fga.NewWithConfig(fgaClient, cfg),
 		keycloakService: service,
 		userSorter:      sorter.NewUserSorterWithConfig(cfg),
 		pager:           pager.NewPager(cfg),
