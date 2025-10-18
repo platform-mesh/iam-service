@@ -56,55 +56,45 @@ func (s *Service) Users(ctx context.Context, context graph.ResourceContext, role
 	return &graph.UserConnection{Users: paginatedUserRoles, PageInfo: pageInfo}, nil
 }
 
-// enrichUsersWithKeycloakData enriches user data with information from Keycloak in parallel
+// enrichUsersWithKeycloakData enriches user data with information from Keycloak using batch call
 func (s *Service) enrichUsersWithKeycloakData(ctx context.Context, userRoles []*graph.UserRoles) {
 	if len(userRoles) == 0 {
 		return
 	}
 
-	// Result structure for parallel processing
-	type keycloakResult struct {
-		index        int
-		keycloakUser *graph.User
-		err          error
-	}
+	// Extract unique email addresses from user roles
+	emailSet := make(map[string]bool)
+	var emails []string
 
-	// Create channel for goroutine communication
-	resultChan := make(chan keycloakResult, len(userRoles))
-
-	// Launch goroutines for each user
-	for i, userRole := range userRoles {
+	for _, userRole := range userRoles {
 		if userRole.User != nil && userRole.User.Email != "" {
-			go func(index int, email string) {
-				keycloakUser, err := s.keycloakService.UserByMail(ctx, email)
-				resultChan <- keycloakResult{
-					index:        index,
-					keycloakUser: keycloakUser,
-					err:          err,
-				}
-			}(i, userRole.User.Email)
-		} else {
-			// Send a nil result for users without email
-			resultChan <- keycloakResult{index: i, keycloakUser: nil, err: nil}
+			if !emailSet[userRole.User.Email] {
+				emailSet[userRole.User.Email] = true
+				emails = append(emails, userRole.User.Email)
+			}
 		}
 	}
 
-	// Collect results from all goroutines
-	for i := 0; i < len(userRoles); i++ {
-		result := <-resultChan
+	if len(emails) == 0 {
+		return
+	}
 
-		if result.err != nil {
-			// Log error but continue with partial data - could add logging here
-			continue
-		}
+	// Batch call to get all users at once
+	userMap, err := s.keycloakService.GetUsersByEmails(ctx, emails)
+	if err != nil {
+		// Log error but continue with partial data
+		// In a production system, you might want to add proper logging here
+		return
+	}
 
-		if result.keycloakUser != nil && result.index < len(userRoles) {
-			userRole := userRoles[result.index]
-			if userRole.User != nil {
+	// Update user roles with Keycloak data using the lookup map
+	for _, userRole := range userRoles {
+		if userRole.User != nil && userRole.User.Email != "" {
+			if keycloakUser, exists := userMap[userRole.User.Email]; exists {
 				// Update the user with complete information from Keycloak
-				userRole.User.UserID = result.keycloakUser.UserID
-				userRole.User.FirstName = result.keycloakUser.FirstName
-				userRole.User.LastName = result.keycloakUser.LastName
+				userRole.User.UserID = keycloakUser.UserID
+				userRole.User.FirstName = keycloakUser.FirstName
+				userRole.User.LastName = keycloakUser.LastName
 				// Email is already set from OpenFGA
 			}
 		}

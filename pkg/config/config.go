@@ -16,5 +16,9 @@ type ServiceConfig struct {
 		ClientID     string `mapstructure:"keycloak-client-id" default:"admin-cli"`
 		User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
 		PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
+		Cache        struct {
+			TTL     string `mapstructure:"keycloak-cache-ttl" default:"5m"`
+			Enabled bool   `mapstructure:"keycloak-cache-enabled" default:"true"`
+		} `mapstructure:",squash"`
 	} `mapstructure:",squash"`
 }

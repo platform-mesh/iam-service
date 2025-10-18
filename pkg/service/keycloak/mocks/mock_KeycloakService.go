@@ -23,6 +23,65 @@ func (_m *KeycloakService) EXPECT() *KeycloakService_Expecter {
 	return &KeycloakService_Expecter{mock: &_m.Mock}
 }
 
+// GetUsersByEmails provides a mock function with given fields: ctx, emails
+func (_m *KeycloakService) GetUsersByEmails(ctx context.Context, emails []string) (map[string]*graph.User, error) {
+	ret := _m.Called(ctx, emails)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUsersByEmails")
+	}
+
+	var r0 map[string]*graph.User
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, []string) (map[string]*graph.User, error)); ok {
+		return rf(ctx, emails)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, []string) map[string]*graph.User); ok {
+		r0 = rf(ctx, emails)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]*graph.User)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
+		r1 = rf(ctx, emails)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// KeycloakService_GetUsersByEmails_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUsersByEmails'
+type KeycloakService_GetUsersByEmails_Call struct {
+	*mock.Call
+}
+
+// GetUsersByEmails is a helper method to define mock.On call
+//   - ctx context.Context
+//   - emails []string
+func (_e *KeycloakService_Expecter) GetUsersByEmails(ctx interface{}, emails interface{}) *KeycloakService_GetUsersByEmails_Call {
+	return &KeycloakService_GetUsersByEmails_Call{Call: _e.mock.On("GetUsersByEmails", ctx, emails)}
+}
+
+func (_c *KeycloakService_GetUsersByEmails_Call) Run(run func(ctx context.Context, emails []string)) *KeycloakService_GetUsersByEmails_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].([]string))
+	})
+	return _c
+}
+
+func (_c *KeycloakService_GetUsersByEmails_Call) Return(_a0 map[string]*graph.User, _a1 error) *KeycloakService_GetUsersByEmails_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *KeycloakService_GetUsersByEmails_Call) RunAndReturn(run func(context.Context, []string) (map[string]*graph.User, error)) *KeycloakService_GetUsersByEmails_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UserByMail provides a mock function with given fields: ctx, userID
 func (_m *KeycloakService) UserByMail(ctx context.Context, userID string) (*graph.User, error) {
 	ret := _m.Called(ctx, userID)

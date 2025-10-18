@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/coreos/go-oidc"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 
+	"github.com/platform-mesh/iam-service/pkg/cache"
 	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	keycloakClient "github.com/platform-mesh/iam-service/pkg/keycloak/client"
@@ -18,6 +20,7 @@ import (
 type Service struct {
 	cfg            *config.ServiceConfig
 	keycloakClient KeycloakClientInterface
+	userCache      *cache.UserCache
 }
 
 func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, error) {
@@ -26,26 +29,51 @@ func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, e
 		return nil, err
 	}
 
+	realm := kctx.IDMTenant
+
+	// Try cache first if enabled
+	if s.userCache != nil {
+		if cachedUser := s.userCache.Get(realm, userID); cachedUser != nil {
+			return cachedUser, nil
+		}
+	}
+
+	// Cache miss - fetch from Keycloak
+	user, err := s.fetchUserFromKeycloak(ctx, realm, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Store in cache if user found and cache enabled
+	if user != nil && s.userCache != nil {
+		s.userCache.Set(realm, userID, user)
+	}
+
+	return user, nil
+}
+
+// fetchUserFromKeycloak fetches a single user from Keycloak by email
+func (s *Service) fetchUserFromKeycloak(ctx context.Context, realm, email string) (*graph.User, error) {
 	// Configure search parameters
 	briefRepresentation := true
 	maxResults := int32(1)
 	exact := true
 	params := &keycloakClient.GetUsersParams{
-		Email:               &userID,
+		Email:               &email,
 		Max:                 &maxResults,
 		BriefRepresentation: &briefRepresentation,
 		Exact:               &exact,
 	}
 
 	// Query users using the generated client
-	resp, err := s.keycloakClient.GetUsersWithResponse(ctx, kctx.IDMTenant, params)
+	resp, err := s.keycloakClient.GetUsersWithResponse(ctx, realm, params)
 	if err != nil { // coverage-ignore
-		log.Err(err).Msg("Failed to query users")
+		log.Err(err).Str("email", email).Msg("Failed to query user")
 		return nil, err
 	}
 
 	if resp.StatusCode() != 200 {
-		log.Error().Int("status_code", resp.StatusCode()).Msg("Non-200 response from Keycloak")
+		log.Error().Int("status_code", resp.StatusCode()).Str("email", email).Msg("Non-200 response from Keycloak")
 		return nil, fmt.Errorf("keycloak API returned status %d", resp.StatusCode())
 	}
 
@@ -58,7 +86,7 @@ func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, e
 		return nil, nil
 	}
 	if len(users) != 1 {
-		log.Info().Str("email", userID).Int("count", len(users)).Msg("unexpected user count")
+		log.Info().Str("email", email).Int("count", len(users)).Msg("unexpected user count")
 		return nil, fmt.Errorf("expected 1 user, got %d", len(users))
 	}
 
@@ -71,6 +99,116 @@ func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, e
 	}
 
 	return result, nil
+}
+
+func (s *Service) GetUsersByEmails(ctx context.Context, emails []string) (map[string]*graph.User, error) {
+	if len(emails) == 0 {
+		return map[string]*graph.User{}, nil
+	}
+
+	kctx, err := kcp.GetKcpUserContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	realm := kctx.IDMTenant
+	result := make(map[string]*graph.User)
+
+	var missingEmails []string
+
+	// Check cache first if enabled
+	if s.userCache != nil {
+		cached, missing := s.userCache.GetMany(realm, emails)
+
+		// Add cached users to result
+		for email, user := range cached {
+			result[email] = user
+		}
+
+		missingEmails = missing
+
+		log.Debug().
+			Int("requested", len(emails)).
+			Int("cached_hits", len(cached)).
+			Int("cache_misses", len(missing)).
+			Msg("Cache lookup completed")
+	} else {
+		// No cache - need to fetch all
+		missingEmails = emails
+	}
+
+	// Fetch missing users in parallel
+	if len(missingEmails) > 0 {
+		fetchedUsers, err := s.fetchUsersInParallel(ctx, realm, missingEmails)
+		if err != nil {
+			return nil, err
+		}
+
+		// Add fetched users to result and cache
+		for email, user := range fetchedUsers {
+			result[email] = user
+
+			// Store in cache if enabled
+			if s.userCache != nil {
+				s.userCache.Set(realm, email, user)
+			}
+		}
+	}
+
+	log.Info().
+		Int("requested_emails", len(emails)).
+		Int("returned_users", len(result)).
+		Int("api_calls", len(missingEmails)).
+		Msg("Completed user lookup with cache")
+
+	return result, nil
+}
+
+// fetchUsersInParallel fetches multiple users from Keycloak in parallel
+func (s *Service) fetchUsersInParallel(ctx context.Context, realm string, emails []string) (map[string]*graph.User, error) {
+	type userResult struct {
+		email string
+		user  *graph.User
+		err   error
+	}
+
+	resultChan := make(chan userResult, len(emails))
+
+	// Launch goroutines for each email
+	for _, email := range emails {
+		go func(email string) {
+			user, err := s.fetchUserFromKeycloak(ctx, realm, email)
+			resultChan <- userResult{
+				email: email,
+				user:  user,
+				err:   err,
+			}
+		}(email)
+	}
+
+	// Collect results
+	userMap := make(map[string]*graph.User)
+	var errors []string
+
+	for i := 0; i < len(emails); i++ {
+		result := <-resultChan
+
+		if result.err != nil {
+			errors = append(errors, fmt.Sprintf("%s: %v", result.email, result.err))
+			continue
+		}
+
+		if result.user != nil {
+			userMap[result.email] = result.user
+		}
+	}
+
+	// Log any errors but don't fail the entire operation
+	if len(errors) > 0 {
+		log.Warn().Strs("errors", errors).Msg("Some user fetches failed")
+	}
+
+	return userMap, nil
 }
 
 func New(ctx context.Context, cfg *config.ServiceConfig) (*Service, error) {
@@ -103,8 +241,22 @@ func New(ctx context.Context, cfg *config.ServiceConfig) (*Service, error) {
 		return nil, fmt.Errorf("failed to create Keycloak client: %w", err)
 	}
 
+	// Initialize cache if enabled
+	var userCache *cache.UserCache
+	if cfg.Keycloak.Cache.Enabled {
+		cacheTTL, err := time.ParseDuration(cfg.Keycloak.Cache.TTL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid cache TTL '%s': %w", cfg.Keycloak.Cache.TTL, err)
+		}
+		userCache = cache.NewUserCache(cacheTTL)
+		log.Info().Dur("ttl", cacheTTL).Msg("Keycloak user cache enabled")
+	} else {
+		log.Info().Msg("Keycloak user cache disabled")
+	}
+
 	return &Service{
 		cfg:            cfg,
 		keycloakClient: kcClient,
+		userCache:      userCache,
 	}, nil
 }
