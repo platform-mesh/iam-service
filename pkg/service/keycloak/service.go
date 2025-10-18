@@ -211,6 +211,52 @@ func (s *Service) fetchUsersInParallel(ctx context.Context, realm string, emails
 	return userMap, nil
 }
 
+// EnrichUserRoles enriches user roles with complete user information from Keycloak
+// Updates the UserRoles slice in-place with FirstName, LastName, and UserID from Keycloak
+func (s *Service) EnrichUserRoles(ctx context.Context, userRoles []*graph.UserRoles) error {
+	if len(userRoles) == 0 {
+		return nil
+	}
+
+	// Extract unique email addresses from user roles
+	emailSet := make(map[string]bool)
+	var emails []string
+
+	for _, userRole := range userRoles {
+		if userRole.User != nil && userRole.User.Email != "" {
+			if !emailSet[userRole.User.Email] {
+				emailSet[userRole.User.Email] = true
+				emails = append(emails, userRole.User.Email)
+			}
+		}
+	}
+
+	if len(emails) == 0 {
+		return nil
+	}
+
+	// Batch call to get all users at once
+	userMap, err := s.GetUsersByEmails(ctx, emails)
+	if err != nil {
+		return err
+	}
+
+	// Update user roles with Keycloak data using the lookup map
+	for _, userRole := range userRoles {
+		if userRole.User != nil && userRole.User.Email != "" {
+			if keycloakUser, exists := userMap[userRole.User.Email]; exists {
+				// Update the user with complete information from Keycloak
+				userRole.User.UserID = keycloakUser.UserID
+				userRole.User.FirstName = keycloakUser.FirstName
+				userRole.User.LastName = keycloakUser.LastName
+				// Email is already set from OpenFGA
+			}
+		}
+	}
+
+	return nil
+}
+
 func New(ctx context.Context, cfg *config.ServiceConfig) (*Service, error) {
 	issuer := fmt.Sprintf("%s/realms/master", cfg.Keycloak.BaseURL)
 	provider, err := oidc.NewProvider(ctx, issuer)

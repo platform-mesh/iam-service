@@ -42,8 +42,11 @@ func (s *Service) Users(ctx context.Context, context graph.ResourceContext, role
 		return nil, err
 	}
 
-	// Fill users from keycloak with metadata using parallel processing
-	s.enrichUsersWithKeycloakData(ctx, allUserRoles)
+	// Fill users from openfga with metadata from keycloak
+	err = s.keycloakService.EnrichUserRoles(ctx, allUserRoles)
+	if err != nil {
+		return nil, err
+	}
 
 	// Apply sorting
 	s.userSorter.SortUserRoles(allUserRoles, sortBy)
@@ -54,51 +57,6 @@ func (s *Service) Users(ctx context.Context, context graph.ResourceContext, role
 	paginatedUserRoles, pageInfo := s.applyPagination(allUserRoles, page, totalCount)
 
 	return &graph.UserConnection{Users: paginatedUserRoles, PageInfo: pageInfo}, nil
-}
-
-// enrichUsersWithKeycloakData enriches user data with information from Keycloak using batch call
-func (s *Service) enrichUsersWithKeycloakData(ctx context.Context, userRoles []*graph.UserRoles) {
-	if len(userRoles) == 0 {
-		return
-	}
-
-	// Extract unique email addresses from user roles
-	emailSet := make(map[string]bool)
-	var emails []string
-
-	for _, userRole := range userRoles {
-		if userRole.User != nil && userRole.User.Email != "" {
-			if !emailSet[userRole.User.Email] {
-				emailSet[userRole.User.Email] = true
-				emails = append(emails, userRole.User.Email)
-			}
-		}
-	}
-
-	if len(emails) == 0 {
-		return
-	}
-
-	// Batch call to get all users at once
-	userMap, err := s.keycloakService.GetUsersByEmails(ctx, emails)
-	if err != nil {
-		// Log error but continue with partial data
-		// In a production system, you might want to add proper logging here
-		return
-	}
-
-	// Update user roles with Keycloak data using the lookup map
-	for _, userRole := range userRoles {
-		if userRole.User != nil && userRole.User.Email != "" {
-			if keycloakUser, exists := userMap[userRole.User.Email]; exists {
-				// Update the user with complete information from Keycloak
-				userRole.User.UserID = keycloakUser.UserID
-				userRole.User.FirstName = keycloakUser.FirstName
-				userRole.User.LastName = keycloakUser.LastName
-				// Email is already set from OpenFGA
-			}
-		}
-	}
 }
 
 // applyPagination applies pagination logic to the user roles list and returns the paginated slice and PageInfo

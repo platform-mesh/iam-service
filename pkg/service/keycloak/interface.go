@@ -14,6 +14,10 @@ type KeycloakService interface {
 	// GetUsersByEmails retrieves multiple users by their email addresses in a single batch call
 	// Returns a map of email -> User for efficient lookups
 	GetUsersByEmails(ctx context.Context, emails []string) (map[string]*graph.User, error)
+
+	// EnrichUserRoles enriches user roles with complete user information from Keycloak
+	// Updates the UserRoles slice in-place with FirstName, LastName, and UserID from Keycloak
+	EnrichUserRoles(ctx context.Context, userRoles []*graph.UserRoles) error
 }
 
 // Ensure Service implements KeycloakService interface

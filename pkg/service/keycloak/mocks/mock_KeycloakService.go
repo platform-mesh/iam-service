@@ -23,6 +23,53 @@ func (_m *KeycloakService) EXPECT() *KeycloakService_Expecter {
 	return &KeycloakService_Expecter{mock: &_m.Mock}
 }
 
+// EnrichUserRoles provides a mock function with given fields: ctx, userRoles
+func (_m *KeycloakService) EnrichUserRoles(ctx context.Context, userRoles []*graph.UserRoles) error {
+	ret := _m.Called(ctx, userRoles)
+
+	if len(ret) == 0 {
+		panic("no return value specified for EnrichUserRoles")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, []*graph.UserRoles) error); ok {
+		r0 = rf(ctx, userRoles)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// KeycloakService_EnrichUserRoles_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EnrichUserRoles'
+type KeycloakService_EnrichUserRoles_Call struct {
+	*mock.Call
+}
+
+// EnrichUserRoles is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userRoles []*graph.UserRoles
+func (_e *KeycloakService_Expecter) EnrichUserRoles(ctx interface{}, userRoles interface{}) *KeycloakService_EnrichUserRoles_Call {
+	return &KeycloakService_EnrichUserRoles_Call{Call: _e.mock.On("EnrichUserRoles", ctx, userRoles)}
+}
+
+func (_c *KeycloakService_EnrichUserRoles_Call) Run(run func(ctx context.Context, userRoles []*graph.UserRoles)) *KeycloakService_EnrichUserRoles_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].([]*graph.UserRoles))
+	})
+	return _c
+}
+
+func (_c *KeycloakService_EnrichUserRoles_Call) Return(_a0 error) *KeycloakService_EnrichUserRoles_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *KeycloakService_EnrichUserRoles_Call) RunAndReturn(run func(context.Context, []*graph.UserRoles) error) *KeycloakService_EnrichUserRoles_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetUsersByEmails provides a mock function with given fields: ctx, emails
 func (_m *KeycloakService) GetUsersByEmails(ctx context.Context, emails []string) (map[string]*graph.User, error) {
 	ret := _m.Called(ctx, emails)
