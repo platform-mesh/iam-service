@@ -638,6 +638,347 @@ func TestService_AssignRolesToUsers_NoKCPContext(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to get kcp user context")
 }
 
+func TestService_RemoveRole_Success(t *testing.T) {
+	client := fgamocks.NewOpenFGAServiceClient(t)
+	service := New(client)
+
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+		IDMTenant:        "test-tenant",
+		ClusterId:        "cluster-123",
+		OrganizationName: "test-org",
+	})
+	log, _ := logger.New(logger.DefaultConfig())
+	ctx = logger.SetLoggerInContext(ctx, log)
+
+	rCtx := graph.ResourceContext{
+		GroupResource: "apps.v1/deployments",
+		Resource: &graph.Resource{
+			Name:      "test-deployment",
+			Namespace: stringPtr("default"),
+		},
+		AccountPath: "test-account",
+	}
+
+	input := graph.RemoveRoleInput{
+		UserID: "user1@example.com",
+		Role:   "owner",
+	}
+
+	storeID := "store-123"
+
+	// Mock ListStores call for StoreHelper
+	listStoresResponse := &openfgav1.ListStoresResponse{
+		Stores: []*openfgav1.Store{
+			{
+				Id:   storeID,
+				Name: "test-org",
+			},
+		},
+	}
+	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
+
+	// Mock Read call to check if tuple exists - returns tuple (role is assigned)
+	readResponse := &openfgav1.ReadResponse{
+		Tuples: []*openfgav1.Tuple{
+			{
+				Key: &openfgav1.TupleKey{
+					User:     "user:user1@example.com",
+					Relation: "assignee",
+					Object:   "role:apps.v1/deployments/cluster-123/test-deployment/owner",
+				},
+			},
+		},
+	}
+	client.EXPECT().Read(mock.Anything, mock.MatchedBy(func(req *openfgav1.ReadRequest) bool {
+		return req.StoreId == storeID &&
+			req.TupleKey.User == "user:user1@example.com" &&
+			req.TupleKey.Object == "role:apps.v1/deployments/cluster-123/test-deployment/owner" &&
+			req.TupleKey.Relation == "assignee"
+	})).Return(readResponse, nil).Once()
+
+	// Mock Write call for deletion
+	client.EXPECT().Write(mock.Anything, mock.MatchedBy(func(req *openfgav1.WriteRequest) bool {
+		return req.StoreId == storeID &&
+			req.Deletes != nil &&
+			len(req.Deletes.TupleKeys) == 1 &&
+			req.Deletes.TupleKeys[0].User == "user:user1@example.com" &&
+			req.Deletes.TupleKeys[0].Object == "role:apps.v1/deployments/cluster-123/test-deployment/owner" &&
+			req.Deletes.TupleKeys[0].Relation == "assignee"
+	})).Return(&openfgav1.WriteResponse{}, nil).Once()
+
+	result, err := service.RemoveRole(ctx, rCtx, input)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.True(t, result.Success)
+	assert.True(t, result.WasAssigned)
+	assert.Nil(t, result.Error)
+}
+
+func TestService_RemoveRole_RoleNotAssigned(t *testing.T) {
+	client := fgamocks.NewOpenFGAServiceClient(t)
+	service := New(client)
+
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+		IDMTenant:        "test-tenant",
+		ClusterId:        "cluster-123",
+		OrganizationName: "test-org",
+	})
+	log, _ := logger.New(logger.DefaultConfig())
+	ctx = logger.SetLoggerInContext(ctx, log)
+
+	rCtx := graph.ResourceContext{
+		GroupResource: "apps.v1/deployments",
+		Resource: &graph.Resource{
+			Name:      "test-deployment",
+			Namespace: stringPtr("default"),
+		},
+		AccountPath: "test-account",
+	}
+
+	input := graph.RemoveRoleInput{
+		UserID: "user1@example.com",
+		Role:   "member",
+	}
+
+	storeID := "store-123"
+
+	// Mock ListStores call for StoreHelper
+	listStoresResponse := &openfgav1.ListStoresResponse{
+		Stores: []*openfgav1.Store{
+			{
+				Id:   storeID,
+				Name: "test-org",
+			},
+		},
+	}
+	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
+
+	// Mock Read call to check if tuple exists - returns empty (role is not assigned)
+	readResponse := &openfgav1.ReadResponse{
+		Tuples: []*openfgav1.Tuple{}, // Empty - no tuples found
+	}
+	client.EXPECT().Read(mock.Anything, mock.MatchedBy(func(req *openfgav1.ReadRequest) bool {
+		return req.StoreId == storeID &&
+			req.TupleKey.User == "user:user1@example.com" &&
+			req.TupleKey.Object == "role:apps.v1/deployments/cluster-123/test-deployment/member" &&
+			req.TupleKey.Relation == "assignee"
+	})).Return(readResponse, nil).Once()
+
+	// No Write call should be made since the role wasn't assigned
+
+	result, err := service.RemoveRole(ctx, rCtx, input)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.True(t, result.Success)      // Still successful since idempotent
+	assert.False(t, result.WasAssigned) // But role wasn't assigned
+	assert.Nil(t, result.Error)
+}
+
+func TestService_RemoveRole_InvalidRole(t *testing.T) {
+	client := fgamocks.NewOpenFGAServiceClient(t)
+	service := New(client)
+
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+		IDMTenant:        "test-tenant",
+		ClusterId:        "cluster-123",
+		OrganizationName: "test-org",
+	})
+	log, _ := logger.New(logger.DefaultConfig())
+	ctx = logger.SetLoggerInContext(ctx, log)
+
+	rCtx := graph.ResourceContext{
+		GroupResource: "apps.v1/deployments",
+		Resource: &graph.Resource{
+			Name:      "test-deployment",
+			Namespace: stringPtr("default"),
+		},
+		AccountPath: "test-account",
+	}
+
+	input := graph.RemoveRoleInput{
+		UserID: "user1@example.com",
+		Role:   "admin", // invalid role
+	}
+
+	storeID := "store-123"
+
+	// Mock ListStores call for StoreHelper
+	listStoresResponse := &openfgav1.ListStoresResponse{
+		Stores: []*openfgav1.Store{
+			{
+				Id:   storeID,
+				Name: "test-org",
+			},
+		},
+	}
+	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
+
+	// No Read or Write calls should be made for invalid roles
+
+	result, err := service.RemoveRole(ctx, rCtx, input)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.False(t, result.Success)
+	assert.False(t, result.WasAssigned)
+	assert.NotNil(t, result.Error)
+	assert.Contains(t, *result.Error, "role 'admin' is not allowed")
+}
+
+func TestService_RemoveRole_ReadError(t *testing.T) {
+	client := fgamocks.NewOpenFGAServiceClient(t)
+	service := New(client)
+
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+		IDMTenant:        "test-tenant",
+		ClusterId:        "cluster-123",
+		OrganizationName: "test-org",
+	})
+	log, _ := logger.New(logger.DefaultConfig())
+	ctx = logger.SetLoggerInContext(ctx, log)
+
+	rCtx := graph.ResourceContext{
+		GroupResource: "apps.v1/deployments",
+		Resource: &graph.Resource{
+			Name:      "test-deployment",
+			Namespace: stringPtr("default"),
+		},
+		AccountPath: "test-account",
+	}
+
+	input := graph.RemoveRoleInput{
+		UserID: "user1@example.com",
+		Role:   "owner",
+	}
+
+	storeID := "store-123"
+
+	// Mock ListStores call for StoreHelper
+	listStoresResponse := &openfgav1.ListStoresResponse{
+		Stores: []*openfgav1.Store{
+			{
+				Id:   storeID,
+				Name: "test-org",
+			},
+		},
+	}
+	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
+
+	// Mock Read call to return an error
+	readError := errors.New("FGA read error")
+	client.EXPECT().Read(mock.Anything, mock.Anything).Return(nil, readError).Once()
+
+	result, err := service.RemoveRole(ctx, rCtx, input)
+
+	assert.NoError(t, err) // Service method doesn't return error for business logic failures
+	assert.NotNil(t, result)
+	assert.False(t, result.Success)
+	assert.False(t, result.WasAssigned)
+	assert.NotNil(t, result.Error)
+	assert.Contains(t, *result.Error, "failed to check role assignment")
+}
+
+func TestService_RemoveRole_WriteError(t *testing.T) {
+	client := fgamocks.NewOpenFGAServiceClient(t)
+	service := New(client)
+
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+		IDMTenant:        "test-tenant",
+		ClusterId:        "cluster-123",
+		OrganizationName: "test-org",
+	})
+	log, _ := logger.New(logger.DefaultConfig())
+	ctx = logger.SetLoggerInContext(ctx, log)
+
+	rCtx := graph.ResourceContext{
+		GroupResource: "apps.v1/deployments",
+		Resource: &graph.Resource{
+			Name:      "test-deployment",
+			Namespace: stringPtr("default"),
+		},
+		AccountPath: "test-account",
+	}
+
+	input := graph.RemoveRoleInput{
+		UserID: "user1@example.com",
+		Role:   "owner",
+	}
+
+	storeID := "store-123"
+
+	// Mock ListStores call for StoreHelper
+	listStoresResponse := &openfgav1.ListStoresResponse{
+		Stores: []*openfgav1.Store{
+			{
+				Id:   storeID,
+				Name: "test-org",
+			},
+		},
+	}
+	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
+
+	// Mock Read call to check if tuple exists - returns tuple (role is assigned)
+	readResponse := &openfgav1.ReadResponse{
+		Tuples: []*openfgav1.Tuple{
+			{
+				Key: &openfgav1.TupleKey{
+					User:     "user:user1@example.com",
+					Relation: "assignee",
+					Object:   "role:apps.v1/deployments/cluster-123/test-deployment/owner",
+				},
+			},
+		},
+	}
+	client.EXPECT().Read(mock.Anything, mock.Anything).Return(readResponse, nil).Once()
+
+	// Mock Write call for deletion - returns error
+	writeError := errors.New("FGA write error")
+	client.EXPECT().Write(mock.Anything, mock.Anything).Return(nil, writeError).Once()
+
+	result, err := service.RemoveRole(ctx, rCtx, input)
+
+	assert.NoError(t, err) // Service method doesn't return error for business logic failures
+	assert.NotNil(t, result)
+	assert.False(t, result.Success)
+	assert.True(t, result.WasAssigned) // Role was assigned but removal failed
+	assert.NotNil(t, result.Error)
+	assert.Contains(t, *result.Error, "failed to remove role")
+}
+
+func TestService_RemoveRole_NoKCPContext(t *testing.T) {
+	client := fgamocks.NewOpenFGAServiceClient(t)
+	service := New(client)
+
+	ctx := context.Background()
+
+	rCtx := graph.ResourceContext{
+		GroupResource: "apps.v1/deployments",
+		Resource: &graph.Resource{
+			Name:      "test-deployment",
+			Namespace: stringPtr("default"),
+		},
+		AccountPath: "test-account",
+	}
+
+	input := graph.RemoveRoleInput{
+		UserID: "user1@example.com",
+		Role:   "owner",
+	}
+
+	result, err := service.RemoveRole(ctx, rCtx, input)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get kcp user context")
+}
+
 // Helper function to create string pointers
 func stringPtr(s string) *string {
 	return &s

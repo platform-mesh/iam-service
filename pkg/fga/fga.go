@@ -259,6 +259,110 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceCon
 	}, nil
 }
 
+// RemoveRole removes a role from a user by deleting the tuple in FGA
+func (s *Service) RemoveRole(ctx context.Context, rCtx graph.ResourceContext, input graph.RemoveRoleInput) (*graph.RoleRemovalResult, error) {
+	log := logger.LoadLoggerFromContext(ctx)
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.RemoveRole")
+	defer span.End()
+
+	kctx, err := kcp.GetKcpUserContext(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get kcp user context")
+	}
+
+	storeID, err := s.helper.GetStoreID(ctx, s.client, kctx.OrganizationName)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get store ID for organization %s", kctx.OrganizationName)
+	}
+
+	log.Debug().Str("userId", input.UserID).Str("role", input.Role).Msg("Processing role removal")
+
+	// Validate that only default roles can be removed
+	if !containsString(defaultRoles, input.Role) {
+		errMsg := fmt.Sprintf("role '%s' is not allowed. Only roles %v are permitted", input.Role, defaultRoles)
+		log.Warn().Str("role", input.Role).Str("userId", input.UserID).Msg("Invalid role removal attempted")
+		return &graph.RoleRemovalResult{
+			Success:     false,
+			Error:       &errMsg,
+			WasAssigned: false,
+		}, nil
+	}
+
+	// First, check if the tuple exists by trying to read it
+	readTuple := &openfgav1.ReadRequestTupleKey{
+		User:     fmt.Sprintf("user:%s", input.UserID),
+		Relation: "assignee",
+		Object: fmt.Sprintf("role:%s/%s/%s/%s",
+			rCtx.GroupResource,
+			kctx.ClusterId,
+			rCtx.Resource.Name,
+			input.Role),
+	}
+
+	readReq := &openfgav1.ReadRequest{
+		StoreId:  storeID,
+		TupleKey: readTuple,
+	}
+
+	readResp, err := s.client.Read(ctx, readReq)
+	if err != nil {
+		log.Error().Err(err).Str("role", input.Role).Str("userId", input.UserID).Msg("Failed to check if tuple exists")
+		errMsg := fmt.Sprintf("failed to check role assignment: %v", err)
+		return &graph.RoleRemovalResult{
+			Success:     false,
+			Error:       &errMsg,
+			WasAssigned: false,
+		}, nil
+	}
+
+	// Check if the tuple was found
+	wasAssigned := len(readResp.Tuples) > 0
+	if !wasAssigned {
+		log.Info().Str("role", input.Role).Str("userId", input.UserID).Msg("Role was not assigned to user - nothing to remove")
+		return &graph.RoleRemovalResult{
+			Success:     true,
+			Error:       nil,
+			WasAssigned: false,
+		}, nil
+	}
+
+	// Delete the tuple from FGA
+	deleteTuple := &openfgav1.TupleKeyWithoutCondition{
+		User:     fmt.Sprintf("user:%s", input.UserID),
+		Relation: "assignee",
+		Object: fmt.Sprintf("role:%s/%s/%s/%s",
+			rCtx.GroupResource,
+			kctx.ClusterId,
+			rCtx.Resource.Name,
+			input.Role),
+	}
+
+	deleteReq := &openfgav1.WriteRequest{
+		StoreId: storeID,
+		Deletes: &openfgav1.WriteRequestDeletes{
+			TupleKeys: []*openfgav1.TupleKeyWithoutCondition{deleteTuple},
+		},
+	}
+
+	_, err = s.client.Write(ctx, deleteReq)
+	if err != nil {
+		log.Error().Err(err).Str("role", input.Role).Str("userId", input.UserID).Msg("Failed to delete tuple from FGA")
+		errMsg := fmt.Sprintf("failed to remove role '%s' from user '%s': %v", input.Role, input.UserID, err)
+		return &graph.RoleRemovalResult{
+			Success:     false,
+			Error:       &errMsg,
+			WasAssigned: true,
+		}, nil
+	}
+
+	log.Info().Str("role", input.Role).Str("userId", input.UserID).Msg("Successfully removed role from user")
+	return &graph.RoleRemovalResult{
+		Success:     true,
+		Error:       nil,
+		WasAssigned: true,
+	}, nil
+}
+
 var containsString = func(arr []string, s string) bool {
 	for _, a := range arr {
 		if a == s {

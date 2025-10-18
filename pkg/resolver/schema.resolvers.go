@@ -18,7 +18,7 @@ func (r *mutationResolver) AssignRolesToUsers(ctx context.Context, context graph
 
 // RemoveRole is the resolver for the removeRole field.
 func (r *mutationResolver) RemoveRole(ctx context.Context, context graph.ResourceContext, input graph.RemoveRoleInput) (*graph.RoleRemovalResult, error) {
-	panic(fmt.Errorf("not implemented: RemoveRole - removeRole"))
+	return r.svc.RemoveRole(ctx, context, input)
 }
 
 // Roles is the resolver for the roles field.
