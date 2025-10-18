@@ -3,6 +3,7 @@ package sorter
 import (
 	"testing"
 
+	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/stretchr/testify/assert"
 )
@@ -368,6 +369,100 @@ func TestDefaultUserSorter_StabilityTest(t *testing.T) {
 	// The sort should be stable - same elements should maintain relative order
 	// Since Go's sort.Slice is not guaranteed to be stable, we just verify correctness
 	assert.Len(t, userRoles, 3)
+}
+
+func TestNewUserSorterWithConfig(t *testing.T) {
+	cfg := &config.ServiceConfig{
+		Sorting: struct {
+			DefaultField     string `mapstructure:"sorting-default-field" default:"LastName"`
+			DefaultDirection string `mapstructure:"sorting-default-direction" default:"ASC"`
+		}{
+			DefaultField:     "FirstName",
+			DefaultDirection: "DESC",
+		},
+	}
+
+	sorter := NewUserSorterWithConfig(cfg)
+	assert.NotNil(t, sorter)
+	assert.IsType(t, &DefaultUserSorter{}, sorter)
+
+	// Cast to access private fields for testing
+	defaultSorter := sorter.(*DefaultUserSorter)
+	assert.Equal(t, graph.UserSortFieldFirstName, defaultSorter.defaultField)
+	assert.Equal(t, graph.SortDirectionDesc, defaultSorter.defaultDirection)
+}
+
+func TestNewUserSorterWithConfig_InvalidValues(t *testing.T) {
+	cfg := &config.ServiceConfig{
+		Sorting: struct {
+			DefaultField     string `mapstructure:"sorting-default-field" default:"LastName"`
+			DefaultDirection string `mapstructure:"sorting-default-direction" default:"ASC"`
+		}{
+			DefaultField:     "InvalidField",
+			DefaultDirection: "InvalidDirection",
+		},
+	}
+
+	sorter := NewUserSorterWithConfig(cfg)
+	assert.NotNil(t, sorter)
+
+	// Should fallback to LastName and ASC
+	defaultSorter := sorter.(*DefaultUserSorter)
+	assert.Equal(t, graph.UserSortFieldLastName, defaultSorter.defaultField)
+	assert.Equal(t, graph.SortDirectionAsc, defaultSorter.defaultDirection)
+}
+
+func TestParseUserSortField(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected graph.UserSortField
+	}{
+		{"userid", graph.UserSortFieldUserID},
+		{"user_id", graph.UserSortFieldUserID},
+		{"UserID", graph.UserSortFieldUserID},
+		{"EMAIL", graph.UserSortFieldEmail},
+		{"email", graph.UserSortFieldEmail},
+		{"firstname", graph.UserSortFieldFirstName},
+		{"first_name", graph.UserSortFieldFirstName},
+		{"FirstName", graph.UserSortFieldFirstName},
+		{"lastname", graph.UserSortFieldLastName},
+		{"last_name", graph.UserSortFieldLastName},
+		{"LastName", graph.UserSortFieldLastName},
+		{"invalid", graph.UserSortFieldLastName}, // fallback
+		{"", graph.UserSortFieldLastName},        // fallback
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.input, func(t *testing.T) {
+			result := parseUserSortField(tc.input)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestParseSortDirection(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected graph.SortDirection
+	}{
+		{"ASC", graph.SortDirectionAsc},
+		{"asc", graph.SortDirectionAsc},
+		{"ASCENDING", graph.SortDirectionAsc},
+		{"ascending", graph.SortDirectionAsc},
+		{"DESC", graph.SortDirectionDesc},
+		{"desc", graph.SortDirectionDesc},
+		{"DESCENDING", graph.SortDirectionDesc},
+		{"descending", graph.SortDirectionDesc},
+		{"invalid", graph.SortDirectionAsc}, // fallback
+		{"", graph.SortDirectionAsc},        // fallback
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.input, func(t *testing.T) {
+			result := parseSortDirection(tc.input)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
 }
 
 // Helper function to create string pointers

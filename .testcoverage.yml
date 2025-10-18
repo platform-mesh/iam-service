@@ -3,6 +3,7 @@ exclude:
     - cmd/*
     - pkg/keycloak/client
     - pkg/fga/mocks
+    - pkg/keycloak/mocks
     - pkg/graph
     - main.go
 
