@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/platform-mesh/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/sorter"
 )
 
 func TestService_applyPagination_DefaultValues(t *testing.T) {
@@ -148,7 +149,7 @@ func TestService_applyPagination_InvalidValues(t *testing.T) {
 }
 
 func TestService_applySorting_DefaultLastNameAsc(t *testing.T) {
-	service := &Service{}
+	userSorter := sorter.NewUserSorter()
 
 	// Create test data with different last names
 	userRoles := []*graph.UserRoles{
@@ -179,7 +180,7 @@ func TestService_applySorting_DefaultLastNameAsc(t *testing.T) {
 	}
 
 	// Apply default sorting (should be LastName ASC)
-	service.applySorting(userRoles, nil)
+	userSorter.SortUserRoles(userRoles, nil)
 
 	// Verify order: Anderson, Brown, Wilson
 	assert.Equal(t, "Anderson", *userRoles[0].User.LastName)
@@ -188,7 +189,7 @@ func TestService_applySorting_DefaultLastNameAsc(t *testing.T) {
 }
 
 func TestService_applySorting_FirstNameDesc(t *testing.T) {
-	service := &Service{}
+	userSorter := sorter.NewUserSorter()
 
 	// Create test data
 	userRoles := []*graph.UserRoles{
@@ -223,7 +224,7 @@ func TestService_applySorting_FirstNameDesc(t *testing.T) {
 		Direction: graph.SortDirectionDesc,
 	}
 
-	service.applySorting(userRoles, sortBy)
+	userSorter.SortUserRoles(userRoles, sortBy)
 
 	// Verify order: Charlie, Bob, Alice (FirstName DESC)
 	assert.Equal(t, "Charlie", *userRoles[0].User.FirstName)
@@ -232,7 +233,7 @@ func TestService_applySorting_FirstNameDesc(t *testing.T) {
 }
 
 func TestService_applySorting_EmailAsc(t *testing.T) {
-	service := &Service{}
+	userSorter := sorter.NewUserSorter()
 
 	// Create test data
 	userRoles := []*graph.UserRoles{
@@ -267,7 +268,7 @@ func TestService_applySorting_EmailAsc(t *testing.T) {
 		Direction: graph.SortDirectionAsc,
 	}
 
-	service.applySorting(userRoles, sortBy)
+	userSorter.SortUserRoles(userRoles, sortBy)
 
 	// Verify order: alice, bob, charlie (Email ASC)
 	assert.Equal(t, "alice@example.com", userRoles[0].User.Email)
@@ -276,7 +277,7 @@ func TestService_applySorting_EmailAsc(t *testing.T) {
 }
 
 func TestService_applySorting_NilValues(t *testing.T) {
-	service := &Service{}
+	userSorter := sorter.NewUserSorter()
 
 	// Create test data with nil first/last names
 	userRoles := []*graph.UserRoles{
@@ -307,7 +308,7 @@ func TestService_applySorting_NilValues(t *testing.T) {
 	}
 
 	// Sort by LastName ASC (default)
-	service.applySorting(userRoles, nil)
+	userSorter.SortUserRoles(userRoles, nil)
 
 	// Nil values should sort first (empty string comparison)
 	// Order should be: user1 (nil LastName), user2 (Brown), user3 (Wilson)
@@ -317,18 +318,18 @@ func TestService_applySorting_NilValues(t *testing.T) {
 }
 
 func TestService_applySorting_EmptyList(t *testing.T) {
-	service := &Service{}
+	userSorter := sorter.NewUserSorter()
 
 	userRoles := []*graph.UserRoles{}
 
 	// Should not panic with empty list
-	service.applySorting(userRoles, nil)
+	userSorter.SortUserRoles(userRoles, nil)
 
 	assert.Equal(t, 0, len(userRoles))
 }
 
 func TestService_applySorting_SingleItem(t *testing.T) {
-	service := &Service{}
+	userSorter := sorter.NewUserSorter()
 
 	userRoles := []*graph.UserRoles{
 		{
@@ -342,7 +343,7 @@ func TestService_applySorting_SingleItem(t *testing.T) {
 	}
 
 	// Should not panic with single item
-	service.applySorting(userRoles, nil)
+	userSorter.SortUserRoles(userRoles, nil)
 
 	assert.Equal(t, 1, len(userRoles))
 	assert.Equal(t, "user@example.com", userRoles[0].User.Email)

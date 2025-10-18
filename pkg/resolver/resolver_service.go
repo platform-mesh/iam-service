@@ -2,8 +2,6 @@ package resolver
 
 import (
 	"context"
-	"sort"
-	"strings"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	pmcontext "github.com/platform-mesh/golang-commons/context"
@@ -13,6 +11,7 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/resolver/errors"
 	"github.com/platform-mesh/iam-service/pkg/service/fga"
 	"github.com/platform-mesh/iam-service/pkg/service/keycloak"
+	"github.com/platform-mesh/iam-service/pkg/sorter"
 )
 
 var _ api.ResolverService = (*Service)(nil)
@@ -20,6 +19,7 @@ var _ api.ResolverService = (*Service)(nil)
 type Service struct {
 	fgaService      *fga.Service
 	keycloakService *keycloak.Service
+	userSorter      sorter.UserSorter
 }
 
 func (s *Service) Me(ctx context.Context) (*graph.User, error) {
@@ -46,7 +46,7 @@ func (s *Service) Users(ctx context.Context, context graph.ResourceContext, role
 	s.enrichUsersWithKeycloakData(ctx, allUserRoles)
 
 	// Apply sorting
-	s.applySorting(allUserRoles, sortBy)
+	s.userSorter.SortUserRoles(allUserRoles, sortBy)
 
 	totalCount := len(allUserRoles)
 
@@ -99,76 +99,6 @@ func (s *Service) enrichUsersWithKeycloakData(ctx context.Context, userRoles []*
 			}
 		}
 	}
-}
-
-// applySorting sorts the user roles list based on the sortBy parameter
-// If sortBy is nil, defaults to sorting by LastName in ascending order
-func (s *Service) applySorting(userRoles []*graph.UserRoles, sortBy *graph.SortByInput) {
-	if len(userRoles) <= 1 {
-		return
-	}
-
-	// Default sorting: LastName ASC
-	field := graph.UserSortFieldLastName
-	direction := graph.SortDirectionAsc
-
-	// Override with provided sortBy if available
-	if sortBy != nil {
-		field = sortBy.Field
-		direction = sortBy.Direction
-	}
-
-	// Perform sorting using the sort package
-	sort.Slice(userRoles, func(i, j int) bool {
-		userI := userRoles[i].User
-		userJ := userRoles[j].User
-
-		var compareResult int
-
-		switch field {
-		case graph.UserSortFieldUserID:
-			compareResult = strings.Compare(userI.UserID, userJ.UserID)
-		case graph.UserSortFieldEmail:
-			compareResult = strings.Compare(userI.Email, userJ.Email)
-		case graph.UserSortFieldFirstName:
-			firstNameI := ""
-			if userI.FirstName != nil {
-				firstNameI = *userI.FirstName
-			}
-			firstNameJ := ""
-			if userJ.FirstName != nil {
-				firstNameJ = *userJ.FirstName
-			}
-			compareResult = strings.Compare(firstNameI, firstNameJ)
-		case graph.UserSortFieldLastName:
-			lastNameI := ""
-			if userI.LastName != nil {
-				lastNameI = *userI.LastName
-			}
-			lastNameJ := ""
-			if userJ.LastName != nil {
-				lastNameJ = *userJ.LastName
-			}
-			compareResult = strings.Compare(lastNameI, lastNameJ)
-		default:
-			// Fallback to LastName if invalid field
-			lastNameI := ""
-			if userI.LastName != nil {
-				lastNameI = *userI.LastName
-			}
-			lastNameJ := ""
-			if userJ.LastName != nil {
-				lastNameJ = *userJ.LastName
-			}
-			compareResult = strings.Compare(lastNameI, lastNameJ)
-		}
-
-		// Apply direction
-		if direction == graph.SortDirectionDesc {
-			return compareResult > 0
-		}
-		return compareResult < 0
-	})
 }
 
 // applyPagination applies pagination logic to the user roles list and returns the paginated slice and PageInfo
@@ -247,5 +177,6 @@ func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycl
 	return &Service{
 		fgaService:      fga.New(fgaClient),
 		keycloakService: service,
+		userSorter:      sorter.NewUserSorter(),
 	}
 }
