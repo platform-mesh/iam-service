@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 
@@ -15,11 +16,25 @@ type UserSorter interface {
 }
 
 // DefaultUserSorter provides the default implementation for user sorting
-type DefaultUserSorter struct{}
+type DefaultUserSorter struct {
+	defaultField     graph.UserSortField
+	defaultDirection graph.SortDirection
+}
 
-// NewUserSorter creates a new instance of DefaultUserSorter
+// NewUserSorter creates a new instance of DefaultUserSorter with default values
 func NewUserSorter() UserSorter {
-	return &DefaultUserSorter{}
+	return &DefaultUserSorter{
+		defaultField:     graph.UserSortFieldLastName,
+		defaultDirection: graph.SortDirectionAsc,
+	}
+}
+
+// NewUserSorterWithConfig creates a new instance of DefaultUserSorter with configurable values
+func NewUserSorterWithConfig(cfg *config.ServiceConfig) UserSorter {
+	return &DefaultUserSorter{
+		defaultField:     parseUserSortField(cfg.Sorting.DefaultField),
+		defaultDirection: parseSortDirection(cfg.Sorting.DefaultDirection),
+	}
 }
 
 // SortUserRoles sorts the user roles list based on the sortBy parameter
@@ -29,9 +44,9 @@ func (s *DefaultUserSorter) SortUserRoles(userRoles []*graph.UserRoles, sortBy *
 		return
 	}
 
-	// Default sorting: LastName ASC
-	field := graph.UserSortFieldLastName
-	direction := graph.SortDirectionAsc
+	// Use configured defaults
+	field := s.defaultField
+	direction := s.defaultDirection
 
 	// Override with provided sortBy if available
 	if sortBy != nil {
@@ -82,4 +97,34 @@ func (s *DefaultUserSorter) getStringValue(strPtr *string) string {
 		return ""
 	}
 	return *strPtr
+}
+
+// parseUserSortField converts a string configuration to UserSortField
+func parseUserSortField(field string) graph.UserSortField {
+	switch strings.ToLower(field) {
+	case "userid", "user_id":
+		return graph.UserSortFieldUserID
+	case "email":
+		return graph.UserSortFieldEmail
+	case "firstname", "first_name":
+		return graph.UserSortFieldFirstName
+	case "lastname", "last_name":
+		return graph.UserSortFieldLastName
+	default:
+		// Default to LastName if invalid field
+		return graph.UserSortFieldLastName
+	}
+}
+
+// parseSortDirection converts a string configuration to SortDirection
+func parseSortDirection(direction string) graph.SortDirection {
+	switch strings.ToUpper(direction) {
+	case "DESC", "DESCENDING":
+		return graph.SortDirectionDesc
+	case "ASC", "ASCENDING":
+		return graph.SortDirectionAsc
+	default:
+		// Default to ASC if invalid direction
+		return graph.SortDirectionAsc
+	}
 }

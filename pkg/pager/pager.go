@@ -1,6 +1,9 @@
 package pager
 
-import "github.com/platform-mesh/iam-service/pkg/graph"
+import (
+	"github.com/platform-mesh/iam-service/pkg/config"
+	"github.com/platform-mesh/iam-service/pkg/graph"
+)
 
 // Pager provides pagination functionality for slices
 type Pager interface {
@@ -19,6 +22,14 @@ func NewDefaultPager() *DefaultPager {
 	return &DefaultPager{
 		defaultLimit: 10,
 		defaultPage:  1,
+	}
+}
+
+// NewPager creates a new DefaultPager with configurable values
+func NewPager(cfg *config.ServiceConfig) *DefaultPager {
+	return &DefaultPager{
+		defaultLimit: cfg.Pagination.DefaultLimit,
+		defaultPage:  cfg.Pagination.DefaultPage,
 	}
 }
 

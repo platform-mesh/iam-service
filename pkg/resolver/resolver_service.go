@@ -6,6 +6,7 @@ import (
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	pmcontext "github.com/platform-mesh/golang-commons/context"
 
+	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/pager"
 	"github.com/platform-mesh/iam-service/pkg/resolver/api"
@@ -61,11 +62,11 @@ func (s *Service) Users(ctx context.Context, context graph.ResourceContext, role
 	return &graph.UserConnection{Users: paginatedUserRoles, PageInfo: pageInfo}, nil
 }
 
-func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycloak.Service) *Service {
+func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycloak.Service, cfg *config.ServiceConfig) *Service {
 	return &Service{
 		fgaService:      fga.New(fgaClient),
 		keycloakService: service,
-		userSorter:      sorter.NewUserSorter(),
-		pager:           pager.NewDefaultPager(),
+		userSorter:      sorter.NewUserSorterWithConfig(cfg),
+		pager:           pager.NewPager(cfg),
 	}
 }

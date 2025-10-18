@@ -21,4 +21,12 @@ type ServiceConfig struct {
 			Enabled bool   `mapstructure:"keycloak-cache-enabled" default:"true"`
 		} `mapstructure:",squash"`
 	} `mapstructure:",squash"`
+	Pagination struct {
+		DefaultLimit int `mapstructure:"pagination-default-limit" default:"10"`
+		DefaultPage  int `mapstructure:"pagination-default-page" default:"1"`
+	} `mapstructure:",squash"`
+	Sorting struct {
+		DefaultField     string `mapstructure:"sorting-default-field" default:"LastName"`
+		DefaultDirection string `mapstructure:"sorting-default-direction" default:"ASC"`
+	} `mapstructure:",squash"`
 }
