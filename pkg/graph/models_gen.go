@@ -20,6 +20,11 @@ type PageInfo struct {
 	HasPreviousPage bool `json:"hasPreviousPage"`
 }
 
+type PageInput struct {
+	Limit *int `json:"limit,omitempty"`
+	Page  *int `json:"page,omitempty"`
+}
+
 type Query struct {
 }
 

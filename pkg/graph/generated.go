@@ -61,7 +61,7 @@ type ComplexityRoot struct {
 		Me    func(childComplexity int) int
 		Roles func(childComplexity int, context ResourceContext) int
 		User  func(childComplexity int, userID string) int
-		Users func(childComplexity int, context ResourceContext, roleFilters []string, sortBy *SortByInput) int
+		Users func(childComplexity int, context ResourceContext, roleFilters []string, sortBy *SortByInput, page *PageInput) int
 	}
 
 	Role struct {
@@ -105,7 +105,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Roles(ctx context.Context, context ResourceContext) ([]*Role, error)
-	Users(ctx context.Context, context ResourceContext, roleFilters []string, sortBy *SortByInput) (*UserConnection, error)
+	Users(ctx context.Context, context ResourceContext, roleFilters []string, sortBy *SortByInput, page *PageInput) (*UserConnection, error)
 	User(ctx context.Context, userID string) (*User, error)
 	Me(ctx context.Context) (*User, error)
 }
@@ -215,7 +215,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Users(childComplexity, args["context"].(ResourceContext), args["roleFilters"].([]string), args["sortBy"].(*SortByInput)), true
+		return e.complexity.Query.Users(childComplexity, args["context"].(ResourceContext), args["roleFilters"].([]string), args["sortBy"].(*SortByInput), args["page"].(*PageInput)), true
 
 	case "Role.displayName":
 		if e.complexity.Role.DisplayName == nil {
@@ -327,6 +327,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputPageInput,
 		ec.unmarshalInputRemoveRoleInput,
 		ec.unmarshalInputResource,
 		ec.unmarshalInputResourceContext,
@@ -531,13 +532,17 @@ input SortByInput {
     direction: SortDirection!
 }
 
+input PageInput {
+    limit: Int = 10,
+    page: Int = 1
+}
 
 # Query and Mutations
 type Query {
     """ roles returns the list of assignable roles for a particular groupResource/resource e.g. What roles can be assigned for a specific core_platform-mesh_io_account"""
     roles(context: ResourceContext!): [Role]! # read_roles permission required get_iam_roles
     """ returns all users that have roles assigned for a particular groupResource/resource."""
-    users(context: ResourceContext!, roleFilters: [String!], sortBy: SortByInput): UserConnection! # you need to be a "member" of the project get_iam_users
+    users(context: ResourceContext!, roleFilters: [String!], sortBy: SortByInput, page: PageInput): UserConnection! # you need to be a "member" of the project get_iam_users
     """ returns a specific user by userId"""
     user(userId: String!): User # you need to be a "member" of the organization get_iam_users
     """ returns my user information"""
@@ -643,6 +648,11 @@ func (ec *executionContext) field_Query_users_args(ctx context.Context, rawArgs 
 		return nil, err
 	}
 	args["sortBy"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOPageInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐPageInput)
+	if err != nil {
+		return nil, err
+	}
+	args["page"] = arg3
 	return args, nil
 }
 
@@ -967,7 +977,7 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 		ec.fieldContext_Query_users,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Users(ctx, fc.Args["context"].(ResourceContext), fc.Args["roleFilters"].([]string), fc.Args["sortBy"].(*SortByInput))
+			return ec.resolvers.Query().Users(ctx, fc.Args["context"].(ResourceContext), fc.Args["roleFilters"].([]string), fc.Args["sortBy"].(*SortByInput), fc.Args["page"].(*PageInput))
 		},
 		nil,
 		ec.marshalNUserConnection2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserConnection,
@@ -3146,6 +3156,47 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputPageInput(ctx context.Context, obj any) (PageInput, error) {
+	var it PageInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	if _, present := asMap["limit"]; !present {
+		asMap["limit"] = 10
+	}
+	if _, present := asMap["page"]; !present {
+		asMap["page"] = 1
+	}
+
+	fieldsInOrder := [...]string{"limit", "page"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "limit":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Limit = data
+		case "page":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Page = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputRemoveRoleInput(ctx context.Context, obj any) (RemoveRoleInput, error) {
 	var it RemoveRoleInput
 	asMap := map[string]any{}
@@ -4802,6 +4853,32 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	_ = ctx
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalInt(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalInt(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOPageInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐPageInput(ctx context.Context, v any) (*PageInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputPageInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalORole2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRole(ctx context.Context, sel ast.SelectionSet, v *Role) graphql.Marshaler {
