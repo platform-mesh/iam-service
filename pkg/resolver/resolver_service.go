@@ -35,7 +35,7 @@ func (s *Service) User(ctx context.Context, userID string) (*graph.User, error) 
 
 func (s *Service) Users(ctx context.Context, context graph.ResourceContext, roleFilters []string, sortBy *graph.SortByInput) (*graph.UserConnection, error) {
 	// Retrieve users with roles from fga
-	s.fgaService.UsersForResource(ctx, context, roleFilters)
+	s.fgaService.ListUsers(ctx, context, roleFilters)
 	return nil, nil
 
 	// Fill users from keycloak with metadata

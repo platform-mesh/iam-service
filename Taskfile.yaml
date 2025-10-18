@@ -46,9 +46,10 @@ tasks:
       - task: fmt
       - "{{.LOCAL_BIN}}/golangci-lint run --timeout=15m"
   build:
-    cmds:
-      - go build ./...
+      cmds:
+        - go build ./...
   run:
+    dotenv: [".env"]
     cmds:
       - go run ./main.go serve
   unittest:

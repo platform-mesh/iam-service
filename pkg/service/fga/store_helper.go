@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/golang-lru/v2/expirable"
@@ -30,12 +29,6 @@ func (d StoreHelper) GetStoreID(ctx context.Context, conn openfgav1.OpenFGAServi
 		return s, nil
 	}
 
-	orgIDSplit := strings.Split(orgID, "/")
-	if len(orgIDSplit) != 2 {
-		return "", fmt.Errorf("invalid tenant id expecting format `cluster/name`")
-	}
-	orgName := orgIDSplit[1]
-
 	stores, err := conn.ListStores(ctx, &openfgav1.ListStoresRequest{})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list stores")
@@ -43,7 +36,7 @@ func (d StoreHelper) GetStoreID(ctx context.Context, conn openfgav1.OpenFGAServi
 	}
 
 	idx := slices.IndexFunc(stores.Stores, func(store *openfgav1.Store) bool {
-		return store.Name == orgName
+		return store.Name == orgID
 	})
 	if idx == -1 {
 		return "", fmt.Errorf("store with name %s not found", orgID)
