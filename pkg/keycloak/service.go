@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/coreos/go-oidc"
-	"github.com/rs/zerolog/log"
+	"github.com/platform-mesh/golang-commons/logger"
 	"golang.org/x/oauth2"
 
 	"github.com/platform-mesh/iam-service/pkg/cache"
@@ -53,6 +53,7 @@ func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, e
 
 // fetchUserFromKeycloak fetches a single user from Keycloak by email
 func (s *Service) fetchUserFromKeycloak(ctx context.Context, realm, email string) (*graph.User, error) {
+	log := logger.LoadLoggerFromContext(ctx)
 	// Configure search parameters
 	briefRepresentation := true
 	maxResults := int32(1)
@@ -101,6 +102,7 @@ func (s *Service) fetchUserFromKeycloak(ctx context.Context, realm, email string
 }
 
 func (s *Service) GetUsersByEmails(ctx context.Context, emails []string) (map[string]*graph.User, error) {
+	log := logger.LoadLoggerFromContext(ctx)
 	if len(emails) == 0 {
 		return map[string]*graph.User{}, nil
 	}
@@ -165,6 +167,7 @@ func (s *Service) GetUsersByEmails(ctx context.Context, emails []string) (map[st
 
 // fetchUsersInParallel fetches multiple users from Keycloak in parallel
 func (s *Service) fetchUsersInParallel(ctx context.Context, realm string, emails []string) (map[string]*graph.User, error) {
+	log := logger.LoadLoggerFromContext(ctx)
 	type userResult struct {
 		email string
 		user  *graph.User
@@ -257,6 +260,7 @@ func (s *Service) EnrichUserRoles(ctx context.Context, userRoles []*graph.UserRo
 }
 
 func New(ctx context.Context, cfg *config.ServiceConfig) (*Service, error) {
+	log := logger.LoadLoggerFromContext(ctx)
 	issuer := fmt.Sprintf("%s/realms/master", cfg.Keycloak.BaseURL)
 	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {

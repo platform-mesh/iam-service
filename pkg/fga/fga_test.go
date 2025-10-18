@@ -10,6 +10,8 @@ import (
 	"github.com/platform-mesh/golang-commons/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	fgamocks "github.com/platform-mesh/iam-service/pkg/fga/mocks"
 	"github.com/platform-mesh/iam-service/pkg/graph"
@@ -385,6 +387,255 @@ func TestContainsString_EmptyArray(t *testing.T) {
 	arr := []string{}
 	result := containsString(arr, "owner")
 	assert.False(t, result)
+}
+
+func TestService_AssignRolesToUsers_Success(t *testing.T) {
+	client := fgamocks.NewOpenFGAServiceClient(t)
+	service := New(client)
+
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+		IDMTenant:        "test-tenant",
+		ClusterId:        "cluster-123",
+		OrganizationName: "test-org",
+	})
+	log, _ := logger.New(logger.DefaultConfig())
+	ctx = logger.SetLoggerInContext(ctx, log)
+
+	rCtx := graph.ResourceContext{
+		GroupResource: "apps.v1/deployments",
+		Resource: &graph.Resource{
+			Name:      "test-deployment",
+			Namespace: stringPtr("default"),
+		},
+		AccountPath: "test-account",
+	}
+
+	changes := []*graph.UserRoleChange{
+		{
+			UserID: "user1@example.com",
+			Roles:  []string{"owner", "member"},
+		},
+		{
+			UserID: "user2@example.com",
+			Roles:  []string{"member"},
+		},
+	}
+
+	storeID := "store-123"
+
+	// Mock ListStores call for StoreHelper
+	listStoresResponse := &openfgav1.ListStoresResponse{
+		Stores: []*openfgav1.Store{
+			{
+				Id:   storeID,
+				Name: "test-org",
+			},
+		},
+	}
+	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
+
+	// Mock Write calls for each role assignment
+	expectedWrites := []string{
+		"user:user1@example.com",
+		"role:apps.v1/deployments/cluster-123/test-deployment/owner",
+		"user:user1@example.com",
+		"role:apps.v1/deployments/cluster-123/test-deployment/member",
+		"user:user2@example.com",
+		"role:apps.v1/deployments/cluster-123/test-deployment/member",
+	}
+
+	writeCallCount := 0
+	client.EXPECT().Write(mock.Anything, mock.MatchedBy(func(req *openfgav1.WriteRequest) bool {
+		if req.StoreId != storeID {
+			return false
+		}
+		if len(req.Writes.TupleKeys) != 1 {
+			return false
+		}
+		tuple := req.Writes.TupleKeys[0]
+		if tuple.Relation != "assignee" {
+			return false
+		}
+
+		// Check user and object match expected values
+		expectedUser := expectedWrites[writeCallCount*2]
+		expectedObject := expectedWrites[writeCallCount*2+1]
+		writeCallCount++
+
+		return tuple.User == expectedUser && tuple.Object == expectedObject
+	})).Return(&openfgav1.WriteResponse{}, nil).Times(3)
+
+	result, err := service.AssignRolesToUsers(ctx, rCtx, changes)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.True(t, result.Success)
+	assert.Equal(t, 3, result.AssignedCount)
+	assert.Empty(t, result.Errors)
+}
+
+func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
+	client := fgamocks.NewOpenFGAServiceClient(t)
+	service := New(client)
+
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+		IDMTenant:        "test-tenant",
+		ClusterId:        "cluster-123",
+		OrganizationName: "test-org",
+	})
+	log, _ := logger.New(logger.DefaultConfig())
+	ctx = logger.SetLoggerInContext(ctx, log)
+
+	rCtx := graph.ResourceContext{
+		GroupResource: "apps.v1/deployments",
+		Resource: &graph.Resource{
+			Name:      "test-deployment",
+			Namespace: stringPtr("default"),
+		},
+		AccountPath: "test-account",
+	}
+
+	changes := []*graph.UserRoleChange{
+		{
+			UserID: "user1@example.com",
+			Roles:  []string{"owner", "admin"}, // admin is not in defaultRoles
+		},
+	}
+
+	storeID := "store-123"
+
+	// Mock ListStores call for StoreHelper
+	listStoresResponse := &openfgav1.ListStoresResponse{
+		Stores: []*openfgav1.Store{
+			{
+				Id:   storeID,
+				Name: "test-org",
+			},
+		},
+	}
+	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
+
+	// Mock Write call for owner role only (admin should be rejected)
+	client.EXPECT().Write(mock.Anything, mock.MatchedBy(func(req *openfgav1.WriteRequest) bool {
+		return req.StoreId == storeID &&
+			len(req.Writes.TupleKeys) == 1 &&
+			req.Writes.TupleKeys[0].User == "user:user1@example.com" &&
+			req.Writes.TupleKeys[0].Object == "role:apps.v1/deployments/cluster-123/test-deployment/owner" &&
+			req.Writes.TupleKeys[0].Relation == "assignee"
+	})).Return(&openfgav1.WriteResponse{}, nil).Once()
+
+	result, err := service.AssignRolesToUsers(ctx, rCtx, changes)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.False(t, result.Success)
+	assert.Equal(t, 1, result.AssignedCount)
+	assert.Len(t, result.Errors, 1)
+	assert.Contains(t, result.Errors[0], "role 'admin' is not allowed")
+}
+
+func TestService_AssignRolesToUsers_DuplicateTuple(t *testing.T) {
+	client := fgamocks.NewOpenFGAServiceClient(t)
+	service := New(client)
+
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+		IDMTenant:        "test-tenant",
+		ClusterId:        "cluster-123",
+		OrganizationName: "test-org",
+	})
+	log, _ := logger.New(logger.DefaultConfig())
+	ctx = logger.SetLoggerInContext(ctx, log)
+
+	rCtx := graph.ResourceContext{
+		GroupResource: "apps.v1/deployments",
+		Resource: &graph.Resource{
+			Name:      "test-deployment",
+			Namespace: stringPtr("default"),
+		},
+		AccountPath: "test-account",
+	}
+
+	changes := []*graph.UserRoleChange{
+		{
+			UserID: "user1@example.com",
+			Roles:  []string{"owner", "member"},
+		},
+	}
+
+	storeID := "store-123"
+
+	// Mock ListStores call for StoreHelper
+	listStoresResponse := &openfgav1.ListStoresResponse{
+		Stores: []*openfgav1.Store{
+			{
+				Id:   storeID,
+				Name: "test-org",
+			},
+		},
+	}
+	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
+
+	// Create a duplicate write error similar to the one in the issue
+	duplicateError := status.Error(codes.Code(openfgav1.ErrorCode_write_failed_due_to_invalid_input),
+		"cannot write a tuple which already exists: user: 'user:user1@example.com', relation: 'assignee', object: 'role:apps.v1/deployments/cluster-123/test-deployment/owner': tuple to be written already existed")
+
+	// Mock Write call for owner role - returns duplicate error
+	client.EXPECT().Write(mock.Anything, mock.MatchedBy(func(req *openfgav1.WriteRequest) bool {
+		return req.StoreId == storeID &&
+			len(req.Writes.TupleKeys) == 1 &&
+			req.Writes.TupleKeys[0].User == "user:user1@example.com" &&
+			req.Writes.TupleKeys[0].Object == "role:apps.v1/deployments/cluster-123/test-deployment/owner" &&
+			req.Writes.TupleKeys[0].Relation == "assignee"
+	})).Return(nil, duplicateError).Once()
+
+	// Mock Write call for member role - succeeds
+	client.EXPECT().Write(mock.Anything, mock.MatchedBy(func(req *openfgav1.WriteRequest) bool {
+		return req.StoreId == storeID &&
+			len(req.Writes.TupleKeys) == 1 &&
+			req.Writes.TupleKeys[0].User == "user:user1@example.com" &&
+			req.Writes.TupleKeys[0].Object == "role:apps.v1/deployments/cluster-123/test-deployment/member" &&
+			req.Writes.TupleKeys[0].Relation == "assignee"
+	})).Return(&openfgav1.WriteResponse{}, nil).Once()
+
+	result, err := service.AssignRolesToUsers(ctx, rCtx, changes)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.True(t, result.Success)           // Should still be successful
+	assert.Equal(t, 2, result.AssignedCount) // Both roles should count as assigned
+	assert.Empty(t, result.Errors)           // No errors should be reported
+}
+
+func TestService_AssignRolesToUsers_NoKCPContext(t *testing.T) {
+	client := fgamocks.NewOpenFGAServiceClient(t)
+	service := New(client)
+
+	ctx := context.Background()
+
+	rCtx := graph.ResourceContext{
+		GroupResource: "apps.v1/deployments",
+		Resource: &graph.Resource{
+			Name:      "test-deployment",
+			Namespace: stringPtr("default"),
+		},
+		AccountPath: "test-account",
+	}
+
+	changes := []*graph.UserRoleChange{
+		{
+			UserID: "user1@example.com",
+			Roles:  []string{"owner"},
+		},
+	}
+
+	result, err := service.AssignRolesToUsers(ctx, rCtx, changes)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get kcp user context")
 }
 
 // Helper function to create string pointers

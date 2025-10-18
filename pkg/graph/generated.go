@@ -437,10 +437,10 @@ var sources = []*ast.Source{
 
 ## enums
 enum UserSortField {
-    USER_ID
-    EMAIL
-    FIRST_NAME
-    LAST_NAME
+    userId
+    email
+    firstName
+    lastName
 }
 
 enum SortDirection {

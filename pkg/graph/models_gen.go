@@ -158,10 +158,10 @@ func (e SortDirection) MarshalJSON() ([]byte, error) {
 type UserSortField string
 
 const (
-	UserSortFieldUserID    UserSortField = "USER_ID"
-	UserSortFieldEmail     UserSortField = "EMAIL"
-	UserSortFieldFirstName UserSortField = "FIRST_NAME"
-	UserSortFieldLastName  UserSortField = "LAST_NAME"
+	UserSortFieldUserID    UserSortField = "userId"
+	UserSortFieldEmail     UserSortField = "email"
+	UserSortFieldFirstName UserSortField = "firstName"
+	UserSortFieldLastName  UserSortField = "lastName"
 )
 
 var AllUserSortField = []UserSortField{

@@ -178,6 +178,87 @@ func applyRoleFilter(roleFilters []string, log *logger.Logger) []string {
 	return appliedRoles
 }
 
+// AssignRolesToUsers creates tuples in FGA for the given users and roles
+func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
+	log := logger.LoadLoggerFromContext(ctx)
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.AssignRolesToUsers")
+	defer span.End()
+
+	kctx, err := kcp.GetKcpUserContext(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get kcp user context")
+	}
+
+	storeID, err := s.helper.GetStoreID(ctx, s.client, kctx.OrganizationName)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get store ID for organization %s", kctx.OrganizationName)
+	}
+
+	var allErrors []string
+	var totalAssigned int
+
+	// Process each user role change
+	for _, change := range changes {
+		log.Debug().Str("userId", change.UserID).Interface("roles", change.Roles).Msg("Processing role assignment")
+
+		// Validate that only default roles are being assigned
+		for _, role := range change.Roles {
+			if !containsString(defaultRoles, role) {
+				errMsg := fmt.Sprintf("role '%s' is not allowed for user '%s'. Only roles %v are permitted", role, change.UserID, defaultRoles)
+				allErrors = append(allErrors, errMsg)
+				log.Warn().Str("role", role).Str("userId", change.UserID).Msg("Invalid role assignment attempted")
+				continue
+			}
+
+			// Create the tuple for this user-role combination
+			tuple := &openfgav1.TupleKey{
+				User:     fmt.Sprintf("user:%s", change.UserID),
+				Relation: "assignee",
+				Object: fmt.Sprintf("role:%s/%s/%s/%s",
+					rCtx.GroupResource,
+					kctx.ClusterId,
+					rCtx.Resource.Name,
+					role),
+			}
+
+			// Write the tuple to FGA
+			writeReq := &openfgav1.WriteRequest{
+				StoreId: storeID,
+				Writes: &openfgav1.WriteRequestWrites{
+					TupleKeys: []*openfgav1.TupleKey{tuple},
+				},
+			}
+
+			_, err := s.client.Write(ctx, writeReq)
+			if err != nil {
+				// Check if this is a duplicate write error (tuple already exists)
+				if s.helper.IsDuplicateWriteError(err) {
+					// Treat duplicate writes as successful - the role is already assigned
+					totalAssigned++
+					log.Info().Str("role", role).Str("userId", change.UserID).Msg("Role already assigned to user - skipping duplicate")
+				} else {
+					// This is a real error
+					errMsg := fmt.Sprintf("failed to assign role '%s' to user '%s': %v", role, change.UserID, err)
+					allErrors = append(allErrors, errMsg)
+					log.Error().Err(err).Str("role", role).Str("userId", change.UserID).Msg("Failed to write tuple to FGA")
+				}
+			} else {
+				totalAssigned++
+				log.Info().Str("role", role).Str("userId", change.UserID).Msg("Successfully assigned role to user")
+			}
+		}
+	}
+
+	// Determine overall success
+	success := len(allErrors) == 0
+
+	return &graph.RoleAssignmentResult{
+		Success:       success,
+		Errors:        allErrors,
+		AssignedCount: totalAssigned,
+	}, nil
+}
+
 var containsString = func(arr []string, s string) bool {
 	for _, a := range arr {
 		if a == s {

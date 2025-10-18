@@ -13,7 +13,7 @@ import (
 
 // AssignRolesToUsers is the resolver for the assignRolesToUsers field.
 func (r *mutationResolver) AssignRolesToUsers(ctx context.Context, context graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
-	panic(fmt.Errorf("not implemented: AssignRolesToUsers - assignRolesToUsers"))
+	return r.svc.AssignRolesToUsers(ctx, context, changes)
 }
 
 // RemoveRole is the resolver for the removeRole field.

@@ -62,6 +62,10 @@ func (s *Service) Users(ctx context.Context, context graph.ResourceContext, role
 	return &graph.UserConnection{Users: paginatedUserRoles, PageInfo: pageInfo}, nil
 }
 
+func (s *Service) AssignRolesToUsers(ctx context.Context, context graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
+	return s.fgaService.AssignRolesToUsers(ctx, context, changes)
+}
+
 func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycloak.Service, cfg *config.ServiceConfig) *Service {
 	return &Service{
 		fgaService:      fga.NewWithConfig(fgaClient, cfg),
