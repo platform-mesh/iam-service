@@ -8,6 +8,7 @@ import (
 	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
 	pmcontext "github.com/platform-mesh/golang-commons/context"
 	"github.com/platform-mesh/golang-commons/errors"
+	"github.com/platform-mesh/golang-commons/jwt"
 	"github.com/platform-mesh/golang-commons/logger"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
@@ -49,6 +50,14 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 			ctx := r.Context()
 			log := logger.LoadLoggerFromContext(ctx)
 
+			tokenInfo, err := pmcontext.GetWebTokenFromContext(ctx)
+			if err != nil {
+				msg := "Error while retrieving tokenInfo"
+				log.Error().Err(err).Msg(msg)
+				http.Error(w, msg, http.StatusInternalServerError)
+				return
+			}
+
 			kctx := KCPContext{}
 			cluster, err := m.mgr.GetCluster(ctx, m.orgsWorkspaceClusterName)
 			if err != nil {
@@ -59,7 +68,7 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 			}
 			cl := cluster.GetClient()
 
-			kCtx, err := m.getKCPInfosForContext(ctx, err, kctx, cl)
+			kCtx, err := m.getKCPInfosForContext(ctx, tokenInfo, kctx, cl)
 			if err != nil {
 				msg := "Error while generating kcp context"
 				log.Error().Err(err).Msg(msg)
@@ -97,11 +106,7 @@ type KCPContext struct {
 	OrganizationName string
 }
 
-func (s *Middleware) getKCPInfosForContext(ctx context.Context, err error, kctx KCPContext, cl client.Client) (KCPContext, error) {
-	tokenInfo, err := pmcontext.GetWebTokenFromContext(ctx)
-	if err != nil {
-		return kctx, err
-	}
+func (s *Middleware) getKCPInfosForContext(ctx context.Context, tokenInfo jwt.WebToken, kctx KCPContext, cl client.Client) (KCPContext, error) {
 
 	idmTenant, err := s.tenantRetriever.GetIDMTenant(tokenInfo.Issuer)
 	if err != nil {
