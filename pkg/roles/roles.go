@@ -2,7 +2,6 @@ package roles
 
 import (
 	"os"
-	"path/filepath"
 
 	"github.com/platform-mesh/golang-commons/errors"
 	"gopkg.in/yaml.v3"
@@ -49,18 +48,6 @@ func NewFileBasedRolesRetriever(filePath string) (*FileBasedRolesRetriever, erro
 	}
 
 	return retriever, nil
-}
-
-// NewDefaultRolesRetriever creates a roles retriever with the default input/roles.yaml path
-func NewDefaultRolesRetriever() (*FileBasedRolesRetriever, error) {
-	// Get the current working directory and construct the path to input/roles.yaml
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get current working directory")
-	}
-
-	filePath := filepath.Join(cwd, "input", "roles.yaml")
-	return NewFileBasedRolesRetriever(filePath)
 }
 
 // reload reloads the roles configuration from the file

@@ -133,7 +133,7 @@ func TestGetRoleDefinitions_NoConfigLoaded(t *testing.T) {
 	assert.Contains(t, err.Error(), "roles configuration not loaded")
 }
 
-func TestNewDefaultRolesRetriever_IntegrationTest(t *testing.T) {
+func TestNewFileBasedRolesRetriever_IntegrationTest(t *testing.T) {
 	// This test checks if the default roles.yaml exists and can be loaded
 	// It's more of an integration test to ensure the actual file structure works
 
@@ -153,7 +153,7 @@ func TestNewDefaultRolesRetriever_IntegrationTest(t *testing.T) {
 		t.Skip("input/roles.yaml does not exist, skipping integration test")
 	}
 
-	retriever, err := NewDefaultRolesRetriever()
+	retriever, err := NewFileBasedRolesRetriever(rolesFile)
 	assert.NoError(t, err)
 	assert.NotNil(t, retriever)
 

@@ -75,7 +75,7 @@ func (s *Service) Roles(ctx context.Context, context graph.ResourceContext) ([]*
 }
 
 func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycloak.Service, cfg *config.ServiceConfig) (*Service, error) {
-	fgaService, err := fga.NewWithConfig(fgaClient, cfg)
+	fgaService, err := fga.New(fgaClient, cfg)
 	if err != nil {
 		return nil, err
 	}

@@ -28,23 +28,9 @@ type Service struct {
 	rolesRetriever roles.RolesRetriever
 }
 
-func New(client openfgav1.OpenFGAServiceClient) (*Service, error) {
-	// Always use the default roles retriever from YAML file
-	rolesRetriever, err := roles.NewDefaultRolesRetriever()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to initialize roles retriever from YAML file")
-	}
-
-	return &Service{
-		client:         client,
-		helper:         NewStoreHelper(),
-		rolesRetriever: rolesRetriever,
-	}, nil
-}
-
-func NewWithConfig(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) (*Service, error) {
-	// Always use the default roles retriever from YAML file
-	rolesRetriever, err := roles.NewDefaultRolesRetriever()
+func New(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) (*Service, error) {
+	// Use configurable roles retriever from YAML file
+	rolesRetriever, err := roles.NewFileBasedRolesRetriever(cfg.Roles.FilePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to initialize roles retriever from YAML file")
 	}

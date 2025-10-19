@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 	"testing"
+	"time"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	"github.com/platform-mesh/golang-commons/logger"
@@ -14,11 +15,41 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/platform-mesh/iam-service/pkg/config"
 	fgamocks "github.com/platform-mesh/iam-service/pkg/fga/mocks"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/middleware/kcp"
 	"github.com/platform-mesh/iam-service/pkg/roles"
 )
+
+// createTestConfig creates a test configuration
+func createTestConfig(t *testing.T) *config.ServiceConfig {
+	testRolesFile := filepath.Join("testdata", "roles.yaml")
+	return &config.ServiceConfig{
+		Roles: struct {
+			FilePath string `mapstructure:"roles-file-path" default:"input/roles.yaml"`
+		}{
+			FilePath: testRolesFile,
+		},
+		Keycloak: struct {
+			BaseURL      string `mapstructure:"keycloak-base-url" default:"https://portal.dev.local:8443/keycloak"`
+			ClientID     string `mapstructure:"keycloak-client-id" default:"admin-cli"`
+			User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
+			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
+			Cache        struct {
+				TTL     time.Duration `mapstructure:"keycloak-cache-ttl" default:"5m"`
+				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
+			} `mapstructure:",squash"`
+		}{
+			Cache: struct {
+				TTL     time.Duration `mapstructure:"keycloak-cache-ttl" default:"5m"`
+				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
+			}{
+				TTL: 5 * time.Minute,
+			},
+		},
+	}
+}
 
 // createTestService creates a test service with a real roles retriever
 func createTestService(t *testing.T) (*Service, *fgamocks.OpenFGAServiceClient) {
@@ -37,12 +68,14 @@ func createTestService(t *testing.T) (*Service, *fgamocks.OpenFGAServiceClient) 
 
 func TestNew(t *testing.T) {
 	client := fgamocks.NewOpenFGAServiceClient(t)
-	service, err := New(client)
 
-	// Test should expect error when roles.yaml doesn't exist in test directory
-	assert.Error(t, err)
-	assert.Nil(t, service)
-	assert.Contains(t, err.Error(), "failed to initialize roles retriever from YAML file")
+	// Create config with testdata roles file
+	cfg := createTestConfig(t)
+	service, err := New(client, cfg)
+
+	// Should succeed with test config
+	assert.NoError(t, err)
+	assert.NotNil(t, service)
 }
 
 func TestService_ListUsers_Success(t *testing.T) {

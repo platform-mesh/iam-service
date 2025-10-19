@@ -31,4 +31,7 @@ type ServiceConfig struct {
 		DefaultField     string `mapstructure:"sorting-default-field" default:"LastName"`
 		DefaultDirection string `mapstructure:"sorting-default-direction" default:"ASC"`
 	} `mapstructure:",squash"`
+	Roles struct {
+		FilePath string `mapstructure:"roles-file-path" default:"input/roles.yaml"`
+	} `mapstructure:",squash"`
 }
