@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/coreos/go-oidc"
+	"github.com/platform-mesh/golang-commons/errors"
 	"github.com/platform-mesh/golang-commons/logger"
 	"golang.org/x/oauth2"
 
@@ -25,7 +26,7 @@ type Service struct {
 func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, error) {
 	kctx, err := kcp.GetKcpUserContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get KCP user context")
 	}
 
 	realm := kctx.IDMTenant
@@ -40,7 +41,7 @@ func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, e
 	// Cache miss - fetch from Keycloak
 	user, err := s.fetchUserFromKeycloak(ctx, realm, userID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to fetch user from Keycloak for email %s", userID)
 	}
 
 	// Store in cache if user found and cache enabled
@@ -69,12 +70,12 @@ func (s *Service) fetchUserFromKeycloak(ctx context.Context, realm, email string
 	resp, err := s.keycloakClient.GetUsersWithResponse(ctx, realm, params)
 	if err != nil { // coverage-ignore
 		log.Err(err).Str("email", email).Msg("Failed to query user")
-		return nil, err
+		return nil, errors.Wrap(err, "failed to query Keycloak API for user %s in realm %s", email, realm)
 	}
 
 	if resp.StatusCode() != 200 {
 		log.Error().Int("status_code", resp.StatusCode()).Str("email", email).Msg("Non-200 response from Keycloak")
-		return nil, fmt.Errorf("keycloak API returned status %d", resp.StatusCode())
+		return nil, errors.New("keycloak API returned status %d for user %s", resp.StatusCode(), email)
 	}
 
 	if resp.JSON200 == nil {
@@ -87,7 +88,7 @@ func (s *Service) fetchUserFromKeycloak(ctx context.Context, realm, email string
 	}
 	if len(users) != 1 {
 		log.Info().Str("email", email).Int("count", len(users)).Msg("unexpected user count")
-		return nil, fmt.Errorf("expected 1 user, got %d", len(users))
+		return nil, errors.New("expected 1 user, got %d for email %s", len(users), email)
 	}
 
 	user := users[0]
@@ -109,7 +110,7 @@ func (s *Service) GetUsersByEmails(ctx context.Context, emails []string) (map[st
 
 	kctx, err := kcp.GetKcpUserContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get KCP user context")
 	}
 
 	realm := kctx.IDMTenant
@@ -142,7 +143,7 @@ func (s *Service) GetUsersByEmails(ctx context.Context, emails []string) (map[st
 	if len(missingEmails) > 0 {
 		fetchedUsers, err := s.fetchUsersInParallel(ctx, realm, missingEmails)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to fetch users in parallel for realm %s", realm)
 		}
 
 		// Add fetched users to result and cache
@@ -240,7 +241,7 @@ func (s *Service) EnrichUserRoles(ctx context.Context, userRoles []*graph.UserRo
 	// Batch call to get all users at once
 	userMap, err := s.GetUsersByEmails(ctx, emails)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to get users by emails for enrichment")
 	}
 
 	// Update user roles with Keycloak data using the lookup map
@@ -264,18 +265,18 @@ func New(ctx context.Context, cfg *config.ServiceConfig) (*Service, error) {
 	issuer := fmt.Sprintf("%s/realms/master", cfg.Keycloak.BaseURL)
 	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create OIDC provider for issuer %s", issuer)
 	}
 
 	oauthC := oauth2.Config{ClientID: cfg.Keycloak.ClientID, Endpoint: provider.Endpoint()}
 	pwd, err := os.ReadFile(cfg.Keycloak.PasswordFile)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to read Keycloak password file %s", cfg.Keycloak.PasswordFile)
 	}
 
 	token, err := oauthC.PasswordCredentialsToken(ctx, cfg.Keycloak.User, string(pwd))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to obtain password credentials token for user %s", cfg.Keycloak.User)
 	}
 
 	// Create authenticated HTTP client

@@ -1,10 +1,10 @@
 package roles
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/platform-mesh/golang-commons/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -47,7 +47,7 @@ func NewFileBasedRolesRetriever(filePath string) (*FileBasedRolesRetriever, erro
 
 	err := retriever.Reload()
 	if err != nil {
-		return nil, fmt.Errorf("failed to load roles from %s: %w", filePath, err)
+		return nil, errors.Wrap(err, "failed to load roles from %s", filePath)
 	}
 
 	return retriever, nil
@@ -58,7 +58,7 @@ func NewDefaultRolesRetriever() (*FileBasedRolesRetriever, error) {
 	// Get the current working directory and construct the path to input/roles.yaml
 	cwd, err := os.Getwd()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get current working directory: %w", err)
+		return nil, errors.Wrap(err, "failed to get current working directory")
 	}
 
 	filePath := filepath.Join(cwd, "input", "roles.yaml")
@@ -69,13 +69,13 @@ func NewDefaultRolesRetriever() (*FileBasedRolesRetriever, error) {
 func (r *FileBasedRolesRetriever) Reload() error {
 	data, err := os.ReadFile(r.filePath)
 	if err != nil {
-		return fmt.Errorf("failed to read roles file: %w", err)
+		return errors.Wrap(err, "failed to read roles file %s", r.filePath)
 	}
 
 	var config RolesConfig
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal roles YAML: %w", err)
+		return errors.Wrap(err, "failed to unmarshal roles YAML from file %s", r.filePath)
 	}
 
 	r.config = &config
@@ -85,7 +85,7 @@ func (r *FileBasedRolesRetriever) Reload() error {
 // GetAvailableRoles returns the list of available role IDs for a given group resource
 func (r *FileBasedRolesRetriever) GetAvailableRoles(groupResource string) ([]string, error) {
 	if r.config == nil {
-		return nil, fmt.Errorf("roles configuration not loaded")
+		return nil, errors.New("roles configuration not loaded")
 	}
 
 	for _, groupRoles := range r.config.Roles {
@@ -105,7 +105,7 @@ func (r *FileBasedRolesRetriever) GetAvailableRoles(groupResource string) ([]str
 // GetRoleDefinitions returns the full role definitions for a given group resource
 func (r *FileBasedRolesRetriever) GetRoleDefinitions(groupResource string) ([]RoleDefinition, error) {
 	if r.config == nil {
-		return nil, fmt.Errorf("roles configuration not loaded")
+		return nil, errors.New("roles configuration not loaded")
 	}
 
 	for _, groupRoles := range r.config.Roles {

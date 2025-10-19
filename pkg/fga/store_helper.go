@@ -2,7 +2,6 @@ package fga
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"time"
 
@@ -36,14 +35,14 @@ func (d StoreHelper) GetStoreID(ctx context.Context, conn openfgav1.OpenFGAServi
 	stores, err := conn.ListStores(ctx, &openfgav1.ListStoresRequest{})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list stores")
-		return "", err
+		return "", errors.Wrap(err, "failed to list stores from OpenFGA")
 	}
 
 	idx := slices.IndexFunc(stores.Stores, func(store *openfgav1.Store) bool {
 		return store.Name == orgID
 	})
 	if idx == -1 {
-		return "", fmt.Errorf("store with name %s not found", orgID)
+		return "", errors.New("store with name %s not found", orgID)
 	}
 
 	storeID := stores.Stores[idx].Id
@@ -65,7 +64,7 @@ func (d StoreHelper) GetModelID(ctx context.Context, conn openfgav1.OpenFGAServi
 	}
 	res, err := conn.ReadAuthorizationModels(ctx, &openfgav1.ReadAuthorizationModelsRequest{StoreId: storeID})
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to read authorization models for store %s", storeID)
 	}
 
 	if len(res.AuthorizationModels) < 1 {

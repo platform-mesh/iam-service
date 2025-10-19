@@ -286,7 +286,7 @@ func (s *Service) GetRoles(ctx context.Context, rCtx graph.ResourceContext) ([]*
 func (s *Service) applyRoleFilter(groupResource string, roleFilters []string, log *logger.Logger) ([]string, error) {
 	availableRoles, err := s.rolesRetriever.GetAvailableRoles(groupResource)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get available roles: %w", err)
+		return nil, errors.Wrap(err, "failed to get available roles for group resource %s", groupResource)
 	}
 
 	var appliedRoles []string
