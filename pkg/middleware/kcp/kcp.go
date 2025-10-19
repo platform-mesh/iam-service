@@ -48,17 +48,29 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			log := logger.LoadLoggerFromContext(ctx)
-			kctx, err := m.getKcpInfosForContext(ctx)
+
+			kctx := KCPContext{}
+			cluster, err := m.mgr.GetCluster(ctx, m.orgsWorkspaceClusterName)
 			if err != nil {
-				log.Error().Err(err).Msg("Error while retrieving data from kcp")
-				http.Error(w, "Error while retrieving data from kcp", http.StatusInternalServerError)
+				msg := "Error while retrieving data from kcp (cluster)"
+				log.Error().Err(err).Msg(msg)
+				http.Error(w, msg, http.StatusInternalServerError)
+				return
+			}
+			cl := cluster.GetClient()
+
+			kCtx, err := m.getKCPInfosForContext(ctx, err, kctx, cl)
+			if err != nil {
+				msg := "Error while generating kcp context"
+				log.Error().Err(err).Msg(msg)
+				http.Error(w, msg, http.StatusInternalServerError)
 				return
 			}
 
-			ctx = context.WithValue(ctx, UserContextKey, kctx)
+			ctx = context.WithValue(ctx, UserContextKey, kCtx)
 			log.Trace().
-				Str("IDMTenant", kctx.IDMTenant).
-				Str("ClusterId", kctx.ClusterId).
+				Str("IDMTenant", kCtx.IDMTenant).
+				Str("ClusterId", kCtx.ClusterId).
 				Msg("Added information to context was added to the context")
 
 			next.ServeHTTP(w, r.WithContext(ctx))
@@ -85,16 +97,10 @@ type KCPContext struct {
 	OrganizationName string
 }
 
-func (s *Middleware) getKcpInfosForContext(ctx context.Context) (KCPContext, error) {
-	kctx := KCPContext{}
+func (s *Middleware) getKCPInfosForContext(ctx context.Context, err error, kctx KCPContext, cl client.Client) (KCPContext, error) {
 	tokenInfo, err := pmcontext.GetWebTokenFromContext(ctx)
 	if err != nil {
 		return kctx, err
-	}
-
-	cluster, err := s.mgr.GetCluster(ctx, s.orgsWorkspaceClusterName)
-	if err != nil {
-		return kctx, errors.Wrap(err, "failed to get orgs cluster from multicluster manager")
 	}
 
 	idmTenant, err := s.tenantRetriever.GetIDMTenant(tokenInfo.Issuer)
@@ -109,7 +115,7 @@ func (s *Middleware) getKcpInfosForContext(ctx context.Context) (KCPContext, err
 	}
 
 	acc := &accountsv1alpha1.Account{}
-	err = cluster.GetClient().Get(ctx, client.ObjectKey{Name: idmTenant}, acc)
+	err = cl.Get(ctx, client.ObjectKey{Name: idmTenant}, acc)
 	if err != nil {
 		return kctx, errors.Wrap(err, "failed to get account from kcp")
 	}
@@ -119,7 +125,7 @@ func (s *Middleware) getKcpInfosForContext(ctx context.Context) (KCPContext, err
 	}
 
 	ws := &kcptenancyv1alpha1.Workspace{}
-	err = cluster.GetClient().Get(ctx, client.ObjectKey{Name: acc.Name}, ws)
+	err = cl.Get(ctx, client.ObjectKey{Name: acc.Name}, ws)
 	if err != nil {
 		return kctx, errors.Wrap(err, "failed to get workspace from kcp")
 	}

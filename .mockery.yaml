@@ -29,5 +29,13 @@ packages:
       KeycloakClientInterface:
         config:
           mockname: KeycloakClientInterface
+  github.com/platform-mesh/iam-service/pkg/resolver/api:
+    config:
+      dir: pkg/resolver/mocks
+      outpkg: mocks
+    interfaces:
+      ResolverService:
+        config:
+          mockname: ResolverService
 
 

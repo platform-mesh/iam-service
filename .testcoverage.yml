@@ -4,6 +4,7 @@ exclude:
     - pkg/keycloak/client
     - pkg/fga/mocks
     - pkg/keycloak/mocks
+    - pkg/resolver/mocks
     - pkg/graph
     - main.go
 
