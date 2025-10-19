@@ -28,9 +28,7 @@ type RolesConfig struct {
 
 // RolesRetriever interface for retrieving roles
 type RolesRetriever interface {
-	GetAvailableRoles(groupResource string) ([]string, error)
 	GetRoleDefinitions(groupResource string) ([]RoleDefinition, error)
-	Reload() error
 }
 
 // FileBasedRolesRetriever implements RolesRetriever by reading from a YAML file
@@ -45,7 +43,7 @@ func NewFileBasedRolesRetriever(filePath string) (*FileBasedRolesRetriever, erro
 		filePath: filePath,
 	}
 
-	err := retriever.Reload()
+	err := retriever.reload()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load roles from %s", filePath)
 	}
@@ -65,8 +63,8 @@ func NewDefaultRolesRetriever() (*FileBasedRolesRetriever, error) {
 	return NewFileBasedRolesRetriever(filePath)
 }
 
-// Reload reloads the roles configuration from the file
-func (r *FileBasedRolesRetriever) Reload() error {
+// reload reloads the roles configuration from the file
+func (r *FileBasedRolesRetriever) reload() error {
 	data, err := os.ReadFile(r.filePath)
 	if err != nil {
 		return errors.Wrap(err, "failed to read roles file %s", r.filePath)
@@ -80,26 +78,6 @@ func (r *FileBasedRolesRetriever) Reload() error {
 
 	r.config = &config
 	return nil
-}
-
-// GetAvailableRoles returns the list of available role IDs for a given group resource
-func (r *FileBasedRolesRetriever) GetAvailableRoles(groupResource string) ([]string, error) {
-	if r.config == nil {
-		return nil, errors.New("roles configuration not loaded")
-	}
-
-	for _, groupRoles := range r.config.Roles {
-		if groupRoles.GroupResource == groupResource {
-			var roleIDs []string
-			for _, role := range groupRoles.Roles {
-				roleIDs = append(roleIDs, role.ID)
-			}
-			return roleIDs, nil
-		}
-	}
-
-	// Return empty slice if no roles found for this group resource
-	return []string{}, nil
 }
 
 // GetRoleDefinitions returns the full role definitions for a given group resource
@@ -116,4 +94,13 @@ func (r *FileBasedRolesRetriever) GetRoleDefinitions(groupResource string) ([]Ro
 
 	// Return empty slice if no roles found for this group resource
 	return []RoleDefinition{}, nil
+}
+
+// GetAvailableRoleIDs is a helper function that extracts role IDs from role definitions
+func GetAvailableRoleIDs(roleDefinitions []RoleDefinition) []string {
+	roleIDs := make([]string, len(roleDefinitions))
+	for i, role := range roleDefinitions {
+		roleIDs[i] = role.ID
+	}
+	return roleIDs
 }

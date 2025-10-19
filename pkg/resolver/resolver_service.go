@@ -74,11 +74,16 @@ func (s *Service) Roles(ctx context.Context, context graph.ResourceContext) ([]*
 	return s.fgaService.GetRoles(ctx, context)
 }
 
-func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycloak.Service, cfg *config.ServiceConfig) *Service {
+func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycloak.Service, cfg *config.ServiceConfig) (*Service, error) {
+	fgaService, err := fga.NewWithConfig(fgaClient, cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
-		fgaService:      fga.NewWithConfig(fgaClient, cfg),
+		fgaService:      fgaService,
 		keycloakService: service,
 		userSorter:      sorter.NewUserSorterWithConfig(cfg),
 		pager:           pager.NewPager(cfg),
-	}
+	}, nil
 }

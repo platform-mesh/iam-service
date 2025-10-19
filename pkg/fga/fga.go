@@ -28,40 +28,32 @@ type Service struct {
 	rolesRetriever roles.RolesRetriever
 }
 
-func New(client openfgav1.OpenFGAServiceClient) *Service {
-	// For backward compatibility, use default roles retriever
-	var rolesRetriever roles.RolesRetriever
-	defaultRetriever, err := roles.NewDefaultRolesRetriever()
+func New(client openfgav1.OpenFGAServiceClient) (*Service, error) {
+	// Always use the default roles retriever from YAML file
+	rolesRetriever, err := roles.NewDefaultRolesRetriever()
 	if err != nil {
-		// Fallback to a basic implementation if file not found
-		rolesRetriever = NewStaticRolesRetriever()
-	} else {
-		rolesRetriever = defaultRetriever
+		return nil, errors.Wrap(err, "failed to initialize roles retriever from YAML file")
 	}
 
 	return &Service{
 		client:         client,
 		helper:         NewStoreHelper(),
 		rolesRetriever: rolesRetriever,
-	}
+	}, nil
 }
 
-func NewWithConfig(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) *Service {
-	// For backward compatibility, use default roles retriever
-	var rolesRetriever roles.RolesRetriever
-	defaultRetriever, err := roles.NewDefaultRolesRetriever()
+func NewWithConfig(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) (*Service, error) {
+	// Always use the default roles retriever from YAML file
+	rolesRetriever, err := roles.NewDefaultRolesRetriever()
 	if err != nil {
-		// Fallback to a basic implementation if file not found
-		rolesRetriever = NewStaticRolesRetriever()
-	} else {
-		rolesRetriever = defaultRetriever
+		return nil, errors.Wrap(err, "failed to initialize roles retriever from YAML file")
 	}
 
 	return &Service{
 		client:         client,
 		helper:         NewStoreHelperWithTTL(cfg.Keycloak.Cache.TTL),
 		rolesRetriever: rolesRetriever,
-	}
+	}, nil
 }
 
 // NewWithRolesRetriever creates a new FGA service with a custom roles retriever
@@ -76,33 +68,6 @@ func NewWithRolesRetriever(client openfgav1.OpenFGAServiceClient, cfg *config.Se
 		helper:         helper,
 		rolesRetriever: rolesRetriever,
 	}
-}
-
-// StaticRolesRetriever provides backward compatibility with hardcoded roles
-type StaticRolesRetriever struct{}
-
-// NewStaticRolesRetriever creates a static roles retriever with hardcoded roles
-func NewStaticRolesRetriever() *StaticRolesRetriever {
-	return &StaticRolesRetriever{}
-}
-
-// GetAvailableRoles returns the static list of roles (backward compatibility)
-func (r *StaticRolesRetriever) GetAvailableRoles(groupResource string) ([]string, error) {
-	// Return the old default roles for backward compatibility
-	return []string{"owner", "member"}, nil
-}
-
-// GetRoleDefinitions returns static role definitions
-func (r *StaticRolesRetriever) GetRoleDefinitions(groupResource string) ([]roles.RoleDefinition, error) {
-	return []roles.RoleDefinition{
-		{ID: "owner", DisplayName: "Owner", Description: "Full access to all resources"},
-		{ID: "member", DisplayName: "Member", Description: "Limited access to resources"},
-	}, nil
-}
-
-// Reload is a no-op for static retriever
-func (r *StaticRolesRetriever) Reload() error {
-	return nil
 }
 
 func (s *Service) ListUsers(ctx context.Context, rCtx graph.ResourceContext, roleFilters []string) ([]*graph.UserRoles, error) {
@@ -284,10 +249,11 @@ func (s *Service) GetRoles(ctx context.Context, rCtx graph.ResourceContext) ([]*
 }
 
 func (s *Service) applyRoleFilter(groupResource string, roleFilters []string, log *logger.Logger) ([]string, error) {
-	availableRoles, err := s.rolesRetriever.GetAvailableRoles(groupResource)
+	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(groupResource)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get available roles for group resource %s", groupResource)
+		return nil, errors.Wrap(err, "failed to get role definitions for group resource %s", groupResource)
 	}
+	availableRoles := roles.GetAvailableRoleIDs(roleDefinitions)
 
 	var appliedRoles []string
 	if len(roleFilters) > 0 {
@@ -327,13 +293,14 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceCon
 		log.Debug().Str("userId", change.UserID).Interface("roles", change.Roles).Msg("Processing role assignment")
 
 		// Validate that only available roles are being assigned
-		availableRoles, err := s.rolesRetriever.GetAvailableRoles(rCtx.GroupResource)
+		roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rCtx.GroupResource)
 		if err != nil {
-			errMsg := fmt.Sprintf("failed to get available roles for group resource '%s': %v", rCtx.GroupResource, err)
+			errMsg := fmt.Sprintf("failed to get role definitions for group resource '%s': %v", rCtx.GroupResource, err)
 			allErrors = append(allErrors, errMsg)
-			log.Error().Err(err).Str("groupResource", rCtx.GroupResource).Msg("Failed to retrieve available roles")
+			log.Error().Err(err).Str("groupResource", rCtx.GroupResource).Msg("Failed to retrieve role definitions")
 			continue
 		}
+		availableRoles := roles.GetAvailableRoleIDs(roleDefinitions)
 
 		for _, role := range change.Roles {
 			if !containsString(availableRoles, role) {
@@ -411,16 +378,17 @@ func (s *Service) RemoveRole(ctx context.Context, rCtx graph.ResourceContext, in
 	log.Debug().Str("userId", input.UserID).Str("role", input.Role).Msg("Processing role removal")
 
 	// Validate that only available roles can be removed
-	availableRoles, err := s.rolesRetriever.GetAvailableRoles(rCtx.GroupResource)
+	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rCtx.GroupResource)
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to get available roles for group resource '%s': %v", rCtx.GroupResource, err)
-		log.Error().Err(err).Str("groupResource", rCtx.GroupResource).Msg("Failed to retrieve available roles")
+		errMsg := fmt.Sprintf("failed to get role definitions for group resource '%s': %v", rCtx.GroupResource, err)
+		log.Error().Err(err).Str("groupResource", rCtx.GroupResource).Msg("Failed to retrieve role definitions")
 		return &graph.RoleRemovalResult{
 			Success:     false,
 			Error:       &errMsg,
 			WasAssigned: false,
 		}, nil
 	}
+	availableRoles := roles.GetAvailableRoleIDs(roleDefinitions)
 
 	if !containsString(availableRoles, input.Role) {
 		errMsg := fmt.Sprintf("role '%s' is not allowed. Only roles %v are permitted", input.Role, availableRoles)

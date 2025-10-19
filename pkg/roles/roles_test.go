@@ -57,65 +57,21 @@ func TestNewFileBasedRolesRetriever_InvalidYAML(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to unmarshal roles YAML")
 }
 
-func TestGetAvailableRoles_Success(t *testing.T) {
-	content := `roles:
-  - groupResource: core_platform-mesh_io_account
-    roles:
-      - id: owner
-        displayName: Owner
-        description: Full access
-      - id: member
-        displayName: Member
-        description: Limited access
-  - groupResource: apps.v1/deployments
-    roles:
-      - id: admin
-        displayName: Admin
-        description: Admin access`
+func TestGetAvailableRoleIDs_Success(t *testing.T) {
+	roleDefinitions := []RoleDefinition{
+		{ID: "owner", DisplayName: "Owner", Description: "Full access"},
+		{ID: "member", DisplayName: "Member", Description: "Limited access"},
+		{ID: "admin", DisplayName: "Admin", Description: "Admin access"},
+	}
 
-	tmpFile := createTempYAMLFile(t, content)
-	defer func() { _ = os.Remove(tmpFile) }()
-
-	retriever, err := NewFileBasedRolesRetriever(tmpFile)
-	require.NoError(t, err)
-
-	// Test getting roles for existing group resource
-	roles, err := retriever.GetAvailableRoles("core_platform-mesh_io_account")
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"owner", "member"}, roles)
-
-	// Test getting roles for another existing group resource
-	roles, err = retriever.GetAvailableRoles("apps.v1/deployments")
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"admin"}, roles)
+	roleIDs := GetAvailableRoleIDs(roleDefinitions)
+	assert.Equal(t, []string{"owner", "member", "admin"}, roleIDs)
 }
 
-func TestGetAvailableRoles_GroupResourceNotFound(t *testing.T) {
-	content := `roles:
-  - groupResource: core_platform-mesh_io_account
-    roles:
-      - id: owner
-        displayName: Owner`
-
-	tmpFile := createTempYAMLFile(t, content)
-	defer func() { _ = os.Remove(tmpFile) }()
-
-	retriever, err := NewFileBasedRolesRetriever(tmpFile)
-	require.NoError(t, err)
-
-	// Test getting roles for non-existent group resource
-	roles, err := retriever.GetAvailableRoles("nonexistent_resource")
-	assert.NoError(t, err)
-	assert.Empty(t, roles)
-}
-
-func TestGetAvailableRoles_NoConfigLoaded(t *testing.T) {
-	retriever := &FileBasedRolesRetriever{}
-
-	roles, err := retriever.GetAvailableRoles("any_resource")
-	assert.Error(t, err)
-	assert.Nil(t, roles)
-	assert.Contains(t, err.Error(), "roles configuration not loaded")
+func TestGetAvailableRoleIDs_EmptySlice(t *testing.T) {
+	roleDefinitions := []RoleDefinition{}
+	roleIDs := GetAvailableRoleIDs(roleDefinitions)
+	assert.Equal(t, []string{}, roleIDs)
 }
 
 func TestGetRoleDefinitions_Success(t *testing.T) {
@@ -177,59 +133,6 @@ func TestGetRoleDefinitions_NoConfigLoaded(t *testing.T) {
 	assert.Contains(t, err.Error(), "roles configuration not loaded")
 }
 
-func TestReload_Success(t *testing.T) {
-	initialContent := `roles:
-  - groupResource: core_platform-mesh_io_account
-    roles:
-      - id: owner
-        displayName: Owner`
-
-	tmpFile := createTempYAMLFile(t, initialContent)
-	defer func() { _ = os.Remove(tmpFile) }()
-
-	retriever, err := NewFileBasedRolesRetriever(tmpFile)
-	require.NoError(t, err)
-
-	// Check initial state
-	roles, err := retriever.GetAvailableRoles("core_platform-mesh_io_account")
-	require.NoError(t, err)
-	assert.Equal(t, []string{"owner"}, roles)
-
-	// Update the file
-	updatedContent := `roles:
-  - groupResource: core_platform-mesh_io_account
-    roles:
-      - id: owner
-        displayName: Owner
-      - id: member
-        displayName: Member`
-
-	err = os.WriteFile(tmpFile, []byte(updatedContent), 0644)
-	require.NoError(t, err)
-
-	// Reload and check updated state
-	err = retriever.Reload()
-	require.NoError(t, err)
-
-	roles, err = retriever.GetAvailableRoles("core_platform-mesh_io_account")
-	require.NoError(t, err)
-	assert.Equal(t, []string{"owner", "member"}, roles)
-}
-
-func TestReload_FileNotFound(t *testing.T) {
-	tmpFile := createTempYAMLFile(t, "roles: []")
-	retriever, err := NewFileBasedRolesRetriever(tmpFile)
-	require.NoError(t, err)
-
-	// Remove the file
-	_ = os.Remove(tmpFile)
-
-	// Try to reload
-	err = retriever.Reload()
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to read roles file")
-}
-
 func TestNewDefaultRolesRetriever_IntegrationTest(t *testing.T) {
 	// This test checks if the default roles.yaml exists and can be loaded
 	// It's more of an integration test to ensure the actual file structure works
@@ -254,11 +157,15 @@ func TestNewDefaultRolesRetriever_IntegrationTest(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, retriever)
 
-	// Try to get roles for the existing group resource
-	roles, err := retriever.GetAvailableRoles("core_platform-mesh_io_account")
+	// Try to get role definitions for the existing group resource
+	roleDefinitions, err := retriever.GetRoleDefinitions("core_platform-mesh_io_account")
 	assert.NoError(t, err)
-	assert.Contains(t, roles, "owner")
-	assert.Contains(t, roles, "member")
+	assert.NotEmpty(t, roleDefinitions)
+
+	// Test the helper function
+	roleIDs := GetAvailableRoleIDs(roleDefinitions)
+	assert.Contains(t, roleIDs, "owner")
+	assert.Contains(t, roleIDs, "member")
 }
 
 // Helper function to create a temporary YAML file for testing

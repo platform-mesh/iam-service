@@ -15,48 +15,56 @@ import (
 
 	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/resolver"
 )
 
-// Mock resolver that implements graph.ResolverRoot
-type mockResolver struct{}
+// testResolverService is a minimal service implementation for router HTTP tests
+// Router tests focus on HTTP routing behavior, not GraphQL business logic,
+// so a simple test implementation is appropriate here
+type testResolverService struct{}
 
-func (m *mockResolver) Query() graph.QueryResolver {
-	return &mockQueryResolver{}
+func (s *testResolverService) Me(ctx context.Context) (*graph.User, error) {
+	return &graph.User{UserID: "test", Email: "test@example.com"}, nil
 }
 
-func (m *mockResolver) Mutation() graph.MutationResolver {
-	return &mockMutationResolver{}
+func (s *testResolverService) User(ctx context.Context, userID string) (*graph.User, error) {
+	return &graph.User{UserID: userID, Email: userID + "@example.com"}, nil
 }
 
-type mockQueryResolver struct{}
-
-func (m *mockQueryResolver) Roles(ctx context.Context, context graph.ResourceContext) ([]*graph.Role, error) {
-	return []*graph.Role{}, nil
-}
-
-func (m *mockQueryResolver) Users(ctx context.Context, context graph.ResourceContext, roleFilters []string, sortBy *graph.SortByInput, page *graph.PageInput) (*graph.UserConnection, error) {
+func (s *testResolverService) Users(ctx context.Context, resourceContext graph.ResourceContext, roleFilters []string, sortBy *graph.SortByInput, page *graph.PageInput) (*graph.UserConnection, error) {
 	return &graph.UserConnection{
 		Users:    []*graph.UserRoles{},
 		PageInfo: &graph.PageInfo{Count: 0, TotalCount: 0, HasNextPage: false, HasPreviousPage: false},
 	}, nil
 }
 
-func (m *mockQueryResolver) User(ctx context.Context, userID string) (*graph.User, error) {
-	return &graph.User{UserID: userID, Email: "test@example.com"}, nil
+func (s *testResolverService) Roles(ctx context.Context, resourceContext graph.ResourceContext) ([]*graph.Role, error) {
+	return []*graph.Role{}, nil
 }
 
-func (m *mockQueryResolver) Me(ctx context.Context) (*graph.User, error) {
-	return &graph.User{UserID: "me", Email: "me@example.com"}, nil
-}
-
-type mockMutationResolver struct{}
-
-func (m *mockMutationResolver) AssignRolesToUsers(ctx context.Context, context graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
+func (s *testResolverService) AssignRolesToUsers(ctx context.Context, resourceContext graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
 	return &graph.RoleAssignmentResult{Success: true, AssignedCount: 0}, nil
 }
 
-func (m *mockMutationResolver) RemoveRole(ctx context.Context, context graph.ResourceContext, input graph.RemoveRoleInput) (*graph.RoleRemovalResult, error) {
+func (s *testResolverService) RemoveRole(ctx context.Context, resourceContext graph.ResourceContext, input graph.RemoveRoleInput) (*graph.RoleRemovalResult, error) {
 	return &graph.RoleRemovalResult{Success: true, WasAssigned: true}, nil
+}
+
+// createTestResolver creates a GraphQL resolver for HTTP routing tests
+// Since router tests focus on HTTP behavior (CORS, middleware, endpoints) rather than
+// GraphQL business logic, a simple test service implementation is appropriate
+func createTestResolver(t *testing.T) graph.ResolverRoot {
+	// Create minimal test service for HTTP routing tests
+	resolverService := &testResolverService{}
+
+	// Create logger
+	log, err := logger.New(logger.Config{})
+	if err != nil {
+		t.Fatalf("Failed to create logger: %v", err)
+	}
+
+	// Create GraphQL resolver
+	return resolver.New(resolverService, log)
 }
 
 func TestCreateRouter_BasicConfiguration(t *testing.T) {
@@ -65,7 +73,7 @@ func TestCreateRouter_BasicConfiguration(t *testing.T) {
 		IsLocal: false,
 	}
 	serviceCfg := &config.ServiceConfig{}
-	resolver := &mockResolver{}
+	resolver := createTestResolver(t)
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 
@@ -83,7 +91,7 @@ func TestCreateRouter_LocalEnvironment_EnablesCORS(t *testing.T) {
 		IsLocal: true,
 	}
 	serviceCfg := &config.ServiceConfig{}
-	resolver := &mockResolver{}
+	resolver := createTestResolver(t)
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 
@@ -121,7 +129,7 @@ func TestCreateRouter_LocalEnvironment_EnablesPlayground(t *testing.T) {
 		IsLocal: true,
 	}
 	serviceCfg := &config.ServiceConfig{}
-	resolver := &mockResolver{}
+	resolver := createTestResolver(t)
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 
@@ -145,7 +153,7 @@ func TestCreateRouter_ProductionEnvironment_DisablesPlayground(t *testing.T) {
 		IsLocal: false,
 	}
 	serviceCfg := &config.ServiceConfig{}
-	resolver := &mockResolver{}
+	resolver := createTestResolver(t)
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 
@@ -166,7 +174,7 @@ func TestCreateRouter_GraphQLEndpoint_Available(t *testing.T) {
 		IsLocal: false,
 	}
 	serviceCfg := &config.ServiceConfig{}
-	resolver := &mockResolver{}
+	resolver := createTestResolver(t)
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 
@@ -190,7 +198,7 @@ func TestCreateRouter_WithMiddleware(t *testing.T) {
 		IsLocal: false,
 	}
 	serviceCfg := &config.ServiceConfig{}
-	resolver := &mockResolver{}
+	resolver := createTestResolver(t)
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 
@@ -225,7 +233,7 @@ func TestCreateRouter_WithOptions(t *testing.T) {
 		IsLocal: false,
 	}
 	serviceCfg := &config.ServiceConfig{}
-	resolver := &mockResolver{}
+	resolver := createTestResolver(t)
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 
@@ -250,7 +258,7 @@ func TestCreateRouter_GraphQLHandlerConfiguration(t *testing.T) {
 		IsLocal: false,
 	}
 	serviceCfg := &config.ServiceConfig{}
-	resolver := &mockResolver{}
+	resolver := createTestResolver(t)
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 
@@ -301,7 +309,7 @@ func TestCreateRouter_CORSConfiguration(t *testing.T) {
 		IsLocal: true,
 	}
 	serviceCfg := &config.ServiceConfig{}
-	resolver := &mockResolver{}
+	resolver := createTestResolver(t)
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 
@@ -346,7 +354,7 @@ func TestCreateRouter_MiddlewareOrder(t *testing.T) {
 		IsLocal: false,
 	}
 	serviceCfg := &config.ServiceConfig{}
-	resolver := &mockResolver{}
+	resolver := createTestResolver(t)
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 
@@ -389,7 +397,7 @@ func TestCreateRouter_EmptyMiddlewareSlice(t *testing.T) {
 		IsLocal: false,
 	}
 	serviceCfg := &config.ServiceConfig{}
-	resolver := &mockResolver{}
+	resolver := createTestResolver(t)
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 
@@ -415,7 +423,7 @@ func TestCreateRouter_NilMiddleware(t *testing.T) {
 		IsLocal: false,
 	}
 	serviceCfg := &config.ServiceConfig{}
-	resolver := &mockResolver{}
+	resolver := createTestResolver(t)
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 
@@ -441,7 +449,7 @@ func TestCreateRouter_GraphQLIntrospection(t *testing.T) {
 		IsLocal: true, // Enable introspection in local mode
 	}
 	serviceCfg := &config.ServiceConfig{}
-	resolver := &mockResolver{}
+	resolver := createTestResolver(t)
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 

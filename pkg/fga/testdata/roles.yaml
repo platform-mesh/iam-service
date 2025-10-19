@@ -1,0 +1,17 @@
+roles:
+  - groupResource: core_platform-mesh_io_account
+    roles:
+      - id: owner
+        displayName: Owner
+        description: Full access to all resources within the account.
+      - id: member
+        displayName: Member
+        description: Limited access to resources within the account. Can view and interact with resources but cannot administrate them.
+  - groupResource: apps.v1/deployments
+    roles:
+      - id: owner
+        displayName: Owner
+        description: Full access to deployment resources.
+      - id: member
+        displayName: Member
+        description: Limited access to deployment resources.

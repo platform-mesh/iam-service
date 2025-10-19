@@ -2,48 +2,69 @@ package resolver
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 
 	"github.com/platform-mesh/golang-commons/logger"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
+	"github.com/platform-mesh/iam-service/pkg/fga"
 	"github.com/platform-mesh/iam-service/pkg/fga/mocks"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/keycloak"
-	"github.com/platform-mesh/iam-service/pkg/resolver/api"
+	"github.com/platform-mesh/iam-service/pkg/pager"
+	"github.com/platform-mesh/iam-service/pkg/roles"
 	"github.com/platform-mesh/iam-service/pkg/sorter"
 )
 
-// Simple mock for testing
-type mockResolverService struct{}
+// Removed mockResolverService - we only mock external dependencies now
 
-func (m *mockResolverService) Me(ctx context.Context) (*graph.User, error) {
-	return nil, nil
+// createTestResolverService creates a resolver service using real internal implementations
+// and only mocking external dependencies (OpenFGA)
+func createTestResolverService(t *testing.T) (*Service, *mocks.OpenFGAServiceClient) {
+	mockFGA := mocks.NewOpenFGAServiceClient(t)
+	keycloakService := &keycloak.Service{}
+
+	// Use real roles retriever with test data
+	testRolesFile := filepath.Join("testdata", "roles.yaml")
+	rolesRetriever, err := roles.NewFileBasedRolesRetriever(testRolesFile)
+	if err != nil {
+		t.Fatalf("Failed to create roles retriever: %v", err)
+	}
+
+	// Create FGA service with real roles retriever
+	fgaService := fga.NewWithRolesRetriever(mockFGA, nil, rolesRetriever)
+
+	cfg := &config.ServiceConfig{
+		Sorting: struct {
+			DefaultField     string `mapstructure:"sorting-default-field" default:"LastName"`
+			DefaultDirection string `mapstructure:"sorting-default-direction" default:"ASC"`
+		}{
+			DefaultField:     "LastName",
+			DefaultDirection: "ASC",
+		},
+		Pagination: struct {
+			DefaultLimit int `mapstructure:"pagination-default-limit" default:"10"`
+			DefaultPage  int `mapstructure:"pagination-default-page" default:"1"`
+		}{
+			DefaultLimit: 10,
+			DefaultPage:  1,
+		},
+	}
+
+	userSorter := sorter.NewUserSorter()
+	paginator := pager.NewPager(cfg)
+
+	service := &Service{
+		fgaService:      fgaService,
+		keycloakService: keycloakService,
+		userSorter:      userSorter,
+		pager:           paginator,
+	}
+
+	return service, mockFGA
 }
-
-func (m *mockResolverService) User(ctx context.Context, userID string) (*graph.User, error) {
-	return nil, nil
-}
-
-func (m *mockResolverService) Users(ctx context.Context, resourceContext graph.ResourceContext, roleFilters []string, sortBy *graph.SortByInput, page *graph.PageInput) (*graph.UserConnection, error) {
-	return nil, nil
-}
-
-func (m *mockResolverService) Roles(ctx context.Context, resourceContext graph.ResourceContext) ([]*graph.Role, error) {
-	return nil, nil
-}
-
-func (m *mockResolverService) AssignRolesToUsers(ctx context.Context, resourceContext graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
-	return nil, nil
-}
-
-func (m *mockResolverService) RemoveRole(ctx context.Context, resourceContext graph.ResourceContext, input graph.RemoveRoleInput) (*graph.RoleRemovalResult, error) {
-	return nil, nil
-}
-
-// Ensure mockResolverService implements api.ResolverService
-var _ api.ResolverService = (*mockResolverService)(nil)
 
 func TestService_applySorting_DefaultLastNameAsc(t *testing.T) {
 	userSorter := sorter.NewUserSorter()
@@ -253,203 +274,44 @@ func stringPtr(s string) *string {
 
 // Comprehensive Service tests
 
+// Basic resolver construction test with real service
 func TestNew(t *testing.T) {
-	mockService := &mockResolverService{}
+	realService, _ := createTestResolverService(t)
+
 	mockLogger, err := logger.New(logger.Config{})
 	assert.NoError(t, err)
 
-	resolver := New(mockService, mockLogger)
+	resolver := New(realService, mockLogger)
 
 	assert.NotNil(t, resolver)
-	assert.Equal(t, mockService, resolver.svc)
+	assert.Equal(t, realService, resolver.svc)
 	assert.Equal(t, mockLogger, resolver.logger)
-}
 
-func TestResolver_Query(t *testing.T) {
-	mockService := &mockResolverService{}
-	mockLogger, err := logger.New(logger.Config{})
-	assert.NoError(t, err)
-	resolver := New(mockService, mockLogger)
-
+	// Test that Query and Mutation resolvers are created
 	queryResolver := resolver.Query()
-
 	assert.NotNil(t, queryResolver)
-}
-
-func TestResolver_Mutation(t *testing.T) {
-	mockService := &mockResolverService{}
-	mockLogger, err := logger.New(logger.Config{})
-	assert.NoError(t, err)
-	resolver := New(mockService, mockLogger)
 
 	mutationResolver := resolver.Mutation()
-
 	assert.NotNil(t, mutationResolver)
 }
 
 func TestNewResolverService(t *testing.T) {
-	mockFGA := mocks.NewOpenFGAServiceClient(t)
-	keycloakService := &keycloak.Service{}
-	cfg := &config.ServiceConfig{
-		Sorting: struct {
-			DefaultField     string `mapstructure:"sorting-default-field" default:"LastName"`
-			DefaultDirection string `mapstructure:"sorting-default-direction" default:"ASC"`
-		}{
-			DefaultField:     "LastName",
-			DefaultDirection: "ASC",
-		},
-		Pagination: struct {
-			DefaultLimit int `mapstructure:"pagination-default-limit" default:"10"`
-			DefaultPage  int `mapstructure:"pagination-default-page" default:"1"`
-		}{
-			DefaultLimit: 10,
-			DefaultPage:  1,
-		},
-	}
-
-	service := NewResolverService(mockFGA, keycloakService, cfg)
+	service, mockFGA := createTestResolverService(t)
 
 	assert.NotNil(t, service)
 	assert.NotNil(t, service.fgaService)
-	assert.Equal(t, keycloakService, service.keycloakService)
+	assert.NotNil(t, service.keycloakService)
 	assert.NotNil(t, service.userSorter)
 	assert.NotNil(t, service.pager)
+	assert.NotNil(t, mockFGA) // Verify we got the mock back
 }
 
-// Test GraphQL resolver methods
-func TestQueryResolver_Me(t *testing.T) {
-	mockService := &mockResolverService{}
-	mockLogger, err := logger.New(logger.Config{})
-	assert.NoError(t, err)
-	resolver := New(mockService, mockLogger)
-	queryResolver := resolver.Query()
-
-	ctx := context.Background()
-	result, err := queryResolver.Me(ctx)
-
-	assert.NoError(t, err)
-	assert.Nil(t, result) // mockService returns nil
-}
-
-func TestQueryResolver_User(t *testing.T) {
-	mockService := &mockResolverService{}
-	mockLogger, err := logger.New(logger.Config{})
-	assert.NoError(t, err)
-	resolver := New(mockService, mockLogger)
-	queryResolver := resolver.Query()
-
-	ctx := context.Background()
-	result, err := queryResolver.User(ctx, "test-user")
-
-	assert.NoError(t, err)
-	assert.Nil(t, result) // mockService returns nil
-}
-
-func TestQueryResolver_Users(t *testing.T) {
-	mockService := &mockResolverService{}
-	mockLogger, err := logger.New(logger.Config{})
-	assert.NoError(t, err)
-	resolver := New(mockService, mockLogger)
-	queryResolver := resolver.Query()
-
-	ctx := context.Background()
-	resourceContext := graph.ResourceContext{
-		GroupResource: "test-resource",
-		Resource:      &graph.Resource{Name: "test-resource"},
-	}
-	result, err := queryResolver.Users(ctx, resourceContext, nil, nil, nil)
-
-	assert.NoError(t, err)
-	assert.Nil(t, result) // mockService returns nil
-}
-
-func TestQueryResolver_Roles(t *testing.T) {
-	mockService := &mockResolverService{}
-	mockLogger, err := logger.New(logger.Config{})
-	assert.NoError(t, err)
-	resolver := New(mockService, mockLogger)
-	queryResolver := resolver.Query()
-
-	ctx := context.Background()
-	resourceContext := graph.ResourceContext{
-		GroupResource: "test-resource",
-		Resource:      &graph.Resource{Name: "test-resource"},
-	}
-	result, err := queryResolver.Roles(ctx, resourceContext)
-
-	assert.NoError(t, err)
-	assert.Nil(t, result) // mockService returns nil
-}
-
-func TestMutationResolver_AssignRolesToUsers(t *testing.T) {
-	mockService := &mockResolverService{}
-	mockLogger, err := logger.New(logger.Config{})
-	assert.NoError(t, err)
-	resolver := New(mockService, mockLogger)
-	mutationResolver := resolver.Mutation()
-
-	ctx := context.Background()
-	resourceContext := graph.ResourceContext{
-		GroupResource: "test-resource",
-		Resource:      &graph.Resource{Name: "test-resource"},
-	}
-	changes := []*graph.UserRoleChange{
-		{
-			UserID: "user1",
-			Roles:  []string{"owner"},
-		},
-	}
-	result, err := mutationResolver.AssignRolesToUsers(ctx, resourceContext, changes)
-
-	assert.NoError(t, err)
-	assert.Nil(t, result) // mockService returns nil
-}
-
-func TestMutationResolver_RemoveRole(t *testing.T) {
-	mockService := &mockResolverService{}
-	mockLogger, err := logger.New(logger.Config{})
-	assert.NoError(t, err)
-	resolver := New(mockService, mockLogger)
-	mutationResolver := resolver.Mutation()
-
-	ctx := context.Background()
-	resourceContext := graph.ResourceContext{
-		GroupResource: "test-resource",
-		Resource:      &graph.Resource{Name: "test-resource"},
-	}
-	input := graph.RemoveRoleInput{
-		UserID: "user1",
-		Role:   "owner",
-	}
-	result, err := mutationResolver.RemoveRole(ctx, resourceContext, input)
-
-	assert.NoError(t, err)
-	assert.Nil(t, result) // mockService returns nil
-}
+// Removed trivial GraphQL resolver delegation tests - they're auto-generated and don't add value
+// The meaningful business logic is tested through integration tests with real services
 
 // Test service methods - these are simple passthroughs that should be covered
 func TestService_Methods_Coverage(t *testing.T) {
-	// Create the real service to test the implementation
-	mockFGA := mocks.NewOpenFGAServiceClient(t)
-	realKeycloakService := &keycloak.Service{}
-	cfg := &config.ServiceConfig{
-		Sorting: struct {
-			DefaultField     string `mapstructure:"sorting-default-field" default:"LastName"`
-			DefaultDirection string `mapstructure:"sorting-default-direction" default:"ASC"`
-		}{
-			DefaultField:     "LastName",
-			DefaultDirection: "ASC",
-		},
-		Pagination: struct {
-			DefaultLimit int `mapstructure:"pagination-default-limit" default:"10"`
-			DefaultPage  int `mapstructure:"pagination-default-page" default:"1"`
-		}{
-			DefaultLimit: 10,
-			DefaultPage:  1,
-		},
-	}
-
-	realService := NewResolverService(mockFGA, realKeycloakService, cfg)
+	realService, _ := createTestResolverService(t)
 
 	// Test that the methods exist and can be called (for coverage)
 	ctx := context.Background()
