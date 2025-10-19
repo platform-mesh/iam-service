@@ -781,11 +781,12 @@ func TestNew_WithCacheEnabled(t *testing.T) {
 	// Create a temporary password file
 	tmpFile, err := os.CreateTemp("", "test-password-*.txt")
 	assert.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() { _ = os.Remove(tmpFile.Name()) }()
 
 	_, err = tmpFile.WriteString("test-password")
 	assert.NoError(t, err)
-	tmpFile.Close()
+	err = tmpFile.Close()
+	assert.NoError(t, err)
 
 	cfg := &config.ServiceConfig{
 		Keycloak: struct {
@@ -827,11 +828,12 @@ func TestNew_WithCacheDisabled(t *testing.T) {
 	// Create a temporary password file
 	tmpFile, err := os.CreateTemp("", "test-password-*.txt")
 	assert.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() { _ = os.Remove(tmpFile.Name()) }()
 
 	_, err = tmpFile.WriteString("test-password")
 	assert.NoError(t, err)
-	tmpFile.Close()
+	err = tmpFile.Close()
+	assert.NoError(t, err)
 
 	cfg := &config.ServiceConfig{
 		Keycloak: struct {

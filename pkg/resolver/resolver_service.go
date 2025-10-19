@@ -29,7 +29,7 @@ func (s *Service) Me(ctx context.Context) (*graph.User, error) {
 	// Get Current User
 	webToken, err := pmcontext.GetWebTokenFromContext(ctx)
 	if err != nil {
-		return nil, errors.InternalError
+		return nil, errors.ErrInternal
 	}
 	return s.keycloakService.UserByMail(ctx, webToken.Mail)
 }

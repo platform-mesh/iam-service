@@ -252,8 +252,9 @@ func createTestUserRoles(count int) []*graph.UserRoles {
 			},
 			Roles: []*graph.Role{
 				{
-					TechnicalName: "member",
-					DisplayName:   "Member",
+					ID:          "member",
+					DisplayName: "Member",
+					Description: "Limited access to resources",
 				},
 			},
 		}

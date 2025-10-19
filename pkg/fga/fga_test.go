@@ -474,6 +474,49 @@ func TestService_GetRoles_Success(t *testing.T) {
 	assert.Equal(t, "Limited access to resources within the account. Can view and interact with resources but cannot administrate them.", memberRole.Description)
 }
 
+func TestService_GetRoles_EmptyGroupResource(t *testing.T) {
+	service, _, mockRoles := createTestService(t)
+
+	// Mock for non-existent group resource
+	mockRoles.On("GetRoleDefinitions", "nonexistent_resource").Return([]roles.RoleDefinition{}, nil)
+
+	ctx := context.Background()
+	rCtx := graph.ResourceContext{
+		GroupResource: "nonexistent_resource",
+		Resource: &graph.Resource{
+			Name:      "test-resource",
+			Namespace: stringPtr("default"),
+		},
+	}
+
+	result, err := service.GetRoles(ctx, rCtx)
+
+	assert.NoError(t, err)
+	assert.Empty(t, result)
+}
+
+func TestService_GetRoles_RolesRetrieverError(t *testing.T) {
+	service, _, mockRoles := createTestService(t)
+
+	// Mock error from roles retriever
+	mockRoles.On("GetRoleDefinitions", "error_resource").Return([]roles.RoleDefinition{}, errors.New("failed to load roles"))
+
+	ctx := context.Background()
+	rCtx := graph.ResourceContext{
+		GroupResource: "error_resource",
+		Resource: &graph.Resource{
+			Name:      "test-resource",
+			Namespace: stringPtr("default"),
+		},
+	}
+
+	result, err := service.GetRoles(ctx, rCtx)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get role definitions")
+}
+
 func TestService_AssignRolesToUsers_Success(t *testing.T) {
 	service, client, _ := createTestService(t)
 

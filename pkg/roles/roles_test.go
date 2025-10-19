@@ -27,7 +27,7 @@ func TestNewFileBasedRolesRetriever_Success(t *testing.T) {
         description: Admin access`
 
 	tmpFile := createTempYAMLFile(t, content)
-	defer os.Remove(tmpFile)
+	defer func() { _ = os.Remove(tmpFile) }()
 
 	retriever, err := NewFileBasedRolesRetriever(tmpFile)
 
@@ -48,7 +48,7 @@ func TestNewFileBasedRolesRetriever_FileNotFound(t *testing.T) {
 func TestNewFileBasedRolesRetriever_InvalidYAML(t *testing.T) {
 	content := `invalid yaml content: [unclosed bracket`
 	tmpFile := createTempYAMLFile(t, content)
-	defer os.Remove(tmpFile)
+	defer func() { _ = os.Remove(tmpFile) }()
 
 	retriever, err := NewFileBasedRolesRetriever(tmpFile)
 
@@ -74,7 +74,7 @@ func TestGetAvailableRoles_Success(t *testing.T) {
         description: Admin access`
 
 	tmpFile := createTempYAMLFile(t, content)
-	defer os.Remove(tmpFile)
+	defer func() { _ = os.Remove(tmpFile) }()
 
 	retriever, err := NewFileBasedRolesRetriever(tmpFile)
 	require.NoError(t, err)
@@ -98,7 +98,7 @@ func TestGetAvailableRoles_GroupResourceNotFound(t *testing.T) {
         displayName: Owner`
 
 	tmpFile := createTempYAMLFile(t, content)
-	defer os.Remove(tmpFile)
+	defer func() { _ = os.Remove(tmpFile) }()
 
 	retriever, err := NewFileBasedRolesRetriever(tmpFile)
 	require.NoError(t, err)
@@ -130,7 +130,7 @@ func TestGetRoleDefinitions_Success(t *testing.T) {
         description: Limited access to resources`
 
 	tmpFile := createTempYAMLFile(t, content)
-	defer os.Remove(tmpFile)
+	defer func() { _ = os.Remove(tmpFile) }()
 
 	retriever, err := NewFileBasedRolesRetriever(tmpFile)
 	require.NoError(t, err)
@@ -158,7 +158,7 @@ func TestGetRoleDefinitions_GroupResourceNotFound(t *testing.T) {
         displayName: Owner`
 
 	tmpFile := createTempYAMLFile(t, content)
-	defer os.Remove(tmpFile)
+	defer func() { _ = os.Remove(tmpFile) }()
 
 	retriever, err := NewFileBasedRolesRetriever(tmpFile)
 	require.NoError(t, err)
@@ -185,7 +185,7 @@ func TestReload_Success(t *testing.T) {
         displayName: Owner`
 
 	tmpFile := createTempYAMLFile(t, initialContent)
-	defer os.Remove(tmpFile)
+	defer func() { _ = os.Remove(tmpFile) }()
 
 	retriever, err := NewFileBasedRolesRetriever(tmpFile)
 	require.NoError(t, err)
@@ -222,7 +222,7 @@ func TestReload_FileNotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	// Remove the file
-	os.Remove(tmpFile)
+	_ = os.Remove(tmpFile)
 
 	// Try to reload
 	err = retriever.Reload()
@@ -237,7 +237,7 @@ func TestNewDefaultRolesRetriever_IntegrationTest(t *testing.T) {
 	// Save current directory
 	originalWd, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalWd)
+	defer func() { _ = os.Chdir(originalWd) }()
 
 	// Change to project root (assuming tests run from pkg/roles)
 	projectRoot := filepath.Join(originalWd, "..", "..")

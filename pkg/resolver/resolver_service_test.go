@@ -214,24 +214,3 @@ func TestService_applySorting_SingleItem(t *testing.T) {
 func stringPtr(s string) *string {
 	return &s
 }
-
-// Helper function to create test user roles data
-func createTestUserRoles(count int) []*graph.UserRoles {
-	userRoles := make([]*graph.UserRoles, count)
-	for i := 0; i < count; i++ {
-		userRoles[i] = &graph.UserRoles{
-			User: &graph.User{
-				UserID: "",
-				Email:  "user" + string(rune('0'+i%10)) + "@example.com", // Simple pattern for testing
-			},
-			Roles: []*graph.Role{
-				{
-					ID:          "member",
-					DisplayName: "Member",
-					Description: "Limited access to resources",
-				},
-			},
-		}
-	}
-	return userRoles
-}

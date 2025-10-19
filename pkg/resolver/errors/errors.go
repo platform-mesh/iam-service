@@ -3,5 +3,5 @@ package errors
 import "errors"
 
 var (
-	InternalError = errors.New("internal error")
+	ErrInternal = errors.New("internal error")
 )

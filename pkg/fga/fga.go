@@ -257,7 +257,7 @@ func (s *Service) convertToGraphUserRoles(groupResource string, userIDToRoles Us
 
 func (s *Service) GetRoles(ctx context.Context, rCtx graph.ResourceContext) ([]*graph.Role, error) {
 	log := logger.LoadLoggerFromContext(ctx)
-	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.GetRoles")
+	_, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.GetRoles")
 	defer span.End()
 
 	log.Debug().Str("groupResource", rCtx.GroupResource).Msg("Getting available roles")
