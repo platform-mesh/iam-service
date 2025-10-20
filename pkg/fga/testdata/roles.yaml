@@ -7,7 +7,7 @@ roles:
       - id: member
         displayName: Member
         description: Limited access to resources within the account. Can view and interact with resources but cannot administrate them.
-  - groupResource: apps/v1.Deployment
+  - groupResource: apps/Deployment
     roles:
       - id: owner
         displayName: Owner
