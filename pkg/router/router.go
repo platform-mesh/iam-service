@@ -1,9 +1,11 @@
 package router
 
 import (
+	"context"
 	"net/http"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
@@ -22,13 +24,12 @@ import (
 
 type Options func(*graph.Config)
 
-//func WithAuthorizedDirective(
-//	dir func(ctx context.Context, obj any, next gqlgen.Resolver, relation string, entityType *string, entityTypeParamName *string, entityParamName string) (res any, err error),
-//) Options {
-//	return func(cfg *graph.Config) {
-//		cfg.Directives.Authorized = dir
-//	}
-//}
+func WithAuthorizedDirective(dir func(ctx context.Context, obj any, next graphql.Resolver, permission string) (res any, err error),
+) Options {
+	return func(cfg *graph.Config) {
+		cfg.Directives.Authorized = dir
+	}
+}
 
 func CreateRouter(
 	commonCfg *pmconfig.CommonServiceConfig,
@@ -36,6 +37,7 @@ func CreateRouter(
 	res graph.ResolverRoot,
 	log *logger.Logger,
 	mws []func(http.Handler) http.Handler,
+	ad graph.DirectiveRoot,
 	opts ...Options,
 ) *chi.Mux {
 	router := chi.NewRouter()
@@ -58,16 +60,7 @@ func CreateRouter(
 		opt(&gql)
 	}
 
-	//if gql.Directives.Authorized == nil {
-	//	conn, err := grpc.NewClient(serviceConfig.OpenFGA.GRPCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	//	if err != nil {
-	//		log.Fatal().Err(err).Msg("unable to establish openfga connection")
-	//	}
-	//
-	//	openfgaClient := openfgav1.NewOpenFGAServiceClient(conn)
-	//	gql.Directives.Authorized = directive.Authorized(openfgaClient, log)
-	//}
-
+	gql.Directives = ad
 	gqHandler := handler.New(graph.NewExecutableSchema(gql))
 	gqHandler.AddTransport(transport.Websocket{
 		KeepAlivePingInterval: 10 * time.Second,

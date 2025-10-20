@@ -42,6 +42,7 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
+	Authorized func(ctx context.Context, obj any, next graphql.Resolver, permission string) (res any, err error)
 }
 
 type ComplexityRoot struct {
@@ -550,30 +551,43 @@ input PageInput {
 # Query and Mutations
 type Query {
     """ roles returns the list of assignable roles for a particular groupResource/resource e.g. What roles can be assigned for a specific core_platform-mesh_io_account"""
-    roles(context: ResourceContext!): [Role]! # read_roles permission required get_iam_roles
+    roles(context: ResourceContext!): [Role]! @authorized(permission: "get_iam_roles")
     """ returns all users that have roles assigned for a particular groupResource/resource."""
-    users(context: ResourceContext!, roleFilters: [String!], sortBy: SortByInput, page: PageInput): UserConnection! # you need to be a "member" of the project get_iam_users
+    users(context: ResourceContext!, roleFilters: [String!], sortBy: SortByInput, page: PageInput): UserConnection! @authorized(permission: "get_iam_users")
     """ returns a specific user by userId"""
-    user(userId: String!): User # you need to be a "member" of the organization get_iam_users
+    user(userId: String!): User
     """ returns my user information"""
     me: User # only me can access this public
 }
 
 
 type Mutation {
-    assignRolesToUsers(context: ResourceContext!, changes: [UserRoleChange!]!): RoleAssignmentResult! # manage_roles permission required manage_iam_roles
-    removeRole(context: ResourceContext!, input: RemoveRoleInput!): RoleRemovalResult! # manage_roles permission required manage_iam_roles
+    assignRolesToUsers(context: ResourceContext!, changes: [UserRoleChange!]!): RoleAssignmentResult! @authorized(permission: "manage_iam_roles")
+    removeRole(context: ResourceContext!, input: RemoveRoleInput!): RoleRemovalResult! @authorized(permission: "manage_iam_roles")
 }
 schema{
     query: Query
     mutation: Mutation
-}`, BuiltIn: false},
+}
+
+directive @authorized(permission: String!) on FIELD_DEFINITION`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) dir_authorized_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "permission", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["permission"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_assignRolesToUsers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
@@ -728,7 +742,25 @@ func (ec *executionContext) _Mutation_assignRolesToUsers(ctx context.Context, fi
 			fc := graphql.GetFieldContext(ctx)
 			return ec.resolvers.Mutation().AssignRolesToUsers(ctx, fc.Args["context"].(ResourceContext), fc.Args["changes"].([]*UserRoleChange))
 		},
-		nil,
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				permission, err := ec.unmarshalNString2string(ctx, "manage_iam_roles")
+				if err != nil {
+					var zeroVal *RoleAssignmentResult
+					return zeroVal, err
+				}
+				if ec.directives.Authorized == nil {
+					var zeroVal *RoleAssignmentResult
+					return zeroVal, errors.New("directive authorized is not implemented")
+				}
+				return ec.directives.Authorized(ctx, nil, directive0, permission)
+			}
+
+			next = directive1
+			return next
+		},
 		ec.marshalNRoleAssignmentResult2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleAssignmentResult,
 		true,
 		true,
@@ -777,7 +809,25 @@ func (ec *executionContext) _Mutation_removeRole(ctx context.Context, field grap
 			fc := graphql.GetFieldContext(ctx)
 			return ec.resolvers.Mutation().RemoveRole(ctx, fc.Args["context"].(ResourceContext), fc.Args["input"].(RemoveRoleInput))
 		},
-		nil,
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				permission, err := ec.unmarshalNString2string(ctx, "manage_iam_roles")
+				if err != nil {
+					var zeroVal *RoleRemovalResult
+					return zeroVal, err
+				}
+				if ec.directives.Authorized == nil {
+					var zeroVal *RoleRemovalResult
+					return zeroVal, errors.New("directive authorized is not implemented")
+				}
+				return ec.directives.Authorized(ctx, nil, directive0, permission)
+			}
+
+			next = directive1
+			return next
+		},
 		ec.marshalNRoleRemovalResult2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRoleRemovalResult,
 		true,
 		true,
@@ -942,7 +992,25 @@ func (ec *executionContext) _Query_roles(ctx context.Context, field graphql.Coll
 			fc := graphql.GetFieldContext(ctx)
 			return ec.resolvers.Query().Roles(ctx, fc.Args["context"].(ResourceContext))
 		},
-		nil,
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				permission, err := ec.unmarshalNString2string(ctx, "get_iam_roles")
+				if err != nil {
+					var zeroVal []*Role
+					return zeroVal, err
+				}
+				if ec.directives.Authorized == nil {
+					var zeroVal []*Role
+					return zeroVal, errors.New("directive authorized is not implemented")
+				}
+				return ec.directives.Authorized(ctx, nil, directive0, permission)
+			}
+
+			next = directive1
+			return next
+		},
 		ec.marshalNRole2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐRole,
 		true,
 		true,
@@ -991,7 +1059,25 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 			fc := graphql.GetFieldContext(ctx)
 			return ec.resolvers.Query().Users(ctx, fc.Args["context"].(ResourceContext), fc.Args["roleFilters"].([]string), fc.Args["sortBy"].(*SortByInput), fc.Args["page"].(*PageInput))
 		},
-		nil,
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				permission, err := ec.unmarshalNString2string(ctx, "get_iam_users")
+				if err != nil {
+					var zeroVal *UserConnection
+					return zeroVal, err
+				}
+				if ec.directives.Authorized == nil {
+					var zeroVal *UserConnection
+					return zeroVal, errors.New("directive authorized is not implemented")
+				}
+				return ec.directives.Authorized(ctx, nil, directive0, permission)
+			}
+
+			next = directive1
+			return next
+		},
 		ec.marshalNUserConnection2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserConnection,
 		true,
 		true,

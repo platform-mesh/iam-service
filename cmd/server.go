@@ -29,6 +29,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
+	"github.com/platform-mesh/iam-service/pkg/directive"
+	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/keycloak"
 	kcpmiddleware "github.com/platform-mesh/iam-service/pkg/middleware/kcp"
 	keycloakmw "github.com/platform-mesh/iam-service/pkg/middleware/keycloak"
@@ -74,8 +76,10 @@ func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1
 	//mws = append(mws, middleware.StoreTenantIdCtxValue(ctr))
 
 	// Prepare Directives
-	//directives := iamRouter.WithAuthorizedDirective(ad.Authorized)
-
+	ad := directive.NewAuthorizedDirective(mgr, fgaClient, serviceCfg)
+	dr := graph.DirectiveRoot{
+		Authorized: ad.Authorized,
+	}
 	// create Resolver Service
 	idmClient, err := keycloak.New(ctx, serviceCfg)
 	if err != nil {
@@ -90,7 +94,7 @@ func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1
 
 	res := resolver.New(svc, log.ComponentLogger("resolver"))
 	//router := iamRouter.CreateRouter(serviceCfg, res, log, mws, directives)
-	router := iamRouter.CreateRouter(defaultCfg, serviceCfg, res, log, mws)
+	router := iamRouter.CreateRouter(defaultCfg, serviceCfg, res, log, mws, dr)
 	return router
 }
 
