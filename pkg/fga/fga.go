@@ -6,7 +6,9 @@ import (
 	"sync"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
+	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
 	"github.com/platform-mesh/golang-commons/errors"
+	"github.com/platform-mesh/golang-commons/fga/util"
 	"github.com/platform-mesh/golang-commons/logger"
 	"go.opentelemetry.io/otel"
 
@@ -56,7 +58,7 @@ func NewWithRolesRetriever(client openfgav1.OpenFGAServiceClient, cfg *config.Se
 	}
 }
 
-func (s *Service) ListUsers(ctx context.Context, rCtx graph.ResourceContext, roleFilters []string) ([]*graph.UserRoles, error) {
+func (s *Service) ListUsers(ctx context.Context, rctx graph.ResourceContext, roleFilters []string, ai *accountsv1alpha1.AccountInfo) ([]*graph.UserRoles, error) {
 	log := logger.LoadLoggerFromContext(ctx)
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.ListUsers")
 	defer span.End()
@@ -71,9 +73,9 @@ func (s *Service) ListUsers(ctx context.Context, rCtx graph.ResourceContext, rol
 		return nil, errors.Wrap(err, "failed to get store ID for organization %s", kctx.OrganizationName)
 	}
 
-	appliedRoles, err := s.applyRoleFilter(rCtx.GroupResource, roleFilters, log)
+	appliedRoles, err := s.applyRoleFilter(rctx, roleFilters, log)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get available roles for group resource %s", rCtx.GroupResource)
+		return nil, errors.Wrap(err, "failed to get available roles for group resource %s/%s", rctx.Group, rctx.Kind)
 	}
 
 	// If no roles to process, return empty result
@@ -82,17 +84,18 @@ func (s *Service) ListUsers(ctx context.Context, rCtx graph.ResourceContext, rol
 	}
 
 	// Use parallel processing for multiple roles
-	return s.listUsersParallel(ctx, rCtx, kctx, storeID, appliedRoles)
+	return s.listUsersParallel(ctx, rctx, kctx, storeID, appliedRoles, ai)
 }
 
 // listUsersParallel performs parallel ListUsers calls for multiple roles
-func (s *Service) listUsersParallel(ctx context.Context, rCtx graph.ResourceContext, kctx kcp.KCPContext, storeID string, roles []string) ([]*graph.UserRoles, error) {
-	// Result structures
+func (s *Service) listUsersParallel(ctx context.Context, rctx graph.ResourceContext, kctx kcp.KCPContext, storeID string, roles []string, ai *accountsv1alpha1.AccountInfo) ([]*graph.UserRoles, error) {
+
 	type roleResult struct {
 		role  string
 		users *openfgav1.ListUsersResponse
 		err   error
 	}
+	fgaTypeName := util.ConvertToTypeName(rctx.Group, rctx.Kind)
 
 	// Create channels for goroutine communication
 	resultChan := make(chan roleResult, len(roles))
@@ -105,9 +108,9 @@ func (s *Service) listUsersParallel(ctx context.Context, rCtx graph.ResourceCont
 				Object: &openfgav1.Object{
 					Type: "role",
 					Id: fmt.Sprintf("%s/%s/%s/%s",
-						rCtx.GroupResource,
-						kctx.ClusterId,
-						rCtx.Resource.Name,
+						fgaTypeName,
+						ai.Spec.Account.GeneratedClusterId,
+						rctx.Resource.Name,
 						role),
 				},
 				Relation:    "assignee",
@@ -132,7 +135,7 @@ func (s *Service) listUsersParallel(ctx context.Context, rCtx graph.ResourceCont
 
 		// Handle any errors
 		if result.err != nil {
-			return nil, errors.Wrap(result.err, "failed to list users for resource %s with role %s", rCtx.Resource.Name, result.role)
+			return nil, errors.Wrap(result.err, "failed to list users for resource %s with role %s", rctx.Resource.Name, result.role)
 		}
 
 		// Process users for this role with thread safety
@@ -145,15 +148,15 @@ func (s *Service) listUsersParallel(ctx context.Context, rCtx graph.ResourceCont
 	}
 
 	// Convert UserIDToRoles to []*graph.UserRoles
-	return s.convertToGraphUserRoles(rCtx.GroupResource, allUserIDToRoles), nil
+	return s.convertToGraphUserRoles(rctx, allUserIDToRoles), nil
 }
 
 // convertToGraphUserRoles converts UserIDToRoles map to []*graph.UserRoles
-func (s *Service) convertToGraphUserRoles(groupResource string, userIDToRoles UserIDToRoles) []*graph.UserRoles {
+func (s *Service) convertToGraphUserRoles(rctx graph.ResourceContext, userIDToRoles UserIDToRoles) []*graph.UserRoles {
 	var result []*graph.UserRoles
 
 	// Get role definitions for this group resource
-	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(groupResource)
+	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rctx)
 	if err != nil {
 		// Fallback to basic roles if we can't get definitions
 		roleDefinitions = []roles.RoleDefinition{}
@@ -173,7 +176,7 @@ func (s *Service) convertToGraphUserRoles(groupResource string, userIDToRoles Us
 		}
 
 		// Convert role names to Role objects
-		var roles []*graph.Role
+		var rArr []*graph.Role
 		for _, roleName := range roleNames {
 			// Try to get the full role definition, fallback to basic info
 			if roleDef, exists := roleDefMap[roleName]; exists {
@@ -182,22 +185,22 @@ func (s *Service) convertToGraphUserRoles(groupResource string, userIDToRoles Us
 					DisplayName: roleDef.DisplayName,
 					Description: roleDef.Description,
 				}
-				roles = append(roles, role)
+				rArr = append(rArr, role)
 			} else {
-				// Fallback for roles not found in definitions
+				// Fallback for rArr not found in definitions
 				role := &graph.Role{
 					ID:          roleName,
 					DisplayName: roleName,
 					Description: "Role definition not available",
 				}
-				roles = append(roles, role)
+				rArr = append(rArr, role)
 			}
 		}
 
 		// Create UserRoles entry
 		userRoles := &graph.UserRoles{
 			User:  user,
-			Roles: roles,
+			Roles: rArr,
 		}
 
 		result = append(result, userRoles)
@@ -206,38 +209,37 @@ func (s *Service) convertToGraphUserRoles(groupResource string, userIDToRoles Us
 	return result
 }
 
-func (s *Service) GetRoles(ctx context.Context, rCtx graph.ResourceContext) ([]*graph.Role, error) {
+func (s *Service) GetRoles(ctx context.Context, rctx graph.ResourceContext) ([]*graph.Role, error) {
 	log := logger.LoadLoggerFromContext(ctx)
+	log = log.MustChildLoggerWithAttributes("group", rctx.Group, "kind", rctx.Kind)
 	_, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.GetRoles")
 	defer span.End()
 
-	log.Debug().Str("groupResource", rCtx.GroupResource).Msg("Getting available roles")
-
-	// Get role definitions from the roles retriever
-	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rCtx.GroupResource)
+	// Get role definitions from the rArr retriever
+	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get role definitions for group resource %s", rCtx.GroupResource)
+		return nil, errors.Wrap(err, "failed to get role definitions for group resource %s/%s", rctx.Group, rctx.Kind)
 	}
 
 	// Convert to graph.Role objects
-	var roles []*graph.Role
+	var rArr []*graph.Role
 	for _, roleDef := range roleDefinitions {
 		role := &graph.Role{
 			ID:          roleDef.ID,
 			DisplayName: roleDef.DisplayName,
 			Description: roleDef.Description,
 		}
-		roles = append(roles, role)
+		rArr = append(rArr, role)
 	}
 
-	log.Debug().Int("roleCount", len(roles)).Msg("Successfully retrieved roles")
-	return roles, nil
+	log.Debug().Int("roleCount", len(rArr)).Msg("Successfully retrieved rArr")
+	return rArr, nil
 }
 
-func (s *Service) applyRoleFilter(groupResource string, roleFilters []string, log *logger.Logger) ([]string, error) {
-	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(groupResource)
+func (s *Service) applyRoleFilter(rctx graph.ResourceContext, roleFilters []string, log *logger.Logger) ([]string, error) {
+	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get role definitions for group resource %s", groupResource)
+		return nil, errors.Wrap(err, "failed to get role definitions for group resource %s/%s", rctx.Group, rctx.Kind)
 	}
 	availableRoles := roles.GetAvailableRoleIDs(roleDefinitions)
 
@@ -256,8 +258,9 @@ func (s *Service) applyRoleFilter(groupResource string, roleFilters []string, lo
 }
 
 // AssignRolesToUsers creates tuples in FGA for the given users and roles
-func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
+func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceContext, ai *accountsv1alpha1.AccountInfo, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
 	log := logger.LoadLoggerFromContext(ctx)
+	log = log.MustChildLoggerWithAttributes("group", rctx.Group, "kind", rctx.Kind)
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.AssignRolesToUsers")
 	defer span.End()
 
@@ -265,6 +268,7 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceCon
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get kcp user context")
 	}
+	fgaTypeName := util.ConvertToTypeName(rctx.Group, rctx.Kind)
 
 	storeID, err := s.helper.GetStoreID(ctx, s.client, kctx.OrganizationName)
 	if err != nil {
@@ -279,11 +283,11 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceCon
 		log.Debug().Str("userId", change.UserID).Interface("roles", change.Roles).Msg("Processing role assignment")
 
 		// Validate that only available roles are being assigned
-		roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rCtx.GroupResource)
+		roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rctx)
 		if err != nil {
-			errMsg := fmt.Sprintf("failed to get role definitions for group resource '%s': %v", rCtx.GroupResource, err)
+			errMsg := fmt.Sprintf("failed to get role definitions for group resource '%s/%s': %v", rctx.Group, rctx.Kind, err)
 			allErrors = append(allErrors, errMsg)
-			log.Error().Err(err).Str("groupResource", rCtx.GroupResource).Msg("Failed to retrieve role definitions")
+			log.Error().Err(err).Msg("Failed to retrieve role definitions")
 			continue
 		}
 		availableRoles := roles.GetAvailableRoleIDs(roleDefinitions)
@@ -301,9 +305,9 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceCon
 				User:     fmt.Sprintf("user:%s", change.UserID),
 				Relation: "assignee",
 				Object: fmt.Sprintf("role:%s/%s/%s/%s",
-					rCtx.GroupResource,
-					kctx.ClusterId,
-					rCtx.Resource.Name,
+					fgaTypeName,
+					ai.Spec.Account.GeneratedClusterId,
+					rctx.Resource.Name,
 					role),
 			}
 
@@ -346,11 +350,13 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceCon
 }
 
 // RemoveRole removes a role from a user by deleting the tuple in FGA
-func (s *Service) RemoveRole(ctx context.Context, rCtx graph.ResourceContext, input graph.RemoveRoleInput) (*graph.RoleRemovalResult, error) {
+func (s *Service) RemoveRole(ctx context.Context, rctx graph.ResourceContext, input graph.RemoveRoleInput, ai *accountsv1alpha1.AccountInfo) (*graph.RoleRemovalResult, error) {
 	log := logger.LoadLoggerFromContext(ctx)
+	log = log.MustChildLoggerWithAttributes("group", rctx.Group, "kind", rctx.Kind)
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.RemoveRole")
 	defer span.End()
 
+	fgaTypeName := util.ConvertToTypeName(rctx.Group, rctx.Kind)
 	kctx, err := kcp.GetKcpUserContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get kcp user context")
@@ -364,10 +370,10 @@ func (s *Service) RemoveRole(ctx context.Context, rCtx graph.ResourceContext, in
 	log.Debug().Str("userId", input.UserID).Str("role", input.Role).Msg("Processing role removal")
 
 	// Validate that only available roles can be removed
-	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rCtx.GroupResource)
+	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rctx)
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to get role definitions for group resource '%s': %v", rCtx.GroupResource, err)
-		log.Error().Err(err).Str("groupResource", rCtx.GroupResource).Msg("Failed to retrieve role definitions")
+		errMsg := fmt.Sprintf("failed to get role definitions for group resource '%s/%s': %v", rctx.Group, rctx.Kind, err)
+		log.Error().Err(err).Msg("Failed to retrieve role definitions")
 		return &graph.RoleRemovalResult{
 			Success:     false,
 			Error:       &errMsg,
@@ -391,9 +397,9 @@ func (s *Service) RemoveRole(ctx context.Context, rCtx graph.ResourceContext, in
 		User:     fmt.Sprintf("user:%s", input.UserID),
 		Relation: "assignee",
 		Object: fmt.Sprintf("role:%s/%s/%s/%s",
-			rCtx.GroupResource,
-			kctx.ClusterId,
-			rCtx.Resource.Name,
+			fgaTypeName,
+			ai.Spec.Account.GeneratedClusterId,
+			rctx.Resource.Name,
 			input.Role),
 	}
 
@@ -429,9 +435,9 @@ func (s *Service) RemoveRole(ctx context.Context, rCtx graph.ResourceContext, in
 		User:     fmt.Sprintf("user:%s", input.UserID),
 		Relation: "assignee",
 		Object: fmt.Sprintf("role:%s/%s/%s/%s",
-			rCtx.GroupResource,
-			kctx.ClusterId,
-			rCtx.Resource.Name,
+			fgaTypeName,
+			ai.Spec.Account.GeneratedClusterId,
+			rctx.Resource.Name,
 			input.Role),
 	}
 

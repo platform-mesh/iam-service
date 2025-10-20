@@ -80,7 +80,8 @@ input Resource {
 
 """ Common resource context used across queries and mutations """
 input ResourceContext {
-    groupResource: String!
+    group: String!
+    kind: String!
     resource: Resource!
     accountPath: String!
 }

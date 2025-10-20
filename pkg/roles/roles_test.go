@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 
 func TestNewFileBasedRolesRetriever_Success(t *testing.T) {
@@ -76,7 +78,7 @@ func TestGetAvailableRoleIDs_EmptySlice(t *testing.T) {
 
 func TestGetRoleDefinitions_Success(t *testing.T) {
 	content := `roles:
-  - groupResource: core_platform-mesh_io_account
+  - groupResource: core.platform-mesh.io/Account
     roles:
       - id: owner
         displayName: Owner
@@ -91,7 +93,11 @@ func TestGetRoleDefinitions_Success(t *testing.T) {
 	retriever, err := NewFileBasedRolesRetriever(tmpFile)
 	require.NoError(t, err)
 
-	definitions, err := retriever.GetRoleDefinitions("core_platform-mesh_io_account")
+	rCtx := graph.ResourceContext{
+		Group: "core.platform-mesh.io",
+		Kind:  "Account",
+	}
+	definitions, err := retriever.GetRoleDefinitions(rCtx)
 	assert.NoError(t, err)
 	assert.Len(t, definitions, 2)
 
@@ -108,7 +114,7 @@ func TestGetRoleDefinitions_Success(t *testing.T) {
 
 func TestGetRoleDefinitions_GroupResourceNotFound(t *testing.T) {
 	content := `roles:
-  - groupResource: core_platform-mesh_io_account
+  - groupResource: core.platform-mesh.io/Account
     roles:
       - id: owner
         displayName: Owner`
@@ -119,7 +125,11 @@ func TestGetRoleDefinitions_GroupResourceNotFound(t *testing.T) {
 	retriever, err := NewFileBasedRolesRetriever(tmpFile)
 	require.NoError(t, err)
 
-	definitions, err := retriever.GetRoleDefinitions("nonexistent_resource")
+	rCtx := graph.ResourceContext{
+		Group: "nonexistent.group",
+		Kind:  "NonexistentKind",
+	}
+	definitions, err := retriever.GetRoleDefinitions(rCtx)
 	assert.NoError(t, err)
 	assert.Empty(t, definitions)
 }
@@ -127,7 +137,11 @@ func TestGetRoleDefinitions_GroupResourceNotFound(t *testing.T) {
 func TestGetRoleDefinitions_NoConfigLoaded(t *testing.T) {
 	retriever := &FileBasedRolesRetriever{}
 
-	definitions, err := retriever.GetRoleDefinitions("any_resource")
+	rCtx := graph.ResourceContext{
+		Group: "any.group",
+		Kind:  "AnyKind",
+	}
+	definitions, err := retriever.GetRoleDefinitions(rCtx)
 	assert.Error(t, err)
 	assert.Nil(t, definitions)
 	assert.Contains(t, err.Error(), "roles configuration not loaded")
@@ -158,7 +172,11 @@ func TestNewFileBasedRolesRetriever_IntegrationTest(t *testing.T) {
 	assert.NotNil(t, retriever)
 
 	// Try to get role definitions for the existing group resource
-	roleDefinitions, err := retriever.GetRoleDefinitions("core_platform-mesh_io_account")
+	rCtx := graph.ResourceContext{
+		Group: "core.platform-mesh.io",
+		Kind:  "Account",
+	}
+	roleDefinitions, err := retriever.GetRoleDefinitions(rCtx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, roleDefinitions)
 

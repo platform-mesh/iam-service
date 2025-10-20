@@ -519,7 +519,8 @@ input Resource {
 
 """ Common resource context used across queries and mutations """
 input ResourceContext {
-    groupResource: String!
+    group: String!
+    kind: String!
     resource: Resource!
     accountPath: String!
 }
@@ -3314,20 +3315,27 @@ func (ec *executionContext) unmarshalInputResourceContext(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"groupResource", "resource", "accountPath"}
+	fieldsInOrder := [...]string{"group", "kind", "resource", "accountPath"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "groupResource":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("groupResource"))
+		case "group":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.GroupResource = data
+			it.Group = data
+		case "kind":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Kind = data
 		case "resource":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("resource"))
 			data, err := ec.unmarshalNResource2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐResource(ctx, v)

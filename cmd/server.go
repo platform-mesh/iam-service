@@ -81,7 +81,7 @@ func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create keycloak client")
 	}
-	svc, err := resolver.NewResolverService(fgaClient, idmClient, serviceCfg)
+	svc, err := resolver.NewResolverService(fgaClient, idmClient, serviceCfg, mgr)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create resolver service")
 	}

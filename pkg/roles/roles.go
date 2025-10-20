@@ -1,10 +1,13 @@
 package roles
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/platform-mesh/golang-commons/errors"
 	"gopkg.in/yaml.v3"
+
+	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 
 // RoleDefinition represents a single role definition
@@ -27,7 +30,7 @@ type RolesConfig struct {
 
 // RolesRetriever interface for retrieving roles
 type RolesRetriever interface {
-	GetRoleDefinitions(groupResource string) ([]RoleDefinition, error)
+	GetRoleDefinitions(resourceContext graph.ResourceContext) ([]RoleDefinition, error)
 }
 
 // FileBasedRolesRetriever implements RolesRetriever by reading from a YAML file
@@ -68,12 +71,13 @@ func (r *FileBasedRolesRetriever) reload() error {
 }
 
 // GetRoleDefinitions returns the full role definitions for a given group resource
-func (r *FileBasedRolesRetriever) GetRoleDefinitions(groupResource string) ([]RoleDefinition, error) {
+func (r *FileBasedRolesRetriever) GetRoleDefinitions(rctx graph.ResourceContext) ([]RoleDefinition, error) {
 	if r.config == nil {
 		return nil, errors.New("roles configuration not loaded")
 	}
 
 	for _, groupRoles := range r.config.Roles {
+		groupResource := fmt.Sprintf("%s/%s", rctx.Group, rctx.Kind)
 		if groupRoles.GroupResource == groupResource {
 			return groupRoles.Roles, nil
 		}

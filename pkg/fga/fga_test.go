@@ -8,9 +8,11 @@ import (
 	"time"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
+	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
 	"github.com/platform-mesh/golang-commons/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
 	fgamocks "github.com/platform-mesh/iam-service/pkg/fga/mocks"
@@ -81,17 +83,26 @@ func TestService_ListUsers_Success(t *testing.T) {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
 		IDMTenant:        "test-tenant",
-		ClusterId:        "cluster-123",
 		OrganizationName: "test-org",
 	})
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "core_platform-mesh_io_account",
+		Group: "core.platform-mesh.io",
+		Kind:  "Account",
 		Resource: &graph.Resource{
 			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
+	}
+
+	ai := &accountsv1alpha1.AccountInfo{
+		ObjectMeta: metav1.ObjectMeta{Name: "account"},
+		Spec: accountsv1alpha1.AccountInfoSpec{
+			Account: accountsv1alpha1.AccountLocation{
+				GeneratedClusterId: "cluster-123",
+			},
+		},
 	}
 
 	roleFilters := []string{"owner", "member"}
@@ -166,7 +177,7 @@ func TestService_ListUsers_Success(t *testing.T) {
 			req.Relation == "assignee"
 	})).Return(memberUsersResponse, nil)
 
-	result, err := service.ListUsers(ctx, rCtx, roleFilters)
+	result, err := service.ListUsers(ctx, rCtx, roleFilters, ai)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -197,7 +208,8 @@ func TestService_ListUsers_NoKCPContext(t *testing.T) {
 	ctx := context.Background()
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "core_platform-mesh_io_account",
+		Group: "core.platform-mesh.io",
+		Kind:  "Account",
 		Resource: &graph.Resource{
 			Name:      "test-account",
 			Namespace: stringPtr("default"),
@@ -205,7 +217,16 @@ func TestService_ListUsers_NoKCPContext(t *testing.T) {
 		AccountPath: "test-account",
 	}
 
-	result, err := service.ListUsers(ctx, rCtx, []string{"owner"})
+	ai := &accountsv1alpha1.AccountInfo{
+		ObjectMeta: metav1.ObjectMeta{Name: "account"},
+		Spec: accountsv1alpha1.AccountInfoSpec{
+			Account: accountsv1alpha1.AccountLocation{
+				GeneratedClusterId: "cluster-123",
+			},
+		},
+	}
+
+	result, err := service.ListUsers(ctx, rCtx, []string{"owner"}, ai)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -218,7 +239,11 @@ func TestApplyRoleFilter_WithFilters(t *testing.T) {
 
 	service, _ := createTestService(t)
 	roleFilters := []string{"owner", "member", "invalid-role"}
-	result, err := service.applyRoleFilter("core_platform-mesh_io_account", roleFilters, log)
+	rCtx := graph.ResourceContext{
+		Group: "core.platform-mesh.io",
+		Kind:  "Account",
+	}
+	result, err := service.applyRoleFilter(rCtx, roleFilters, log)
 
 	assert.NoError(t, err)
 	expected := []string{"owner", "member"}
@@ -230,7 +255,8 @@ func TestService_GetRoles_Success(t *testing.T) {
 
 	ctx := context.Background()
 	rCtx := graph.ResourceContext{
-		GroupResource: "core_platform-mesh_io_account",
+		Group: "core.platform-mesh.io",
+		Kind:  "Account",
 		Resource: &graph.Resource{
 			Name:      "test-account",
 			Namespace: stringPtr("default"),
@@ -267,19 +293,28 @@ func TestService_AssignRolesToUsers_Success(t *testing.T) {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
 		IDMTenant:        "test-tenant",
-		ClusterId:        "cluster-123",
 		OrganizationName: "test-org",
 	})
 	log, _ := logger.New(logger.DefaultConfig())
 	ctx = logger.SetLoggerInContext(ctx, log)
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "core_platform-mesh_io_account",
+		Group: "core.platform-mesh.io",
+		Kind:  "Account",
 		Resource: &graph.Resource{
 			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
+	}
+
+	ai := &accountsv1alpha1.AccountInfo{
+		ObjectMeta: metav1.ObjectMeta{Name: "account"},
+		Spec: accountsv1alpha1.AccountInfoSpec{
+			Account: accountsv1alpha1.AccountLocation{
+				GeneratedClusterId: "cluster-123",
+			},
+		},
 	}
 
 	changes := []*graph.UserRoleChange{
@@ -309,7 +344,7 @@ func TestService_AssignRolesToUsers_Success(t *testing.T) {
 			req.Writes.TupleKeys[0].Relation == "assignee"
 	})).Return(&openfgav1.WriteResponse{}, nil).Times(2)
 
-	result, err := service.AssignRolesToUsers(ctx, rCtx, changes)
+	result, err := service.AssignRolesToUsers(ctx, rCtx, ai, changes)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -324,19 +359,28 @@ func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
 		IDMTenant:        "test-tenant",
-		ClusterId:        "cluster-123",
 		OrganizationName: "test-org",
 	})
 	log, _ := logger.New(logger.DefaultConfig())
 	ctx = logger.SetLoggerInContext(ctx, log)
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "core_platform-mesh_io_account",
+		Group: "core.platform-mesh.io",
+		Kind:  "Account",
 		Resource: &graph.Resource{
 			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
+	}
+
+	ai := &accountsv1alpha1.AccountInfo{
+		ObjectMeta: metav1.ObjectMeta{Name: "account"},
+		Spec: accountsv1alpha1.AccountInfoSpec{
+			Account: accountsv1alpha1.AccountLocation{
+				GeneratedClusterId: "cluster-123",
+			},
+		},
 	}
 
 	changes := []*graph.UserRoleChange{
@@ -368,7 +412,7 @@ func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
 			req.Writes.TupleKeys[0].Relation == "assignee"
 	})).Return(&openfgav1.WriteResponse{}, nil).Once()
 
-	result, err := service.AssignRolesToUsers(ctx, rCtx, changes)
+	result, err := service.AssignRolesToUsers(ctx, rCtx, ai, changes)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -384,19 +428,28 @@ func TestService_RemoveRole_Success(t *testing.T) {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
 		IDMTenant:        "test-tenant",
-		ClusterId:        "cluster-123",
 		OrganizationName: "test-org",
 	})
 	log, _ := logger.New(logger.DefaultConfig())
 	ctx = logger.SetLoggerInContext(ctx, log)
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "core_platform-mesh_io_account",
+		Group: "core.platform-mesh.io",
+		Kind:  "Account",
 		Resource: &graph.Resource{
 			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
+	}
+
+	ai := &accountsv1alpha1.AccountInfo{
+		ObjectMeta: metav1.ObjectMeta{Name: "account"},
+		Spec: accountsv1alpha1.AccountInfoSpec{
+			Account: accountsv1alpha1.AccountLocation{
+				GeneratedClusterId: "cluster-123",
+			},
+		},
 	}
 
 	input := graph.RemoveRoleInput{
@@ -446,7 +499,7 @@ func TestService_RemoveRole_Success(t *testing.T) {
 			req.Deletes.TupleKeys[0].Relation == "assignee"
 	})).Return(&openfgav1.WriteResponse{}, nil).Once()
 
-	result, err := service.RemoveRole(ctx, rCtx, input)
+	result, err := service.RemoveRole(ctx, rCtx, input, ai)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -461,19 +514,28 @@ func TestService_RemoveRole_RoleNotAssigned(t *testing.T) {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
 		IDMTenant:        "test-tenant",
-		ClusterId:        "cluster-123",
 		OrganizationName: "test-org",
 	})
 	log, _ := logger.New(logger.DefaultConfig())
 	ctx = logger.SetLoggerInContext(ctx, log)
 
 	rCtx := graph.ResourceContext{
-		GroupResource: "core_platform-mesh_io_account",
+		Group: "core.platform-mesh.io",
+		Kind:  "Account",
 		Resource: &graph.Resource{
 			Name:      "test-account",
 			Namespace: stringPtr("default"),
 		},
 		AccountPath: "test-account",
+	}
+
+	ai := &accountsv1alpha1.AccountInfo{
+		ObjectMeta: metav1.ObjectMeta{Name: "account"},
+		Spec: accountsv1alpha1.AccountInfoSpec{
+			Account: accountsv1alpha1.AccountLocation{
+				GeneratedClusterId: "cluster-123",
+			},
+		},
 	}
 
 	input := graph.RemoveRoleInput{
@@ -507,7 +569,7 @@ func TestService_RemoveRole_RoleNotAssigned(t *testing.T) {
 
 	// No Write call should be made since the role wasn't assigned
 
-	result, err := service.RemoveRole(ctx, rCtx, input)
+	result, err := service.RemoveRole(ctx, rCtx, input, ai)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)

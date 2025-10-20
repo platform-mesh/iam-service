@@ -12,7 +12,7 @@ require (
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/openfga/api/proto v0.0.0-20250909173124-0ac19aac54f2
 	github.com/platform-mesh/account-operator v0.5.3
-	github.com/platform-mesh/golang-commons v0.6.3
+	github.com/platform-mesh/golang-commons v0.7.0
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
@@ -22,6 +22,7 @@ require (
 	go.opentelemetry.io/otel v1.38.0
 	golang.org/x/oauth2 v0.32.0
 	google.golang.org/grpc v1.76.0
+	k8s.io/apiserver v0.34.1
 	k8s.io/client-go v0.34.1
 	sigs.k8s.io/controller-runtime v0.22.3
 	sigs.k8s.io/multicluster-runtime v0.21.0-alpha.9
@@ -30,6 +31,7 @@ require (
 require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
@@ -84,6 +86,7 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
 	k8s.io/apiextensions-apiserver v0.34.1 // indirect
+	k8s.io/component-base v0.34.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b // indirect
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
@@ -97,7 +100,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
 	github.com/getsentry/sentry-go v0.36.0 // indirect
 	github.com/go-chi/chi/v5 v5.2.3
-	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zerologr v1.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect

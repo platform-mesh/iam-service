@@ -41,9 +41,10 @@ type Resource struct {
 
 // Common resource context used across queries and mutations
 type ResourceContext struct {
-	GroupResource string    `json:"groupResource"`
-	Resource      *Resource `json:"resource"`
-	AccountPath   string    `json:"accountPath"`
+	Group       string    `json:"group"`
+	Kind        string    `json:"kind"`
+	Resource    *Resource `json:"resource"`
+	AccountPath string    `json:"accountPath"`
 }
 
 // Represents a role that can be granted to a user or group of users
