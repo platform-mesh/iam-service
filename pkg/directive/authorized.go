@@ -97,7 +97,7 @@ func (a AuthorizedDirective) testIfAllowed(ctx context.Context, ai *accountsv1al
 	fgaTypeName := util.ConvertToTypeName(rctx.Group, rctx.Kind)
 	object := fmt.Sprintf("%s:%s/%s", fgaTypeName, ai.Spec.Account.GeneratedClusterId, rctx.Resource.Name)
 	if rctx.Resource.Namespace != nil {
-		object = fmt.Sprintf("%s:%s/%s/%s", fgaTypeName, ai.Spec.Account.GeneratedClusterId, rctx.Resource.Namespace, rctx.Resource.Name)
+		object = fmt.Sprintf("%s:%s/%s/%s", fgaTypeName, ai.Spec.Account.GeneratedClusterId, *rctx.Resource.Namespace, rctx.Resource.Name)
 	}
 	user := fmt.Sprintf("user:%s", token.Mail)
 	storeID, err := a.helper.GetStoreID(ctx, a.oc, ai.Spec.Organization.Name)

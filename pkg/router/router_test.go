@@ -67,6 +67,11 @@ func createTestResolver(t *testing.T) graph.ResolverRoot {
 	return resolver.New(resolverService, log)
 }
 
+// createEmptyDirectiveRoot returns an empty DirectiveRoot for testing
+func createEmptyDirectiveRoot() graph.DirectiveRoot {
+	return graph.DirectiveRoot{}
+}
+
 func TestCreateRouter_BasicConfiguration(t *testing.T) {
 	// Setup
 	commonCfg := &pmconfig.CommonServiceConfig{
@@ -78,7 +83,7 @@ func TestCreateRouter_BasicConfiguration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Execute
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil)
+	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil, createEmptyDirectiveRoot())
 
 	// Assert
 	assert.NotNil(t, router)
@@ -96,7 +101,7 @@ func TestCreateRouter_LocalEnvironment_EnablesCORS(t *testing.T) {
 	require.NoError(t, err)
 
 	// Execute
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil)
+	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil, createEmptyDirectiveRoot())
 
 	// Test CORS with a simple actual request (not preflight)
 	req := httptest.NewRequest("POST", "/graphql", strings.NewReader(`{"query": "{ __typename }"}`))
@@ -134,7 +139,7 @@ func TestCreateRouter_LocalEnvironment_EnablesPlayground(t *testing.T) {
 	require.NoError(t, err)
 
 	// Execute
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil)
+	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil, createEmptyDirectiveRoot())
 
 	// Assert - Test playground endpoint
 	req := httptest.NewRequest("GET", "/", nil)
@@ -158,7 +163,7 @@ func TestCreateRouter_ProductionEnvironment_DisablesPlayground(t *testing.T) {
 	require.NoError(t, err)
 
 	// Execute
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil)
+	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil, createEmptyDirectiveRoot())
 
 	// Assert - Test playground endpoint should return 404
 	req := httptest.NewRequest("GET", "/", nil)
@@ -179,7 +184,7 @@ func TestCreateRouter_GraphQLEndpoint_Available(t *testing.T) {
 	require.NoError(t, err)
 
 	// Execute
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil)
+	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil, createEmptyDirectiveRoot())
 
 	// Assert - Test GraphQL endpoint responds
 	req := httptest.NewRequest("POST", "/graphql", strings.NewReader(`{"query": "{ __typename }"}`))
@@ -214,7 +219,7 @@ func TestCreateRouter_WithMiddleware(t *testing.T) {
 	middlewares := []func(http.Handler) http.Handler{testMiddleware}
 
 	// Execute
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, middlewares)
+	router := CreateRouter(commonCfg, serviceCfg, resolver, log, middlewares, createEmptyDirectiveRoot())
 
 	// Assert - Test middleware is applied to GraphQL endpoint
 	req := httptest.NewRequest("POST", "/graphql", strings.NewReader(`{"query": "{ __typename }"}`))
@@ -245,7 +250,7 @@ func TestCreateRouter_WithOptions(t *testing.T) {
 	}
 
 	// Execute
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil, testOption)
+	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil, createEmptyDirectiveRoot(), testOption)
 
 	// Assert
 	assert.NotNil(t, router)
@@ -263,7 +268,7 @@ func TestCreateRouter_GraphQLHandlerConfiguration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Execute
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil)
+	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil, createEmptyDirectiveRoot())
 
 	// Assert - Test various GraphQL transports are configured
 	testCases := []struct {
@@ -313,7 +318,7 @@ func TestCreateRouter_CORSConfiguration(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil)
+	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil, createEmptyDirectiveRoot())
 
 	// Test CORS headers are properly set with actual requests
 	testCases := []struct {
@@ -377,7 +382,7 @@ func TestCreateRouter_MiddlewareOrder(t *testing.T) {
 	middlewares := []func(http.Handler) http.Handler{middleware1, middleware2}
 
 	// Execute
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, middlewares)
+	router := CreateRouter(commonCfg, serviceCfg, resolver, log, middlewares, createEmptyDirectiveRoot())
 
 	// Assert - Test middleware order
 	req := httptest.NewRequest("POST", "/graphql", strings.NewReader(`{"query": "{ __typename }"}`))
@@ -402,7 +407,7 @@ func TestCreateRouter_EmptyMiddlewareSlice(t *testing.T) {
 	require.NoError(t, err)
 
 	// Execute with empty middleware slice
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, []func(http.Handler) http.Handler{})
+	router := CreateRouter(commonCfg, serviceCfg, resolver, log, []func(http.Handler) http.Handler{}, createEmptyDirectiveRoot())
 
 	// Assert
 	assert.NotNil(t, router)
@@ -428,7 +433,7 @@ func TestCreateRouter_NilMiddleware(t *testing.T) {
 	require.NoError(t, err)
 
 	// Execute with nil middleware
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil)
+	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil, createEmptyDirectiveRoot())
 
 	// Assert
 	assert.NotNil(t, router)
@@ -454,7 +459,7 @@ func TestCreateRouter_GraphQLIntrospection(t *testing.T) {
 	require.NoError(t, err)
 
 	// Execute
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil)
+	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil, createEmptyDirectiveRoot())
 
 	// Assert - Test introspection query
 	introspectionQuery := `{"query": "{ __schema { types { name } } }"}`
