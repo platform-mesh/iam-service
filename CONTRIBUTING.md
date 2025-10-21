@@ -45,8 +45,15 @@ task unittest
 # OR
 go test ./...
 
+# Run specific package tests (e.g., middleware/kcp)
+go test -v ./pkg/middleware/kcp
+
 # Check test coverage (requires 95% total, 80% file/package)
 task cover
+
+# Generate detailed coverage reports
+go test ./pkg/middleware/kcp -coverprofile=coverage.out
+go tool cover -html=coverage.out -o coverage.html
 ```
 
 ### Code Quality and Generation
@@ -98,21 +105,7 @@ task validate
 - Kubernetes Control Plane integration
 - Multi-cluster resource management
 - API export provider setup
-
-### Directory Structure
-```
-├── cmd/                    # CLI commands (serve)
-├── internal/               # Private application code
-│   ├── config/            # Service configuration
-│   └── pkg/               # Internal packages (directives, middleware, utils, etc.)
-├── pkg/                   # Public packages
-│   ├── fga/               # OpenFGA integration and middleware
-│   ├── graph/             # Generated GraphQL code
-│   ├── resolver/          # GraphQL resolvers
-│   ├── service/           # Business logic (FGA, IDM services)
-│   └── middleware/        # HTTP middleware (KCP, Keycloak, etc.)
-└── graph/                 # GraphQL schema definition
-```
+- JWT token validation and tenant-based authorization
 
 ## Development Patterns
 
@@ -140,12 +133,6 @@ task validate
 3. Implement resolver in `pkg/resolver/schema.resolvers.go`
 4. Add service layer logic if needed
 5. Write tests and update mocks
-
-### Adding Authorization Rules
-1. Update OpenFGA authorization schema and tuples
-2. Modify authorization middleware in `pkg/fga/` if needed
-3. Test with DataLoader: `go run main.go dataload --schema=$SCHEMA_PATH --file=$DATA_PATH --tenants=tenant1,tenant2`
-4. Update resolvers to use new authorization checks
 
 ### Working with OpenFGA Integration
 1. Update FGA service layer in `pkg/service/fga/`

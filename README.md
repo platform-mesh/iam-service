@@ -26,6 +26,7 @@ The Platform Mesh IAM service is a Go-based microservice that provides a GraphQL
 - Multi-tenant authorization through OpenFGA
 - Multi-cluster resource coordination via KCP
 - Keycloak integration for identity provider support
+- Robust JWT token validation and tenant context management
 
 ## Architecture
 
@@ -43,8 +44,16 @@ This service has been refactored to eliminate traditional database dependencies,
 
 ### Development Setup
 1. Copy `.env.sample` to `.env` and configure services
-2. Run the service: `go run ./main.go serve`
-3. Load test data: `go run main.go dataload --schema=$SCHEMA_PATH --file=$DATA_PATH --tenants=tenant1,tenant2`
+2. Start your local platform-mesh using the local-setup, see `local-setup` in https://github.com/platform-mesh/helm-charts
+3. Start a port-forward to make openfga available on your local host, e.g. `kubectl port-forward -n platform-mesh-system svc/openfga 3000 8080 8081:8081`
+4. Prepare a kubeconfig for the iam-service to connect to kcp and set the `KCP_KUBECONFIG` environment
+5. Run the service: `go run ./main.go serve`
+
+### Testing
+Run tests with coverage reporting:
+```bash
+task cover
+```
 
 For detailed development information, architecture details, and contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
