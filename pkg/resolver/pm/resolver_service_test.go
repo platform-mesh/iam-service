@@ -345,10 +345,10 @@ func TestService_Methods_Coverage(t *testing.T) {
 
 	// These will fail due to dependencies, but it covers the method implementations
 	// The methods are simple passthroughs to underlying services
-	realService.Me(ctx)
-	realService.User(ctx, "test")
+	_, _ = realService.Me(ctx)
+	_, _ = realService.User(ctx, "test")
 	// Skip Users, AssignRolesToUsers, RemoveRole as they require manager
-	realService.Roles(ctx, resourceContext)
+	_, _ = realService.Roles(ctx, resourceContext)
 
 	// This tests that the service structure is correct
 	assert.NotNil(t, realService)

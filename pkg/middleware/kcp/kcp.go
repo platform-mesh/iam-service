@@ -98,11 +98,9 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 func checkToken(ctx context.Context, authHeader string, subdomain string, mgrcfg *rest.Config) (bool, error) {
 	cfg := rest.CopyConfig(mgrcfg)
 	// Ensure no client certificates are used
-	cfg.TLSClientConfig.CertData = nil
-	cfg.TLSClientConfig.KeyData = nil
 	cfg.CertData = nil
-	cfg.CertFile = ""
 	cfg.KeyData = nil
+	cfg.CertFile = ""
 	cfg.KeyFile = ""
 
 	log := logger.LoadLoggerFromContext(ctx)

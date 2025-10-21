@@ -642,7 +642,7 @@ func TestGetWSClient_NilParameters(t *testing.T) {
 
 	// Test with nil restConfig - should panic due to CopyConfig(nil)
 	assert.Panics(t, func() {
-		getWSClient(accountPath, log, nil, runtime.NewScheme())
+		_, _ = getWSClient(accountPath, log, nil, runtime.NewScheme())
 	})
 
 	// Test with nil scheme - client creation may still succeed with nil scheme

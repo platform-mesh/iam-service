@@ -430,8 +430,8 @@ func TestSetKCPUserContext_DirectWebTokenContext(t *testing.T) {
 		Issuer: "test-issuer",
 		Mail:   "test@example.com",
 	}
-	// Use the internal context key (we'll use a string for simplicity)
-	ctx = context.WithValue(ctx, "web_token", fakeToken)
+	// Use the proper context key from the keys package
+	ctx = context.WithValue(ctx, keys.WebTokenCtxKey, fakeToken)
 
 	req = req.WithContext(ctx)
 	req.Host = "test-org.example.com"
