@@ -181,7 +181,6 @@ func (s *Service) convertToGraphUserRoles(rctx graph.ResourceContext, userIDToRo
 		// Convert role names to Role objects
 		var rArr []*graph.Role
 		for _, roleName := range roleNames {
-			// Try to get the full role definition, fallback to basic info
 			if roleDef, exists := roleDefMap[roleName]; exists {
 				role := &graph.Role{
 					ID:          roleDef.ID,
@@ -189,18 +188,9 @@ func (s *Service) convertToGraphUserRoles(rctx graph.ResourceContext, userIDToRo
 					Description: roleDef.Description,
 				}
 				rArr = append(rArr, role)
-			} else {
-				// Fallback for rArr not found in definitions
-				role := &graph.Role{
-					ID:          roleName,
-					DisplayName: roleName,
-					Description: "Role definition not available",
-				}
-				rArr = append(rArr, role)
 			}
 		}
 
-		// Create UserRoles entry
 		userRoles := &graph.UserRoles{
 			User:  user,
 			Roles: rArr,
