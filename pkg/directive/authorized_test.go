@@ -42,12 +42,12 @@ func createTestConfig() *config.ServiceConfig {
 			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
 			Cache        struct {
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
 			} `mapstructure:",squash"`
 		}{
 			Cache: struct {
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
 			}{
 				TTL:     5 * time.Minute,
 				Enabled: true,
@@ -735,7 +735,7 @@ func TestNewAuthorizedDirective(t *testing.T) {
 	directive := NewAuthorizedDirective(restConfig, scheme, mockClient, cfg)
 
 	assert.NotNil(t, directive)
-	assert.Equal(t, mockClient, directive.oc)
+	assert.Equal(t, mockClient, directive.fga)
 	assert.Equal(t, restConfig, directive.restConfig)
 	assert.Equal(t, scheme, directive.scheme)
 	assert.NotNil(t, directive.helper)
@@ -749,7 +749,7 @@ func TestAuthorizedDirective_testIfAllowed_Success(t *testing.T) {
 
 	// Create directive with mocked helper
 	directive := &AuthorizedDirective{
-		oc:         mockClient,
+		fga:        mockClient,
 		helper:     mockHelper,
 		restConfig: &rest.Config{Host: "https://test.example.com"},
 		scheme:     runtime.NewScheme(),
@@ -788,7 +788,7 @@ func TestAuthorizedDirective_testIfAllowed_NotAllowed(t *testing.T) {
 
 	// Create directive with mocked helper
 	directive := &AuthorizedDirective{
-		oc:         mockClient,
+		fga:        mockClient,
 		helper:     mockHelper,
 		restConfig: &rest.Config{Host: "https://test.example.com"},
 		scheme:     runtime.NewScheme(),
@@ -827,7 +827,7 @@ func TestAuthorizedDirective_testIfAllowed_StoreError(t *testing.T) {
 
 	// Create directive with mocked helper
 	directive := &AuthorizedDirective{
-		oc:         mockClient,
+		fga:        mockClient,
 		helper:     mockHelper,
 		restConfig: &rest.Config{Host: "https://test.example.com"},
 		scheme:     runtime.NewScheme(),
@@ -858,7 +858,7 @@ func TestAuthorizedDirective_testIfAllowed_CheckError(t *testing.T) {
 
 	// Create directive with mocked helper
 	directive := &AuthorizedDirective{
-		oc:         mockClient,
+		fga:        mockClient,
 		helper:     mockHelper,
 		restConfig: &rest.Config{Host: "https://test.example.com"},
 		scheme:     runtime.NewScheme(),
@@ -893,7 +893,7 @@ func TestAuthorizedDirective_testIfAllowed_WithNamespace(t *testing.T) {
 	mockHelper := &mockStoreHelper{}
 
 	directive := &AuthorizedDirective{
-		oc:         mockClient,
+		fga:        mockClient,
 		helper:     mockHelper,
 		restConfig: &rest.Config{Host: "https://test.example.com"},
 		scheme:     runtime.NewScheme(),
@@ -946,7 +946,7 @@ func TestAuthorizedDirective_Authorized_Success(t *testing.T) {
 
 	// Create directive with dependency injection
 	directive := &AuthorizedDirective{
-		oc:         mockClient,
+		fga:        mockClient,
 		helper:     mockHelper,
 		restConfig: restConfig,
 		scheme:     scheme,

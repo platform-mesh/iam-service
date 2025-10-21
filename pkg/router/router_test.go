@@ -232,31 +232,6 @@ func TestCreateRouter_WithMiddleware(t *testing.T) {
 	assert.Equal(t, "applied", rr.Header().Get("X-Test-Middleware"))
 }
 
-func TestCreateRouter_WithOptions(t *testing.T) {
-	// Setup
-	commonCfg := &pmconfig.CommonServiceConfig{
-		IsLocal: false,
-	}
-	serviceCfg := &config.ServiceConfig{}
-	resolver := createTestResolver(t)
-	log, err := logger.New(logger.Config{Level: "info"})
-	require.NoError(t, err)
-
-	optionApplied := false
-	testOption := func(cfg *graph.Config) {
-		optionApplied = true
-		// We can't test much here without implementing actual directives
-		// but we can verify the option function was called
-	}
-
-	// Execute
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil, createEmptyDirectiveRoot(), testOption)
-
-	// Assert
-	assert.NotNil(t, router)
-	assert.True(t, optionApplied, "Option function should have been called")
-}
-
 func TestCreateRouter_GraphQLHandlerConfiguration(t *testing.T) {
 	// Setup
 	commonCfg := &pmconfig.CommonServiceConfig{

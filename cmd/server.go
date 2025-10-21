@@ -49,32 +49,30 @@ var serverCmd = &cobra.Command{
 	Short: "Start serving",
 	Long:  `Start the IAM Service as a Webservice`,
 	Run: func(cmd *cobra.Command, args []string) {
-		serveFunc()
+		ctx, _, shutdown := pmcontext.StartContext(log, serviceCfg, defaultCfg.ShutdownTimeout)
+		defer shutdown()
+
+		mgr := setupManager(ctx, log)
+		router := setupRouter(ctx, mgr, setupFGAClient())
+		start(serviceCfg, router, ctx, log, defaultCfg.IsLocal)
 	},
-}
-
-func serveFunc() {
-	ctx, _, shutdown := pmcontext.StartContext(log, serviceCfg, defaultCfg.ShutdownTimeout)
-	defer shutdown()
-
-	mgr := setupManagerAsync(ctx, log)
-	router := setupRouter(ctx, mgr, setupFGAClient())
-	start(serviceCfg, router, ctx, log, defaultCfg.IsLocal)
 }
 
 func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1.OpenFGAServiceClient) *chi.Mux {
 
-	orgsWSClusterName, err := determineOrgsClusterName(ctx, mgr.GetLocalManager().GetConfig())
+	cfg := mgr.GetLocalManager().GetConfig()
+	orgsWSClusterName, err := determineOrgsClusterName(ctx, cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to determine orgs cluster name")
 	}
 
-	kcpmw := kcpmiddleware.New(mgr.GetLocalManager().GetConfig(), serviceCfg, log, &keycloakmw.KeycloakIDMRetriever{}, orgsWSClusterName)
+	kcpmw := kcpmiddleware.New(cfg, serviceCfg, log, keycloakmw.New(), orgsWSClusterName)
+
 	mws := pmmws.CreateMiddleware(log, true)
 	mws = append(mws, kcpmw.SetKCPUserContext())
 
 	// Prepare Directives
-	ad := directive.NewAuthorizedDirective(mgr.GetLocalManager().GetConfig(), mgr.GetLocalManager().GetScheme(), fgaClient, serviceCfg)
+	ad := directive.NewAuthorizedDirective(cfg, mgr.GetLocalManager().GetScheme(), fgaClient, serviceCfg)
 	dr := graph.DirectiveRoot{
 		Authorized: ad.Authorized,
 	}
@@ -106,16 +104,17 @@ func setupFGAClient() openfgav1.OpenFGAServiceClient {
 	return fgaClient
 }
 
-func setupManagerAsync(ctx context.Context, log *logger.Logger) mcmanager.Manager {
+func setupManager(ctx context.Context, log *logger.Logger) mcmanager.Manager {
 	restCfg := ctrl.GetConfigOrDie()
 	restCfg.Wrap(func(rt http.RoundTripper) http.RoundTripper {
 		return otelhttp.NewTransport(rt)
 	})
-	providerCfg := rest.CopyConfig(restCfg)
-	provider, err := apiexport.New(providerCfg, apiexport.Options{Scheme: scheme})
+
+	provider, err := apiexport.New(restCfg, apiexport.Options{Scheme: scheme})
 	if err != nil {
 		log.Fatal().Err(err).Msg("unable to construct APIExport provider")
 	}
+
 	var tlsOpts []func(*tls.Config)
 	disableHTTP2 := func(c *tls.Config) {
 		log.Info().Msg("disabling http/2")
@@ -124,7 +123,8 @@ func setupManagerAsync(ctx context.Context, log *logger.Logger) mcmanager.Manage
 	if !defaultCfg.EnableHTTP2 {
 		tlsOpts = append(tlsOpts, disableHTTP2)
 	}
-	mgr, err := mcmanager.New(providerCfg, provider, mcmanager.Options{
+
+	mgr, err := mcmanager.New(restCfg, provider, mcmanager.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{
 			BindAddress:   defaultCfg.Metrics.BindAddress,
@@ -139,6 +139,7 @@ func setupManagerAsync(ctx context.Context, log *logger.Logger) mcmanager.Manage
 	if err != nil {
 		log.Fatal().Err(err).Msg("unable to start manager")
 	}
+
 	log.Info().Msg("starting APIExport provider")
 	go func() {
 		if err := provider.Run(ctx, mgr); err != nil {
@@ -148,16 +149,18 @@ func setupManagerAsync(ctx context.Context, log *logger.Logger) mcmanager.Manage
 
 	log.Info().Msg("starting manager")
 	go func() {
-		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		if err := mgr.Start(ctx); err != nil {
 			log.Fatal().Err(err).Msg("problem running manager")
 		}
 	}()
+
 	return mgr
 }
 
 // determineOrgsClusterName determines the cluster name for the root:orgs workspace in KCP
 func determineOrgsClusterName(ctx context.Context, restConfig *rest.Config) (string, error) {
-	cfg := rest.CopyConfig(ctrl.GetConfigOrDie())
+	cfg := rest.CopyConfig(restConfig)
+
 	parsed, err := url.Parse(cfg.Host)
 	if err != nil {
 		log.Error().Err(err).Msg("unable to parse host")
@@ -172,12 +175,14 @@ func determineOrgsClusterName(ctx context.Context, restConfig *rest.Config) (str
 		log.Error().Err(err).Msg("unable to construct root client")
 		return "", err
 	}
+
 	ws := &tenancyv1alpha1.Workspace{}
 	err = rootClient.Get(ctx, client.ObjectKey{Name: "orgs"}, ws)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get orgs workspace from kcp")
 		return "", err
 	}
+
 	return ws.Spec.Cluster, nil
 }
 

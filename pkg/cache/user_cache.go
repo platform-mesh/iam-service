@@ -15,7 +15,7 @@ type UserCache struct {
 
 // NewUserCache creates a new user cache with the specified TTL
 func NewUserCache(ttl time.Duration) *UserCache {
-	cache := ttlcache.New[string, *graph.User](
+	cache := ttlcache.New(
 		ttlcache.WithTTL[string, *graph.User](ttl),
 	)
 
@@ -41,9 +41,9 @@ func (c *UserCache) Get(realm, email string) *graph.User {
 
 // GetMany retrieves multiple users from cache by realm and emails
 // Returns a map of found users and a slice of missing emails
-func (c *UserCache) GetMany(realm string, emails []string) (found map[string]*graph.User, missing []string) {
-	found = make(map[string]*graph.User)
-	missing = make([]string, 0)
+func (c *UserCache) GetMany(realm string, emails []string) (map[string]*graph.User, []string) {
+	found := make(map[string]*graph.User)
+	missing := make([]string, 0)
 
 	for _, email := range emails {
 		key := c.buildKey(realm, email)

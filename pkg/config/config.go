@@ -2,6 +2,10 @@ package config
 
 import "time"
 
+type IDMConfig struct {
+	ExcludedTenants []string `mapstructure:"excluded-tenants" default:"welcome"`
+}
+
 type ServiceConfig struct {
 	Port    int `mapstructure:"port" default:"8080"`
 	OpenFGA struct {
@@ -11,9 +15,7 @@ type ServiceConfig struct {
 	JWT struct {
 		UserIDClaim string `mapstructure:"jwt-user-id-claim" default:"sub"`
 	} `mapstructure:",squash"`
-	IDM struct {
-		ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-	} `mapstructure:",squash"`
+	IDM      IDMConfig `mapstructure:",squash"`
 	Keycloak struct {
 		BaseURL      string `mapstructure:"keycloak-base-url" default:"https://portal.dev.local:8443/keycloak"`
 		ClientID     string `mapstructure:"keycloak-client-id" default:"admin-cli"`
@@ -21,7 +23,7 @@ type ServiceConfig struct {
 		PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
 		Cache        struct {
 			Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-			TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+			TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
 		} `mapstructure:",squash"`
 	} `mapstructure:",squash"`
 	Pagination struct {

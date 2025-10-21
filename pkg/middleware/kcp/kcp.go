@@ -19,7 +19,6 @@ import (
 
 type Middleware struct {
 	restcfg                  *rest.Config
-	cfg                      *config.ServiceConfig
 	log                      *logger.Logger
 	tenantRetriever          idm.IDMTenantRetriever
 	excludedIDMTenants       []string
@@ -28,9 +27,17 @@ type Middleware struct {
 
 func New(restcfg *rest.Config, cfg *config.ServiceConfig, log *logger.Logger, tenantRetriever idm.IDMTenantRetriever, orgsWorkspaceClusterName string) *Middleware {
 	excludedIDMTenants := cfg.IDM.ExcludedTenants
+
+	restcfg = rest.CopyConfig(restcfg)
+
+	// Ensure no client certificates are used
+	restcfg.CertData = nil
+	restcfg.KeyData = nil
+	restcfg.CertFile = ""
+	restcfg.KeyFile = ""
+
 	return &Middleware{
 		restcfg:                  restcfg,
-		cfg:                      cfg,
 		log:                      log,
 		tenantRetriever:          tenantRetriever,
 		excludedIDMTenants:       excludedIDMTenants,
@@ -85,6 +92,7 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 				OrganizationName: subdomain,
 				IDMTenant:        idmTenant,
 			}
+
 			ctx = appcontext.SetKCPContext(ctx, kctx)
 			log.Trace().
 				Str("organization", kctx.OrganizationName).
@@ -97,11 +105,6 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 
 func checkToken(ctx context.Context, authHeader string, subdomain string, mgrcfg *rest.Config) (bool, error) {
 	cfg := rest.CopyConfig(mgrcfg)
-	// Ensure no client certificates are used
-	cfg.CertData = nil
-	cfg.KeyData = nil
-	cfg.CertFile = ""
-	cfg.KeyFile = ""
 
 	log := logger.LoadLoggerFromContext(ctx)
 	clusterUrl, err := url.Parse(cfg.Host)
@@ -137,5 +140,6 @@ func checkToken(ctx context.Context, authHeader string, subdomain string, mgrcfg
 	case http.StatusOK, http.StatusCreated, http.StatusForbidden:
 		return true, nil
 	}
+
 	return false, nil
 }

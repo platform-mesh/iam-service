@@ -40,9 +40,7 @@ func TestNew(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
 	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
+		IDM: config.IDMConfig{
 			ExcludedTenants: []string{"excluded1", "excluded2"},
 		},
 	}
@@ -50,7 +48,6 @@ func TestNew(t *testing.T) {
 	middleware := New(nil, cfg, log, mockTenantRetriever, "test-orgs-cluster")
 
 	assert.NotNil(t, middleware)
-	assert.Equal(t, cfg, middleware.cfg)
 	assert.Equal(t, log, middleware.log)
 	assert.Equal(t, mockTenantRetriever, middleware.tenantRetriever)
 	assert.Equal(t, []string{"excluded1", "excluded2"}, middleware.excludedIDMTenants)
@@ -109,9 +106,7 @@ func TestSetKCPUserContext_MiddlewareCreation(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
 	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
+		IDM: config.IDMConfig{
 			ExcludedTenants: []string{},
 		},
 	}
@@ -131,9 +126,7 @@ func TestSetKCPUserContext_NoWebTokenInContext(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
 	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
+		IDM: config.IDMConfig{
 			ExcludedTenants: []string{},
 		},
 	}
@@ -331,9 +324,7 @@ func TestSetKCPUserContext_IDMTenantError(t *testing.T) {
 	}
 	log, _ := logger.New(logger.Config{Level: "debug"})
 	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
+		IDM: config.IDMConfig{
 			ExcludedTenants: []string{},
 		},
 	}
@@ -366,9 +357,7 @@ func TestSetKCPUserContext_AuthHeaderError(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
 	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
+		IDM: config.IDMConfig{
 			ExcludedTenants: []string{},
 		},
 	}
@@ -403,9 +392,7 @@ func TestSetKCPUserContext_DirectWebTokenContext(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
 	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
+		IDM: config.IDMConfig{
 			ExcludedTenants: []string{},
 		},
 	}
@@ -510,9 +497,7 @@ func TestSetKCPUserContext_SubdomainExtraction(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
 	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
+		IDM: config.IDMConfig{
 			ExcludedTenants: []string{},
 		},
 	}
@@ -586,9 +571,7 @@ func TestSetKCPUserContext_IDMTenantSuccess(t *testing.T) {
 	defer server.Close()
 
 	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
+		IDM: config.IDMConfig{
 			ExcludedTenants: []string{},
 		},
 	}
@@ -635,9 +618,7 @@ func TestSetKCPUserContext_IDMTenantRetrievalError(t *testing.T) {
 	}
 	log, _ := logger.New(logger.Config{Level: "debug"})
 	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
+		IDM: config.IDMConfig{
 			ExcludedTenants: []string{},
 		},
 	}
@@ -670,9 +651,7 @@ func TestSetKCPUserContext_MissingAuthHeader(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
 	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
+		IDM: config.IDMConfig{
 			ExcludedTenants: []string{},
 		},
 	}
@@ -712,9 +691,7 @@ func TestSetKCPUserContext_TokenCheckFailure(t *testing.T) {
 	defer server.Close()
 
 	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
+		IDM: config.IDMConfig{
 			ExcludedTenants: []string{},
 		},
 	}
@@ -753,9 +730,7 @@ func TestSetKCPUserContext_TokenCheckError(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "debug"})
 
 	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
+		IDM: config.IDMConfig{
 			ExcludedTenants: []string{},
 		},
 	}
@@ -801,9 +776,7 @@ func TestSetKCPUserContext_SubdomainPatterns(t *testing.T) {
 	defer server.Close()
 
 	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
+		IDM: config.IDMConfig{
 			ExcludedTenants: []string{},
 		},
 	}

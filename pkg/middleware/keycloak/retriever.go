@@ -8,6 +8,10 @@ import (
 
 type KeycloakIDMRetriever struct{}
 
+func New() *KeycloakIDMRetriever {
+	return &KeycloakIDMRetriever{}
+}
+
 func (k *KeycloakIDMRetriever) GetIDMTenant(issuer string) (string, error) {
 	regex := regexp.MustCompile(`^.*\/realms\/(.*?)\/?$`)
 	if !regex.MatchString(issuer) {

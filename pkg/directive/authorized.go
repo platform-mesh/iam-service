@@ -29,15 +29,21 @@ import (
 )
 
 type AuthorizedDirective struct {
-	oc         openfgav1.OpenFGAServiceClient
+	fga        openfgav1.OpenFGAServiceClient
 	helper     store.StoreHelper
 	restConfig *rest.Config
 	scheme     *runtime.Scheme
 }
 
 func NewAuthorizedDirective(restConfig *rest.Config, scheme *runtime.Scheme, oc openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) *AuthorizedDirective {
-	return &AuthorizedDirective{restConfig: restConfig, scheme: scheme, oc: oc, helper: store.NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL)}
+	return &AuthorizedDirective{
+		restConfig: restConfig,
+		scheme:     scheme,
+		fga:        oc,
+		helper:     store.NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL),
+	}
 }
+
 func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql.Resolver, permission string) (any, error) {
 	log := logger.LoadLoggerFromContext(ctx)
 	log.Debug().Msg("Authorized directive called with permission: " + permission)
@@ -70,6 +76,7 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get account info from kcp context")
 	}
+
 	if ai.Spec.Organization.Name != kctx.OrganizationName {
 		return nil, gqlerror.Errorf("unauthorized")
 	}
@@ -106,8 +113,9 @@ func (a AuthorizedDirective) testIfAllowed(ctx context.Context, ai *accountsv1al
 	if rctx.Resource.Namespace != nil {
 		object = fmt.Sprintf("%s:%s/%s/%s", fgaTypeName, ai.Spec.Account.GeneratedClusterId, *rctx.Resource.Namespace, rctx.Resource.Name)
 	}
-	user := fmt.Sprintf("user:%s", token.Mail)
-	storeID, err := a.helper.GetStoreID(ctx, a.oc, ai.Spec.Organization.Name)
+
+	user := fmt.Sprintf("user:%s", token.Mail) // TODO: what happens if mail is not uid?
+	storeID, err := a.helper.GetStoreID(ctx, a.fga, ai.Spec.Organization.Name)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to get store ID for organization %s", ai.Spec.Organization.Name)
 	}
@@ -121,11 +129,13 @@ func (a AuthorizedDirective) testIfAllowed(ctx context.Context, ai *accountsv1al
 			User:     user,
 		},
 	}
-	checkResp, err := a.oc.Check(ctx, &req)
+
+	res, err := a.fga.Check(ctx, &req)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to check permission with openfga")
 	}
-	return checkResp.Allowed, nil
+
+	return res.Allowed, nil
 }
 
 func (a AuthorizedDirective) testIfResourceExists(ctx context.Context, rctx *graph.ResourceContext, wsClient client.Client) (bool, error) {
@@ -133,10 +143,12 @@ func (a AuthorizedDirective) testIfResourceExists(ctx context.Context, rctx *gra
 		Group:    rctx.Group,
 		Resource: rctx.Kind,
 	}
+
 	gvr, err := wsClient.RESTMapper().ResourceFor(gvr)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to get GVR for resource")
 	}
+
 	gvk, err := wsClient.RESTMapper().KindFor(gvr)
 	if err != nil { // coverage-ignore
 		return false, errors.Wrap(err, "failed to get GVK for resource")

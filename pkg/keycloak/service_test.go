@@ -242,7 +242,7 @@ func TestNew_InvalidConfig(t *testing.T) {
 			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
 			Cache        struct {
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
 			} `mapstructure:",squash"`
 		}{
 			BaseURL:      "invalid-url", // Invalid URL
@@ -251,7 +251,7 @@ func TestNew_InvalidConfig(t *testing.T) {
 			PasswordFile: "/nonexistent/file",
 			Cache: struct {
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
 			}{
 				TTL:     5 * time.Minute,
 				Enabled: true,
@@ -652,7 +652,7 @@ func TestNew_PasswordFileNotFound(t *testing.T) {
 			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
 			Cache        struct {
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
 			} `mapstructure:",squash"`
 		}{
 			BaseURL:      "https://valid-url.com/keycloak", // Valid URL but will fail on password file
@@ -661,7 +661,7 @@ func TestNew_PasswordFileNotFound(t *testing.T) {
 			PasswordFile: "/nonexistent/path/password.txt",
 			Cache: struct {
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
 			}{
 				TTL:     5 * time.Minute,
 				Enabled: true,
@@ -702,7 +702,7 @@ func TestNew_CacheEnabled(t *testing.T) {
 			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
 			Cache        struct {
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
 			} `mapstructure:",squash"`
 		}{
 			BaseURL:      "https://valid-issuer.com/keycloak", // This will still fail at OIDC provider creation
@@ -711,7 +711,7 @@ func TestNew_CacheEnabled(t *testing.T) {
 			PasswordFile: tmpFile.Name(),
 			Cache: struct {
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
 			}{
 				TTL:     5 * time.Minute,
 				Enabled: true,
@@ -751,7 +751,7 @@ func TestNew_CacheDisabled(t *testing.T) {
 			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
 			Cache        struct {
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
 			} `mapstructure:",squash"`
 		}{
 			BaseURL:      "https://valid-issuer.com/keycloak", // This will still fail at OIDC provider creation
@@ -760,7 +760,7 @@ func TestNew_CacheDisabled(t *testing.T) {
 			PasswordFile: tmpFile.Name(),
 			Cache: struct {
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
 			}{
 				TTL:     5 * time.Minute,
 				Enabled: false, // Cache disabled

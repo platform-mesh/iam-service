@@ -57,12 +57,12 @@ func createTestResolverService(t *testing.T) (*Service, *mocks.OpenFGAServiceCli
 			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
 			Cache        struct {
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
 			} `mapstructure:",squash"`
 		}{
 			Cache: struct {
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
 			}{
 				TTL:     5 * time.Minute,
 				Enabled: true,
