@@ -11,7 +11,6 @@ import (
 	"github.com/platform-mesh/golang-commons/errors"
 	"github.com/platform-mesh/golang-commons/logger"
 	"k8s.io/client-go/rest"
-	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
@@ -19,7 +18,7 @@ import (
 )
 
 type Middleware struct {
-	mgr                      mcmanager.Manager
+	restcfg                  *rest.Config
 	cfg                      *config.ServiceConfig
 	log                      *logger.Logger
 	tenantRetriever          idm.IDMTenantRetriever
@@ -27,10 +26,10 @@ type Middleware struct {
 	orgsWorkspaceClusterName string
 }
 
-func New(mgr mcmanager.Manager, cfg *config.ServiceConfig, log *logger.Logger, tenantRetriever idm.IDMTenantRetriever, orgsWorkspaceClusterName string) *Middleware {
+func New(restcfg *rest.Config, cfg *config.ServiceConfig, log *logger.Logger, tenantRetriever idm.IDMTenantRetriever, orgsWorkspaceClusterName string) *Middleware {
 	excludedIDMTenants := cfg.IDM.ExcludedTenants
 	return &Middleware{
-		mgr:                      mgr,
+		restcfg:                  restcfg,
 		cfg:                      cfg,
 		log:                      log,
 		tenantRetriever:          tenantRetriever,
@@ -71,7 +70,7 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 			log.Debug().Str("subdmain", subdomain).Msg("processing request")
 
 			// Create API Request against root:orgs:subdomain
-			allowed, err := checkToken(ctx, authHeader, subdomain, m.mgr.GetLocalManager().GetConfig())
+			allowed, err := checkToken(ctx, authHeader, subdomain, m.restcfg)
 			if err != nil {
 				log.Error().Err(err).Msg("Error while checking auth")
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

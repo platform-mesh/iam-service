@@ -69,7 +69,7 @@ func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1
 		log.Fatal().Err(err).Msg("failed to determine orgs cluster name")
 	}
 
-	kcpmw := kcpmiddleware.New(mgr, serviceCfg, log, &keycloakmw.KeycloakIDMRetriever{}, orgsWSClusterName)
+	kcpmw := kcpmiddleware.New(mgr.GetLocalManager().GetConfig(), serviceCfg, log, &keycloakmw.KeycloakIDMRetriever{}, orgsWSClusterName)
 	mws := pmmws.CreateMiddleware(log, true)
 	mws = append(mws, kcpmw.SetKCPUserContext())
 
