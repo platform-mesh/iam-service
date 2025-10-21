@@ -12,36 +12,26 @@ import (
 	"github.com/platform-mesh/golang-commons/logger"
 	"k8s.io/client-go/rest"
 
-	"github.com/platform-mesh/iam-service/pkg/config"
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	"github.com/platform-mesh/iam-service/pkg/middleware/idm"
 )
 
 type Middleware struct {
-	restcfg                  *rest.Config
 	log                      *logger.Logger
 	tenantRetriever          idm.IDMTenantRetriever
 	excludedIDMTenants       []string
 	orgsWorkspaceClusterName string
+	restcfg                  *rest.Config
 }
 
-func New(restcfg *rest.Config, cfg *config.ServiceConfig, log *logger.Logger, tenantRetriever idm.IDMTenantRetriever, orgsWorkspaceClusterName string) *Middleware {
-	excludedIDMTenants := cfg.IDM.ExcludedTenants
-
-	restcfg = rest.CopyConfig(restcfg)
-
-	// Ensure no client certificates are used
-	restcfg.CertData = nil
-	restcfg.KeyData = nil
-	restcfg.CertFile = ""
-	restcfg.KeyFile = ""
+func New(restcfg *rest.Config, excludedIDMTenants []string, tenantRetriever idm.IDMTenantRetriever, orgsClustedrName string, log *logger.Logger) *Middleware {
 
 	return &Middleware{
-		restcfg:                  restcfg,
 		log:                      log,
 		tenantRetriever:          tenantRetriever,
 		excludedIDMTenants:       excludedIDMTenants,
-		orgsWorkspaceClusterName: orgsWorkspaceClusterName,
+		orgsWorkspaceClusterName: orgsClustedrName,
+		restcfg:                  restcfg,
 	}
 }
 

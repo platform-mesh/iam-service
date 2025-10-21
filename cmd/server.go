@@ -12,7 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/joho/godotenv/autoload"
-	tenancyv1alpha1 "github.com/kcp-dev/kcp/sdk/apis/tenancy/v1alpha1"
+	"github.com/kcp-dev/logicalcluster/v3"
 	"github.com/kcp-dev/multicluster-provider/apiexport"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	pmmws "github.com/platform-mesh/golang-commons/middleware"
@@ -21,13 +21,16 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 
 	"github.com/platform-mesh/golang-commons/logger"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	kcpclientset "github.com/kcp-dev/kcp/sdk/client/clientset/versioned/cluster"
+
+	"github.com/platform-mesh/iam-service/pkg/accountinfo"
 	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/directive"
 	"github.com/platform-mesh/iam-service/pkg/graph"
@@ -59,20 +62,31 @@ var serverCmd = &cobra.Command{
 }
 
 func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1.OpenFGAServiceClient) *chi.Mux {
+	restcfg, err := getRootConfig(mgr)
 
-	cfg := mgr.GetLocalManager().GetConfig()
-	orgsWSClusterName, err := determineOrgsClusterName(ctx, cfg)
+	clusterClient, err := kcpclientset.NewForConfig(restcfg)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to determine orgs cluster name")
+		log.Fatal().Err(err).Msg("Failed to create cluster client")
 	}
 
-	kcpmw := kcpmiddleware.New(cfg, serviceCfg, log, keycloakmw.New(), orgsWSClusterName)
+	path := logicalcluster.NewPath("root:orgs")
+	lc, err := clusterClient.CoreV1alpha1().LogicalClusters().Cluster(path).Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to get logical cluster")
+	}
 
 	mws := pmmws.CreateMiddleware(log, true)
+	kcpmw := kcpmiddleware.New(mgr.GetLocalManager().GetConfig(), serviceCfg.IDM.ExcludedTenants, keycloakmw.New(), logicalcluster.From(lc).String(), log)
 	mws = append(mws, kcpmw.SetKCPUserContext())
 
 	// Prepare Directives
-	ad := directive.NewAuthorizedDirective(cfg, mgr.GetLocalManager().GetScheme(), fgaClient, serviceCfg)
+	ad := directive.NewAuthorizedDirective(
+		fgaClient,
+		accountinfo.New(mgr, clusterClient),
+		serviceCfg.OpenFGA.StoreCacheTTL,
+		mgr.GetLocalManager().GetConfig(),
+		mgr.GetLocalManager().GetScheme(),
+	)
 	dr := graph.DirectiveRoot{
 		Authorized: ad.Authorized,
 	}
@@ -89,6 +103,17 @@ func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1
 	res := resolver.New(svc, log.ComponentLogger("resolver"))
 	router := iamRouter.CreateRouter(defaultCfg, serviceCfg, res, log, mws, dr)
 	return router
+}
+
+func getRootConfig(mgr mcmanager.Manager) (*rest.Config, error) {
+	restcfg := rest.CopyConfig(mgr.GetLocalManager().GetConfig())
+	host, err := url.Parse(restcfg.Host)
+	if err != nil {
+		log.Fatal().Err(err).Msg("unable to parse host from rest config")
+	}
+	host.Path = ""
+	restcfg.Host = host.String()
+	return restcfg, err
 }
 
 func setupFGAClient() openfgav1.OpenFGAServiceClient {
@@ -155,35 +180,6 @@ func setupManager(ctx context.Context, log *logger.Logger) mcmanager.Manager {
 	}()
 
 	return mgr
-}
-
-// determineOrgsClusterName determines the cluster name for the root:orgs workspace in KCP
-func determineOrgsClusterName(ctx context.Context, restConfig *rest.Config) (string, error) {
-	cfg := rest.CopyConfig(restConfig)
-
-	parsed, err := url.Parse(cfg.Host)
-	if err != nil {
-		log.Error().Err(err).Msg("unable to parse host")
-		return "", err
-	}
-
-	parsed.Path = "/clusters/root"
-	cfg.Host = parsed.String()
-
-	rootClient, err := client.New(cfg, client.Options{Scheme: scheme})
-	if err != nil {
-		log.Error().Err(err).Msg("unable to construct root client")
-		return "", err
-	}
-
-	ws := &tenancyv1alpha1.Workspace{}
-	err = rootClient.Get(ctx, client.ObjectKey{Name: "orgs"}, ws)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to get orgs workspace from kcp")
-		return "", err
-	}
-
-	return ws.Spec.Cluster, nil
 }
 
 func start(serviceCfg *config.ServiceConfig, router *chi.Mux, ctx context.Context, log *logger.Logger, isLocal bool) {
