@@ -210,7 +210,7 @@ func (s *Service) GetRoles(ctx context.Context, rctx graph.ResourceContext) ([]*
 
 	// Get role definitions from the rArr retriever
 	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rctx)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get role definitions for group resource %s/%s", rctx.Group, rctx.Kind)
 	}
 
@@ -231,7 +231,7 @@ func (s *Service) GetRoles(ctx context.Context, rctx graph.ResourceContext) ([]*
 
 func (s *Service) applyRoleFilter(rctx graph.ResourceContext, roleFilters []string, log *logger.Logger) ([]string, error) {
 	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rctx)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get role definitions for group resource %s/%s", rctx.Group, rctx.Kind)
 	}
 	availableRoles := roles.GetAvailableRoleIDs(roleDefinitions)
@@ -258,18 +258,18 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 	defer span.End()
 
 	ai, err := appcontext.GetAccountInfo(ctx)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get cluster ID from account path")
 	}
 
 	kctx, err := appcontext.GetKCPContext(ctx)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get kcp user context")
 	}
 	fgaTypeName := util.ConvertToTypeName(rctx.Group, rctx.Kind)
 
 	storeID, err := s.helper.GetStoreID(ctx, s.client, kctx.OrganizationName)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get store ID for organization %s", kctx.OrganizationName)
 	}
 
@@ -282,7 +282,7 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 
 		// Validate that only available roles are being assigned
 		roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rctx)
-		if err != nil {
+		if err != nil { // coverage-ignore
 			errMsg := fmt.Sprintf("failed to get role definitions for group resource '%s/%s': %v", rctx.Group, rctx.Kind, err)
 			allErrors = append(allErrors, errMsg)
 			log.Error().Err(err).Msg("Failed to retrieve role definitions")

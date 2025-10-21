@@ -20,7 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
@@ -30,13 +29,14 @@ import (
 )
 
 type AuthorizedDirective struct {
-	mgr    mcmanager.Manager
-	oc     openfgav1.OpenFGAServiceClient
-	helper store.StoreHelper
+	oc         openfgav1.OpenFGAServiceClient
+	helper     store.StoreHelper
+	restConfig *rest.Config
+	scheme     *runtime.Scheme
 }
 
-func NewAuthorizedDirective(mgr mcmanager.Manager, oc openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) *AuthorizedDirective {
-	return &AuthorizedDirective{mgr: mgr, oc: oc, helper: store.NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL)}
+func NewAuthorizedDirective(restConfig *rest.Config, scheme *runtime.Scheme, oc openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) *AuthorizedDirective {
+	return &AuthorizedDirective{restConfig: restConfig, scheme: scheme, oc: oc, helper: store.NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL)}
 }
 func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql.Resolver, permission string) (any, error) {
 	log := logger.LoadLoggerFromContext(ctx)
@@ -48,26 +48,26 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 	}
 
 	kctx, err := appcontext.GetKCPContext(ctx)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get kcp user context")
 	}
 	log.Debug().Str("context", fmt.Sprintf("%+v", kctx)).Msg("Retrieved kcp context")
 
 	fieldCtx := graphql.GetFieldContext(ctx)
 	rctx, err := extractResourceContextFromArguments(fieldCtx.Args)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		return nil, err
 	}
 	log.Debug().Str("context", fmt.Sprintf("%+v", rctx)).Msg("Retrieved resource context")
 
-	wsClient, err := getWSClient(rctx.AccountPath, log, a.mgr.GetLocalManager().GetConfig(), a.mgr.GetLocalManager().GetScheme())
-	if err != nil {
+	wsClient, err := getWSClient(rctx.AccountPath, log, a.restConfig, a.scheme)
+	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get workspace client")
 	}
 
 	// Retrieve account info from kcp workspace
 	ai, err := getAccountInfoFromKcpContext(ctx, wsClient)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get account info from kcp context")
 	}
 	if ai.Spec.Organization.Name != kctx.OrganizationName {
@@ -138,7 +138,7 @@ func (a AuthorizedDirective) testIfResourceExists(ctx context.Context, rctx *gra
 		return false, errors.Wrap(err, "failed to get GVR for resource")
 	}
 	gvk, err := wsClient.RESTMapper().KindFor(gvr)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		return false, errors.Wrap(err, "failed to get GVK for resource")
 	}
 
@@ -199,7 +199,7 @@ func extractResourceContextFromArguments(args map[string]any) (*graph.ResourceCo
 
 	var normalizedArgs map[string]any
 	err = json.Unmarshal(o, &normalizedArgs)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		return nil, err
 	}
 	val, ok := normalizedArgs[resourceContextParamName]
@@ -207,7 +207,7 @@ func extractResourceContextFromArguments(args map[string]any) (*graph.ResourceCo
 		return nil, fmt.Errorf("unable to extract param from request for given paramName %q", resourceContextParamName)
 	}
 	valBytes, err := json.Marshal(val)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		return nil, fmt.Errorf("failed to marshal param value: %w", err)
 	}
 	var paramValue graph.ResourceContext

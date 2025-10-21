@@ -72,15 +72,13 @@ func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1
 	kcpmw := kcpmiddleware.New(mgr, serviceCfg, log, &keycloakmw.KeycloakIDMRetriever{}, orgsWSClusterName)
 	mws := pmmws.CreateMiddleware(log, true)
 	mws = append(mws, kcpmw.SetKCPUserContext())
-	//tr := tenant.NewTenantReader(log, database)
-	//ctr := policy_services.NewCustomTenantRetriever(tr)
-	//mws = append(mws, middleware.StoreTenantIdCtxValue(ctr))
 
 	// Prepare Directives
-	ad := directive.NewAuthorizedDirective(mgr, fgaClient, serviceCfg)
+	ad := directive.NewAuthorizedDirective(mgr.GetLocalManager().GetConfig(), mgr.GetLocalManager().GetScheme(), fgaClient, serviceCfg)
 	dr := graph.DirectiveRoot{
 		Authorized: ad.Authorized,
 	}
+
 	// create Resolver Service
 	idmClient, err := keycloak.New(ctx, serviceCfg)
 	if err != nil {
@@ -90,11 +88,7 @@ func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create resolver service")
 	}
-	//.New(database, compatService, log)
-	//ad := directives.NewAuthorizedDirective(fgaStoreHelper, openfgaClient)
-
 	res := resolver.New(svc, log.ComponentLogger("resolver"))
-	//router := iamRouter.CreateRouter(serviceCfg, res, log, mws, directives)
 	router := iamRouter.CreateRouter(defaultCfg, serviceCfg, res, log, mws, dr)
 	return router
 }
