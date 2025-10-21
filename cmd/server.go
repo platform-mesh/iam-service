@@ -35,6 +35,7 @@ import (
 	kcpmiddleware "github.com/platform-mesh/iam-service/pkg/middleware/kcp"
 	keycloakmw "github.com/platform-mesh/iam-service/pkg/middleware/keycloak"
 	"github.com/platform-mesh/iam-service/pkg/resolver"
+	"github.com/platform-mesh/iam-service/pkg/resolver/pm"
 
 	pmcontext "github.com/platform-mesh/golang-commons/context"
 
@@ -85,7 +86,7 @@ func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create keycloak client")
 	}
-	svc, err := resolver.NewResolverService(fgaClient, idmClient, serviceCfg, mgr)
+	svc, err := pm.NewResolverService(fgaClient, idmClient, serviceCfg, mgr)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create resolver service")
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/platform-mesh/golang-commons/logger"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -59,23 +60,25 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 	}
 	log.Debug().Str("context", fmt.Sprintf("%+v", rctx)).Msg("Retrieved resource context")
 
-	wsClient, err := a.getWSClient(rctx.AccountPath, log)
+	wsClient, err := getWSClient(rctx.AccountPath, log, a.mgr.GetLocalManager().GetConfig(), a.mgr.GetLocalManager().GetScheme())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get workspace client")
 	}
+
 	// Retrieve account info from kcp workspace
-	ai, err := a.getAccountInfoFromKcpContext(ctx, wsClient)
+	ai, err := getAccountInfoFromKcpContext(ctx, wsClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get account info from kcp context")
 	}
 	if ai.Spec.Organization.Name != kctx.OrganizationName {
 		return nil, gqlerror.Errorf("unauthorized")
 	}
+
 	// Store account info in context for future use
 	ctx = appcontext.SetAccountInfo(ctx, ai)
 
 	// Test if resource exists
-	exists, err := a.testIfResourceExists(ctx, rctx)
+	exists, err := a.testIfResourceExists(ctx, rctx, wsClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to test if resource exists")
 	}
@@ -125,17 +128,12 @@ func (a AuthorizedDirective) testIfAllowed(ctx context.Context, ai *accountsv1al
 	return checkResp.Allowed, nil
 }
 
-func (a AuthorizedDirective) testIfResourceExists(ctx context.Context, rctx *graph.ResourceContext) (bool, error) {
-	log := logger.LoadLoggerFromContext(ctx)
-	wsClient, err := a.getWSClient(rctx.AccountPath, log)
-	if err != nil {
-		return false, errors.Wrap(err, "failed to get workspace client")
-	}
+func (a AuthorizedDirective) testIfResourceExists(ctx context.Context, rctx *graph.ResourceContext, wsClient client.Client) (bool, error) {
 	gvr := schema.GroupVersionResource{
 		Group:    rctx.Group,
 		Resource: rctx.Kind,
 	}
-	gvr, err = wsClient.RESTMapper().ResourceFor(gvr)
+	gvr, err := wsClient.RESTMapper().ResourceFor(gvr)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to get GVR for resource")
 	}
@@ -161,8 +159,8 @@ func (a AuthorizedDirective) testIfResourceExists(ctx context.Context, rctx *gra
 	return true, nil
 }
 
-func (a AuthorizedDirective) getWSClient(accountPath string, log *logger.Logger) (client.Client, error) {
-	cfg := rest.CopyConfig(a.mgr.GetLocalManager().GetConfig())
+func getWSClient(accountPath string, log *logger.Logger, restcfg *rest.Config, scheme *runtime.Scheme) (client.Client, error) {
+	cfg := rest.CopyConfig(restcfg)
 	parsed, err := url.Parse(cfg.Host)
 	if err != nil {
 		log.Error().Err(err).Msg("unable to parse host")
@@ -172,7 +170,7 @@ func (a AuthorizedDirective) getWSClient(accountPath string, log *logger.Logger)
 	parsed.Path = fmt.Sprintf("/clusters/%s", accountPath)
 	cfg.Host = parsed.String()
 
-	cl, err := client.New(cfg, client.Options{Scheme: a.mgr.GetLocalManager().GetScheme()})
+	cl, err := client.New(cfg, client.Options{Scheme: scheme})
 	if err != nil {
 		log.Error().Err(err).Msg("unable to construct root client")
 		return nil, err
@@ -180,7 +178,7 @@ func (a AuthorizedDirective) getWSClient(accountPath string, log *logger.Logger)
 	return cl, nil
 }
 
-func (a AuthorizedDirective) getAccountInfoFromKcpContext(ctx context.Context, cl client.Client) (*accountsv1alpha1.AccountInfo, error) {
+func getAccountInfoFromKcpContext(ctx context.Context, cl client.Client) (*accountsv1alpha1.AccountInfo, error) {
 	log := logger.LoadLoggerFromContext(ctx)
 	ai := &accountsv1alpha1.AccountInfo{}
 	err := cl.Get(ctx, client.ObjectKey{Name: "account"}, ai)

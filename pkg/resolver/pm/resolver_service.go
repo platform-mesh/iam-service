@@ -1,15 +1,13 @@
-package resolver
+package pm
 
 import (
 	"context"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	pmcontext "github.com/platform-mesh/golang-commons/context"
-	"github.com/platform-mesh/golang-commons/errors"
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
-	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	"github.com/platform-mesh/iam-service/pkg/fga"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/keycloak"
@@ -48,13 +46,7 @@ func (s *Service) User(ctx context.Context, userID string) (*graph.User, error) 
 }
 
 func (s *Service) Users(ctx context.Context, rctx graph.ResourceContext, roleFilters []string, sortBy *graph.SortByInput, page *graph.PageInput) (*graph.UserConnection, error) {
-
-	ai, err := appcontext.GetAccountInfo(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get cluster ID from account path")
-	}
-
-	allUserRoles, err := s.fgaService.ListUsers(ctx, rctx, roleFilters, ai)
+	allUserRoles, err := s.fgaService.ListUsers(ctx, rctx, roleFilters)
 	if err != nil {
 		return nil, err
 	}
@@ -73,19 +65,11 @@ func (s *Service) Users(ctx context.Context, rctx graph.ResourceContext, roleFil
 }
 
 func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
-	ai, err := appcontext.GetAccountInfo(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get cluster ID from account path")
-	}
-	return s.fgaService.AssignRolesToUsers(ctx, rCtx, ai, changes)
+	return s.fgaService.AssignRolesToUsers(ctx, rCtx, changes)
 }
 
 func (s *Service) RemoveRole(ctx context.Context, rCtx graph.ResourceContext, input graph.RemoveRoleInput) (*graph.RoleRemovalResult, error) {
-	ai, err := appcontext.GetAccountInfo(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get cluster ID from account path")
-	}
-	return s.fgaService.RemoveRole(ctx, rCtx, input, ai)
+	return s.fgaService.RemoveRole(ctx, rCtx, input)
 }
 
 func (s *Service) Roles(ctx context.Context, context graph.ResourceContext) ([]*graph.Role, error) {

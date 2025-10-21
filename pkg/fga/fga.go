@@ -58,10 +58,15 @@ func NewWithRolesRetriever(client openfgav1.OpenFGAServiceClient, cfg *config.Se
 	}
 }
 
-func (s *Service) ListUsers(ctx context.Context, rctx graph.ResourceContext, roleFilters []string, ai *accountsv1alpha1.AccountInfo) ([]*graph.UserRoles, error) {
+func (s *Service) ListUsers(ctx context.Context, rctx graph.ResourceContext, roleFilters []string) ([]*graph.UserRoles, error) {
 	log := logger.LoadLoggerFromContext(ctx)
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.ListUsers")
 	defer span.End()
+
+	ai, err := appcontext.GetAccountInfo(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get cluster ID from account path")
+	}
 
 	kctx, err := appcontext.GetKCPContext(ctx)
 	if err != nil {
@@ -258,11 +263,16 @@ func (s *Service) applyRoleFilter(rctx graph.ResourceContext, roleFilters []stri
 }
 
 // AssignRolesToUsers creates tuples in FGA for the given users and roles
-func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceContext, ai *accountsv1alpha1.AccountInfo, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
+func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
 	log := logger.LoadLoggerFromContext(ctx)
 	log = log.MustChildLoggerWithAttributes("group", rctx.Group, "kind", rctx.Kind)
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.AssignRolesToUsers")
 	defer span.End()
+
+	ai, err := appcontext.GetAccountInfo(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get cluster ID from account path")
+	}
 
 	kctx, err := appcontext.GetKCPContext(ctx)
 	if err != nil {
@@ -365,11 +375,16 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 }
 
 // RemoveRole removes a role from a user by deleting the tuple in FGA
-func (s *Service) RemoveRole(ctx context.Context, rctx graph.ResourceContext, input graph.RemoveRoleInput, ai *accountsv1alpha1.AccountInfo) (*graph.RoleRemovalResult, error) {
+func (s *Service) RemoveRole(ctx context.Context, rctx graph.ResourceContext, input graph.RemoveRoleInput) (*graph.RoleRemovalResult, error) {
 	log := logger.LoadLoggerFromContext(ctx)
 	log = log.MustChildLoggerWithAttributes("group", rctx.Group, "kind", rctx.Kind)
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.RemoveRole")
 	defer span.End()
+
+	ai, err := appcontext.GetAccountInfo(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get cluster ID from account path")
+	}
 
 	fgaTypeName := util.ConvertToTypeName(rctx.Group, rctx.Kind)
 	kctx, err := appcontext.GetKCPContext(ctx)

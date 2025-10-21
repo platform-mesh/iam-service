@@ -177,7 +177,10 @@ func TestService_ListUsers_Success(t *testing.T) {
 			req.Relation == "assignee"
 	})).Return(memberUsersResponse, nil)
 
-	result, err := service.ListUsers(ctx, rCtx, roleFilters, ai)
+	// Set account info in context since it's now retrieved from context instead of parameter
+	ctx = appcontext.SetAccountInfo(ctx, ai)
+
+	result, err := service.ListUsers(ctx, rCtx, roleFilters)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -226,7 +229,10 @@ func TestService_ListUsers_NoKCPContext(t *testing.T) {
 		},
 	}
 
-	result, err := service.ListUsers(ctx, rCtx, []string{"owner"}, ai)
+	// Set account info in context since it's now retrieved from context instead of parameter
+	ctx = appcontext.SetAccountInfo(ctx, ai)
+
+	result, err := service.ListUsers(ctx, rCtx, []string{"owner"})
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -345,7 +351,10 @@ func TestService_AssignRolesToUsers_Success(t *testing.T) {
 		// Second tuple relation varies by role (owner, member, etc.)
 	})).Return(&openfgav1.WriteResponse{}, nil).Times(2)
 
-	result, err := service.AssignRolesToUsers(ctx, rCtx, ai, changes)
+	// Set account info in context since it's now retrieved from context instead of parameter
+	ctx = appcontext.SetAccountInfo(ctx, ai)
+
+	result, err := service.AssignRolesToUsers(ctx, rCtx, changes)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -414,7 +423,10 @@ func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
 			req.Writes.TupleKeys[1].Relation == "owner"
 	})).Return(&openfgav1.WriteResponse{}, nil).Once()
 
-	result, err := service.AssignRolesToUsers(ctx, rCtx, ai, changes)
+	// Set account info in context since it's now retrieved from context instead of parameter
+	ctx = appcontext.SetAccountInfo(ctx, ai)
+
+	result, err := service.AssignRolesToUsers(ctx, rCtx, changes)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -501,7 +513,10 @@ func TestService_RemoveRole_Success(t *testing.T) {
 			req.Deletes.TupleKeys[0].Relation == "assignee"
 	})).Return(&openfgav1.WriteResponse{}, nil).Once()
 
-	result, err := service.RemoveRole(ctx, rCtx, input, ai)
+	// Set account info in context since it's now retrieved from context instead of parameter
+	ctx = appcontext.SetAccountInfo(ctx, ai)
+
+	result, err := service.RemoveRole(ctx, rCtx, input)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -571,7 +586,10 @@ func TestService_RemoveRole_RoleNotAssigned(t *testing.T) {
 
 	// No Write call should be made since the role wasn't assigned
 
-	result, err := service.RemoveRole(ctx, rCtx, input, ai)
+	// Set account info in context since it's now retrieved from context instead of parameter
+	ctx = appcontext.SetAccountInfo(ctx, ai)
+
+	result, err := service.RemoveRole(ctx, rCtx, input)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
