@@ -62,7 +62,6 @@ tasks:
       - go test -coverprofile=cover.out ./...
   cover:
     deps:
-      - task: mockery
       - task: setup:go-test-coverage
       - task: test
     cmds:
