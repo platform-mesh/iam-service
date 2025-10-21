@@ -22,9 +22,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/platform-mesh/iam-service/pkg/accountinfo"
 	"github.com/platform-mesh/iam-service/pkg/config"
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	fgamocks "github.com/platform-mesh/iam-service/pkg/fga/mocks"
@@ -35,20 +37,8 @@ import (
 // Helper functions
 func createTestConfig() *config.ServiceConfig {
 	return &config.ServiceConfig{
-		Keycloak: struct {
-			BaseURL      string `mapstructure:"keycloak-base-url" default:"https://portal.dev.local:8443/keycloak"`
-			ClientID     string `mapstructure:"keycloak-client-id" default:"admin-cli"`
-			User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
-			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
-			Cache        struct {
-				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
-			} `mapstructure:",squash"`
-		}{
-			Cache: struct {
-				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
-			}{
+		Keycloak: config.KeycloakConfig{
+			Cache: config.KeycloakCacheConfig{
 				TTL:     5 * time.Minute,
 				Enabled: true,
 			},
@@ -215,40 +205,6 @@ func TestExtractResourceContextFromArguments_ComplexStructure(t *testing.T) {
 	assert.Equal(t, "production-account", result.AccountPath)
 }
 
-func TestGetAccountInfoFromKcpContext_Success(t *testing.T) {
-	ctx := context.Background()
-	log, _ := logger.New(logger.DefaultConfig())
-	ctx = logger.SetLoggerInContext(ctx, log)
-
-	// Create a fake client with test data
-	ai := createTestAccountInfo()
-	scheme := runtime.NewScheme()
-	scheme.AddKnownTypes(accountsv1alpha1.GroupVersion, ai)
-	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ai).Build()
-
-	result, err := getAccountInfoFromKcpContext(ctx, fakeClient)
-
-	assert.NoError(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "test-account", result.Spec.Account.Name)
-}
-
-func TestGetAccountInfoFromKcpContext_NotFound(t *testing.T) {
-	ctx := context.Background()
-	log, _ := logger.New(logger.DefaultConfig())
-	ctx = logger.SetLoggerInContext(ctx, log)
-
-	// Create a fake client without the account
-	scheme := runtime.NewScheme()
-	scheme.AddKnownTypes(accountsv1alpha1.GroupVersion, &accountsv1alpha1.AccountInfo{})
-	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
-
-	result, err := getAccountInfoFromKcpContext(ctx, fakeClient)
-
-	assert.Error(t, err)
-	assert.Nil(t, result)
-}
-
 // Note: The testIfResourceExists function relies on REST mapping which is complex to mock
 // in unit tests. These tests demonstrate the function signature and basic error handling.
 // Integration tests would be more appropriate for testing the full functionality.
@@ -310,7 +266,7 @@ func TestTestIfResourceExists(t *testing.T) {
 				Kind:  "InvalidResourceKind",
 				Resource: &graph.Resource{
 					Name:      "test-resource",
-					Namespace: stringPtr("test-namespace"),
+					Namespace: ptr.To("test-namespace"),
 				},
 			},
 			expectError:    true,
@@ -346,7 +302,7 @@ func TestTestIfResourceExists(t *testing.T) {
 				Kind:  "accountinfos",
 				Resource: &graph.Resource{
 					Name:      "account",
-					Namespace: stringPtr("test-namespace"),
+					Namespace: ptr.To("test-namespace"),
 				},
 			},
 			expectError:    false,
@@ -407,7 +363,7 @@ func TestTestIfResourceExists(t *testing.T) {
 				Kind:  "accountinfos",
 				Resource: &graph.Resource{
 					Name:      "nonexistent-account",
-					Namespace: stringPtr("test-namespace"),
+					Namespace: ptr.To("test-namespace"),
 				},
 			},
 			expectError:    false,
@@ -469,11 +425,6 @@ func TestTestIfResourceExists(t *testing.T) {
 			}
 		})
 	}
-}
-
-// Helper function to create string pointer
-func stringPtr(s string) *string {
-	return &s
 }
 
 func TestGetWSClient_Success(t *testing.T) {
@@ -722,21 +673,39 @@ func (m *mockStoreHelper) GetModelID(ctx context.Context, conn openfgav1.OpenFGA
 // Ensure mockStoreHelper implements store.StoreHelper interface
 var _ store.StoreHelper = (*mockStoreHelper)(nil)
 
+// Mock AccountInfoRetriever for testing
+type mockAccountInfoRetriever struct {
+	mock.Mock
+}
+
+func (m *mockAccountInfoRetriever) Get(ctx context.Context, accountPath string) (*accountsv1alpha1.AccountInfo, error) {
+	args := m.Called(ctx, accountPath)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*accountsv1alpha1.AccountInfo), args.Error(1)
+}
+
+// Ensure mockAccountInfoRetriever implements accountinfo.Retriever interface
+var _ accountinfo.Retriever = (*mockAccountInfoRetriever)(nil)
+
 // Tests for NewAuthorizedDirective constructor
 func TestNewAuthorizedDirective(t *testing.T) {
 	// Mock dependencies - use mock interface instead of concrete pointer
 	mockClient := fgamocks.NewOpenFGAServiceClient(t)
-	cfg := createTestConfig()
+	mockAccountInfoRetriever := &mockAccountInfoRetriever{}
+	storeTTL := 5 * time.Minute
 
 	// Create test REST config and scheme
 	restConfig := &rest.Config{Host: "https://test.example.com"}
 	scheme := runtime.NewScheme()
 
-	directive := NewAuthorizedDirective(restConfig, scheme, mockClient, cfg)
+	directive := NewAuthorizedDirective(mockClient, mockAccountInfoRetriever, storeTTL, restConfig, scheme)
 
 	assert.NotNil(t, directive)
 	assert.Equal(t, mockClient, directive.fga)
-	assert.Equal(t, restConfig, directive.restConfig)
+	assert.Equal(t, mockAccountInfoRetriever, directive.air)
+	assert.Equal(t, restConfig, directive.restCfg)
 	assert.Equal(t, scheme, directive.scheme)
 	assert.NotNil(t, directive.helper)
 }
@@ -749,10 +718,10 @@ func TestAuthorizedDirective_testIfAllowed_Success(t *testing.T) {
 
 	// Create directive with mocked helper
 	directive := &AuthorizedDirective{
-		fga:        mockClient,
-		helper:     mockHelper,
-		restConfig: &rest.Config{Host: "https://test.example.com"},
-		scheme:     runtime.NewScheme(),
+		fga:     mockClient,
+		helper:  mockHelper,
+		restCfg: &rest.Config{Host: "https://test.example.com"},
+		scheme:  runtime.NewScheme(),
 	}
 
 	// Create test data
@@ -788,10 +757,10 @@ func TestAuthorizedDirective_testIfAllowed_NotAllowed(t *testing.T) {
 
 	// Create directive with mocked helper
 	directive := &AuthorizedDirective{
-		fga:        mockClient,
-		helper:     mockHelper,
-		restConfig: &rest.Config{Host: "https://test.example.com"},
-		scheme:     runtime.NewScheme(),
+		fga:     mockClient,
+		helper:  mockHelper,
+		restCfg: &rest.Config{Host: "https://test.example.com"},
+		scheme:  runtime.NewScheme(),
 	}
 
 	// Create test data
@@ -827,10 +796,10 @@ func TestAuthorizedDirective_testIfAllowed_StoreError(t *testing.T) {
 
 	// Create directive with mocked helper
 	directive := &AuthorizedDirective{
-		fga:        mockClient,
-		helper:     mockHelper,
-		restConfig: &rest.Config{Host: "https://test.example.com"},
-		scheme:     runtime.NewScheme(),
+		fga:     mockClient,
+		helper:  mockHelper,
+		restCfg: &rest.Config{Host: "https://test.example.com"},
+		scheme:  runtime.NewScheme(),
 	}
 
 	// Create test data
@@ -858,10 +827,10 @@ func TestAuthorizedDirective_testIfAllowed_CheckError(t *testing.T) {
 
 	// Create directive with mocked helper
 	directive := &AuthorizedDirective{
-		fga:        mockClient,
-		helper:     mockHelper,
-		restConfig: &rest.Config{Host: "https://test.example.com"},
-		scheme:     runtime.NewScheme(),
+		fga:     mockClient,
+		helper:  mockHelper,
+		restCfg: &rest.Config{Host: "https://test.example.com"},
+		scheme:  runtime.NewScheme(),
 	}
 
 	// Create test data
@@ -893,10 +862,10 @@ func TestAuthorizedDirective_testIfAllowed_WithNamespace(t *testing.T) {
 	mockHelper := &mockStoreHelper{}
 
 	directive := &AuthorizedDirective{
-		fga:        mockClient,
-		helper:     mockHelper,
-		restConfig: &rest.Config{Host: "https://test.example.com"},
-		scheme:     runtime.NewScheme(),
+		fga:     mockClient,
+		helper:  mockHelper,
+		restCfg: &rest.Config{Host: "https://test.example.com"},
+		scheme:  runtime.NewScheme(),
 	}
 
 	ctx := context.Background()
@@ -946,10 +915,10 @@ func TestAuthorizedDirective_Authorized_Success(t *testing.T) {
 
 	// Create directive with dependency injection
 	directive := &AuthorizedDirective{
-		fga:        mockClient,
-		helper:     mockHelper,
-		restConfig: restConfig,
-		scheme:     scheme,
+		fga:     mockClient,
+		helper:  mockHelper,
+		restCfg: restConfig,
+		scheme:  scheme,
 	}
 
 	// Create proper context with all required components
@@ -1019,8 +988,9 @@ func TestAuthorizedDirective_Authorized_Success(t *testing.T) {
 
 func TestAuthorizedDirective_Authorized_NoWebToken(t *testing.T) {
 	mockClient := fgamocks.NewOpenFGAServiceClient(t)
-	cfg := createTestConfig()
-	directive := NewAuthorizedDirective(&rest.Config{Host: "https://test.example.com"}, runtime.NewScheme(), mockClient, cfg)
+	mockAccountInfoRetriever := &mockAccountInfoRetriever{}
+	storeTTL := 5 * time.Minute
+	directive := NewAuthorizedDirective(mockClient, mockAccountInfoRetriever, storeTTL, &rest.Config{Host: "https://test.example.com"}, runtime.NewScheme())
 
 	ctx := context.Background()
 	permission := "read"
@@ -1034,8 +1004,9 @@ func TestAuthorizedDirective_Authorized_NoWebToken(t *testing.T) {
 
 func TestAuthorizedDirective_Authorized_NoKCPContext(t *testing.T) {
 	mockClient := fgamocks.NewOpenFGAServiceClient(t)
-	cfg := createTestConfig()
-	directive := NewAuthorizedDirective(&rest.Config{Host: "https://test.example.com"}, runtime.NewScheme(), mockClient, cfg)
+	mockAccountInfoRetriever := &mockAccountInfoRetriever{}
+	storeTTL := 5 * time.Minute
+	directive := NewAuthorizedDirective(mockClient, mockAccountInfoRetriever, storeTTL, &rest.Config{Host: "https://test.example.com"}, runtime.NewScheme())
 
 	ctx := context.Background()
 
@@ -1056,8 +1027,9 @@ func TestAuthorizedDirective_Authorized_NoKCPContext(t *testing.T) {
 
 func TestAuthorizedDirective_Authorized_InvalidResourceContext(t *testing.T) {
 	mockClient := fgamocks.NewOpenFGAServiceClient(t)
-	cfg := createTestConfig()
-	directive := NewAuthorizedDirective(&rest.Config{Host: "https://test.example.com"}, runtime.NewScheme(), mockClient, cfg)
+	mockAccountInfoRetriever := &mockAccountInfoRetriever{}
+	storeTTL := 5 * time.Minute
+	directive := NewAuthorizedDirective(mockClient, mockAccountInfoRetriever, storeTTL, &rest.Config{Host: "https://test.example.com"}, runtime.NewScheme())
 
 	ctx := context.Background()
 
@@ -1097,7 +1069,8 @@ func TestAuthorizedDirective_Authorized_InvalidResourceContext(t *testing.T) {
 // Test for organization mismatch scenario
 func TestAuthorizedDirective_OrganizationMismatch(t *testing.T) {
 	mockClient := fgamocks.NewOpenFGAServiceClient(t)
-	cfg := createTestConfig()
+	mockAccountInfoRetriever := &mockAccountInfoRetriever{}
+	storeTTL := 5 * time.Minute
 
 	// Create directive that will use a fake client for workspace operations
 	restConfig := &rest.Config{Host: "https://test-kcp.example.com"}
@@ -1105,7 +1078,7 @@ func TestAuthorizedDirective_OrganizationMismatch(t *testing.T) {
 	err := accountsv1alpha1.AddToScheme(scheme)
 	require.NoError(t, err)
 
-	directive := NewAuthorizedDirective(restConfig, scheme, mockClient, cfg)
+	directive := NewAuthorizedDirective(mockClient, mockAccountInfoRetriever, storeTTL, restConfig, scheme)
 
 	// Create context with token and KCP context with mismatched organization
 	ctx := context.Background()
@@ -1158,9 +1131,10 @@ func TestAuthorizedDirective_Authorized_WithValidSetup(t *testing.T) {
 	// we focus on testing the components we can control and verify the method reaches
 	// the expected failure points in our test environment
 	mockClient := fgamocks.NewOpenFGAServiceClient(t)
-	cfg := createTestConfig()
+	mockAccountInfoRetriever := &mockAccountInfoRetriever{}
+	storeTTL := 5 * time.Minute
 
-	directive := NewAuthorizedDirective(&rest.Config{Host: "https://test.example.com"}, runtime.NewScheme(), mockClient, cfg)
+	directive := NewAuthorizedDirective(mockClient, mockAccountInfoRetriever, storeTTL, &rest.Config{Host: "https://test.example.com"}, runtime.NewScheme())
 
 	ctx := context.Background()
 	log, _ := logger.New(logger.DefaultConfig())

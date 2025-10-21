@@ -7,6 +7,7 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/utils/ptr"
 )
 
 func TestNewUserCache(t *testing.T) {
@@ -25,8 +26,8 @@ func TestUserCache_Get_Set(t *testing.T) {
 	user := &graph.User{
 		UserID:    "user123",
 		Email:     "test@example.com",
-		FirstName: stringPtr("John"),
-		LastName:  stringPtr("Doe"),
+		FirstName: ptr.To("John"),
+		LastName:  ptr.To("Doe"),
 	}
 
 	// Test Get non-existent user
@@ -54,20 +55,20 @@ func TestUserCache_GetMany_SetMany(t *testing.T) {
 		"user1@example.com": {
 			UserID:    "user1",
 			Email:     "user1@example.com",
-			FirstName: stringPtr("John"),
-			LastName:  stringPtr("Doe"),
+			FirstName: ptr.To("John"),
+			LastName:  ptr.To("Doe"),
 		},
 		"user2@example.com": {
 			UserID:    "user2",
 			Email:     "user2@example.com",
-			FirstName: stringPtr("Jane"),
-			LastName:  stringPtr("Smith"),
+			FirstName: ptr.To("Jane"),
+			LastName:  ptr.To("Smith"),
 		},
 		"user3@example.com": {
 			UserID:    "user3",
 			Email:     "user3@example.com",
-			FirstName: stringPtr("Bob"),
-			LastName:  stringPtr("Johnson"),
+			FirstName: ptr.To("Bob"),
+			LastName:  ptr.To("Johnson"),
 		},
 	}
 
@@ -306,9 +307,4 @@ func TestUserCache_SetMany_EmptyMap(t *testing.T) {
 	// Test with nil map
 	cache.SetMany("realm1", nil)
 	assert.Equal(t, 0, cache.Size())
-}
-
-// Helper function to create string pointers
-func stringPtr(s string) *string {
-	return &s
 }

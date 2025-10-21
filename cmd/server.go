@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -15,6 +14,8 @@ import (
 	"github.com/kcp-dev/logicalcluster/v3"
 	"github.com/kcp-dev/multicluster-provider/apiexport"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
+	"github.com/platform-mesh/golang-commons/errors"
+	"github.com/platform-mesh/golang-commons/logger"
 	pmmws "github.com/platform-mesh/golang-commons/middleware"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -25,7 +26,6 @@ import (
 	"k8s.io/client-go/rest"
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 
-	"github.com/platform-mesh/golang-commons/logger"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	kcpclientset "github.com/kcp-dev/kcp/sdk/client/clientset/versioned/cluster"
@@ -79,10 +79,16 @@ func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1
 	kcpmw := kcpmiddleware.New(mgr.GetLocalManager().GetConfig(), serviceCfg.IDM.ExcludedTenants, keycloakmw.New(), logicalcluster.From(lc).String(), log)
 	mws = append(mws, kcpmw.SetKCPUserContext())
 
+	// Prepare AccountInfo Retriever
+	accountInfoRetriever, err := accountinfo.New(mgr, clusterClient)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create account info retriever")
+	}
+
 	// Prepare Directives
 	ad := directive.NewAuthorizedDirective(
 		fgaClient,
-		accountinfo.New(mgr, clusterClient),
+		accountInfoRetriever,
 		serviceCfg.OpenFGA.StoreCacheTTL,
 		mgr.GetLocalManager().GetConfig(),
 		mgr.GetLocalManager().GetScheme(),

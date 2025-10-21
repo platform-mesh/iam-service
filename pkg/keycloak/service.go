@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/coreos/go-oidc"
 	"github.com/platform-mesh/golang-commons/errors"
 	"github.com/platform-mesh/golang-commons/logger"
 	"golang.org/x/oauth2"
+	"golang.org/x/sync/errgroup"
 	"k8s.io/utils/ptr"
 
 	"github.com/platform-mesh/iam-service/pkg/cache"
@@ -218,49 +220,52 @@ func (s *Service) GetUsersByEmails(ctx context.Context, emails []string) (map[st
 	return result, nil
 }
 
-// fetchUsersInParallel fetches multiple users from Keycloak in parallel
+// fetchUsersInParallel fetches multiple users from Keycloak in parallel using errgroup
 func (s *Service) fetchUsersInParallel(ctx context.Context, realm string, emails []string) (map[string]*graph.User, error) {
 	log := logger.LoadLoggerFromContext(ctx)
-	type userResult struct {
-		email string
-		user  *graph.User
-		err   error
-	}
 
-	resultChan := make(chan userResult, len(emails))
+	// Use errgroup for better goroutine management without context replacement
+	// We don't need context cancellation here since we want to continue on individual errors
+	var g errgroup.Group
 
-	// Launch goroutines for each email
-	for _, email := range emails {
-		go func(email string) {
-			user, err := s.fetchUserFromKeycloak(ctx, realm, email)
-			resultChan <- userResult{
-				email: email,
-				user:  user,
-				err:   err,
-			}
-		}(email)
-	}
-
-	// Collect results
+	// Thread-safe map to store results
+	var mu sync.Mutex
 	userMap := make(map[string]*graph.User)
-	var errors []string
+	var fetchErrors []string
 
-	for range emails {
-		result := <-resultChan
+	// Launch goroutines for each email using errgroup
+	for _, email := range emails {
+		email := email // capture loop variable
+		g.Go(func() error {
+			user, err := s.fetchUserFromKeycloak(ctx, realm, email)
 
-		if result.err != nil {
-			errors = append(errors, fmt.Sprintf("%s: %v", result.email, result.err))
-			continue
-		}
+			mu.Lock()
+			defer mu.Unlock()
 
-		if result.user != nil {
-			userMap[result.email] = result.user
-		}
+			if err != nil {
+				// Collect errors but don't fail the entire operation
+				fetchErrors = append(fetchErrors, fmt.Sprintf("%s: %v", email, err))
+				return nil // Don't return error to continue with other fetches
+			}
+
+			if user != nil {
+				userMap[email] = user
+			}
+
+			return nil
+		})
+	}
+
+	// Wait for all goroutines to complete
+	if err := g.Wait(); err != nil {
+		// This should not happen since we don't return errors from goroutines,
+		// but handle it just in case
+		return nil, errors.Wrap(err, "error group failed during user fetching")
 	}
 
 	// Log any errors but don't fail the entire operation
-	if len(errors) > 0 {
-		log.Warn().Strs("errors", errors).Msg("Some user fetches failed")
+	if len(fetchErrors) > 0 {
+		log.Warn().Strs("errors", fetchErrors).Msg("Some user fetches failed")
 	}
 
 	return userMap, nil

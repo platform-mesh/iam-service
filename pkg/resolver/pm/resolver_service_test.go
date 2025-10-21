@@ -8,6 +8,7 @@ import (
 
 	"github.com/platform-mesh/golang-commons/logger"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/utils/ptr"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/fga"
@@ -36,34 +37,16 @@ func createTestResolverService(t *testing.T) (*Service, *mocks.OpenFGAServiceCli
 	}
 
 	cfg := &config.ServiceConfig{
-		Sorting: struct {
-			DefaultField     string `mapstructure:"sorting-default-field" default:"LastName"`
-			DefaultDirection string `mapstructure:"sorting-default-direction" default:"ASC"`
-		}{
+		Sorting: config.SortingConfig{
 			DefaultField:     "LastName",
 			DefaultDirection: "ASC",
 		},
-		Pagination: struct {
-			DefaultLimit int `mapstructure:"pagination-default-limit" default:"10"`
-			DefaultPage  int `mapstructure:"pagination-default-page" default:"1"`
-		}{
+		Pagination: config.PaginationConfig{
 			DefaultLimit: 10,
 			DefaultPage:  1,
 		},
-		Keycloak: struct {
-			BaseURL      string `mapstructure:"keycloak-base-url" default:"https://portal.dev.local:8443/keycloak"`
-			ClientID     string `mapstructure:"keycloak-client-id" default:"admin-cli"`
-			User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
-			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
-			Cache        struct {
-				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
-			} `mapstructure:",squash"`
-		}{
-			Cache: struct {
-				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
-			}{
+		Keycloak: config.KeycloakConfig{
+			Cache: config.KeycloakCacheConfig{
 				TTL:     5 * time.Minute,
 				Enabled: true,
 			},
@@ -96,24 +79,24 @@ func TestService_applySorting_DefaultLastNameAsc(t *testing.T) {
 			User: &graph.User{
 				UserID:    "3",
 				Email:     "charlie@example.com",
-				FirstName: stringPtr("Charlie"),
-				LastName:  stringPtr("Wilson"),
+				FirstName: ptr.To("Charlie"),
+				LastName:  ptr.To("Wilson"),
 			},
 		},
 		{
 			User: &graph.User{
 				UserID:    "1",
 				Email:     "alice@example.com",
-				FirstName: stringPtr("Alice"),
-				LastName:  stringPtr("Anderson"),
+				FirstName: ptr.To("Alice"),
+				LastName:  ptr.To("Anderson"),
 			},
 		},
 		{
 			User: &graph.User{
 				UserID:    "2",
 				Email:     "bob@example.com",
-				FirstName: stringPtr("Bob"),
-				LastName:  stringPtr("Brown"),
+				FirstName: ptr.To("Bob"),
+				LastName:  ptr.To("Brown"),
 			},
 		},
 	}
@@ -136,24 +119,24 @@ func TestService_applySorting_FirstNameDesc(t *testing.T) {
 			User: &graph.User{
 				UserID:    "1",
 				Email:     "alice@example.com",
-				FirstName: stringPtr("Alice"),
-				LastName:  stringPtr("Anderson"),
+				FirstName: ptr.To("Alice"),
+				LastName:  ptr.To("Anderson"),
 			},
 		},
 		{
 			User: &graph.User{
 				UserID:    "3",
 				Email:     "charlie@example.com",
-				FirstName: stringPtr("Charlie"),
-				LastName:  stringPtr("Wilson"),
+				FirstName: ptr.To("Charlie"),
+				LastName:  ptr.To("Wilson"),
 			},
 		},
 		{
 			User: &graph.User{
 				UserID:    "2",
 				Email:     "bob@example.com",
-				FirstName: stringPtr("Bob"),
-				LastName:  stringPtr("Brown"),
+				FirstName: ptr.To("Bob"),
+				LastName:  ptr.To("Brown"),
 			},
 		},
 	}
@@ -180,24 +163,24 @@ func TestService_applySorting_EmailAsc(t *testing.T) {
 			User: &graph.User{
 				UserID:    "3",
 				Email:     "charlie@example.com",
-				FirstName: stringPtr("Charlie"),
-				LastName:  stringPtr("Wilson"),
+				FirstName: ptr.To("Charlie"),
+				LastName:  ptr.To("Wilson"),
 			},
 		},
 		{
 			User: &graph.User{
 				UserID:    "1",
 				Email:     "alice@example.com",
-				FirstName: stringPtr("Alice"),
-				LastName:  stringPtr("Anderson"),
+				FirstName: ptr.To("Alice"),
+				LastName:  ptr.To("Anderson"),
 			},
 		},
 		{
 			User: &graph.User{
 				UserID:    "2",
 				Email:     "bob@example.com",
-				FirstName: stringPtr("Bob"),
-				LastName:  stringPtr("Brown"),
+				FirstName: ptr.To("Bob"),
+				LastName:  ptr.To("Brown"),
 			},
 		},
 	}
@@ -224,7 +207,7 @@ func TestService_applySorting_NilValues(t *testing.T) {
 			User: &graph.User{
 				UserID:    "1",
 				Email:     "user1@example.com",
-				FirstName: stringPtr("Alice"),
+				FirstName: ptr.To("Alice"),
 				LastName:  nil, // nil LastName
 			},
 		},
@@ -233,15 +216,15 @@ func TestService_applySorting_NilValues(t *testing.T) {
 				UserID:    "2",
 				Email:     "user2@example.com",
 				FirstName: nil, // nil FirstName
-				LastName:  stringPtr("Brown"),
+				LastName:  ptr.To("Brown"),
 			},
 		},
 		{
 			User: &graph.User{
 				UserID:    "3",
 				Email:     "user3@example.com",
-				FirstName: stringPtr("Charlie"),
-				LastName:  stringPtr("Wilson"),
+				FirstName: ptr.To("Charlie"),
+				LastName:  ptr.To("Wilson"),
 			},
 		},
 	}
@@ -275,8 +258,8 @@ func TestService_applySorting_SingleItem(t *testing.T) {
 			User: &graph.User{
 				UserID:    "1",
 				Email:     "user@example.com",
-				FirstName: stringPtr("Test"),
-				LastName:  stringPtr("User"),
+				FirstName: ptr.To("Test"),
+				LastName:  ptr.To("User"),
 			},
 		},
 	}
@@ -286,11 +269,6 @@ func TestService_applySorting_SingleItem(t *testing.T) {
 
 	assert.Equal(t, 1, len(userRoles))
 	assert.Equal(t, "user@example.com", userRoles[0].User.Email)
-}
-
-// Helper function to create string pointers
-func stringPtr(s string) *string {
-	return &s
 }
 
 // Comprehensive Service tests

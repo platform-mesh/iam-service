@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"k8s.io/utils/ptr"
 
 	"github.com/platform-mesh/iam-service/pkg/cache"
 	"github.com/platform-mesh/iam-service/pkg/config"
@@ -17,6 +18,21 @@ import (
 	keycloakClient "github.com/platform-mesh/iam-service/pkg/keycloak/client"
 	"github.com/platform-mesh/iam-service/pkg/keycloak/mocks"
 )
+
+func createKeycloakTestConfig(baseURL, clientID, user, passwordFile string, cacheEnabled bool, cacheTTL time.Duration) *config.ServiceConfig {
+	return &config.ServiceConfig{
+		Keycloak: config.KeycloakConfig{
+			BaseURL:      baseURL,
+			ClientID:     clientID,
+			User:         user,
+			PasswordFile: passwordFile,
+			Cache: config.KeycloakCacheConfig{
+				Enabled: cacheEnabled,
+				TTL:     cacheTTL,
+			},
+		},
+	}
+}
 
 func TestUserByMail_Success(t *testing.T) {
 	// Setup
@@ -159,13 +175,13 @@ func TestEnrichUserRoles_Success(t *testing.T) {
 	users := []keycloakClient.UserRepresentation{
 		{
 			Id:        &userID1,
-			Email:     stringPtr("user1@example.com"),
+			Email:     ptr.To("user1@example.com"),
 			FirstName: &firstName1,
 			LastName:  &lastName1,
 		},
 		{
 			Id:        &userID2,
-			Email:     stringPtr("user2@example.com"),
+			Email:     ptr.To("user2@example.com"),
 			FirstName: &firstName2,
 			LastName:  &lastName2,
 		},
@@ -234,30 +250,7 @@ func TestNew_InvalidConfig(t *testing.T) {
 	ctx := context.Background()
 
 	// Test with invalid Keycloak base URL
-	invalidCfg := &config.ServiceConfig{
-		Keycloak: struct {
-			BaseURL      string `mapstructure:"keycloak-base-url" default:"https://portal.dev.local:8443/keycloak"`
-			ClientID     string `mapstructure:"keycloak-client-id" default:"admin-cli"`
-			User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
-			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
-			Cache        struct {
-				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
-			} `mapstructure:",squash"`
-		}{
-			BaseURL:      "invalid-url", // Invalid URL
-			ClientID:     "test-client",
-			User:         "test-user",
-			PasswordFile: "/nonexistent/file",
-			Cache: struct {
-				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
-			}{
-				TTL:     5 * time.Minute,
-				Enabled: true,
-			},
-		},
-	}
+	invalidCfg := createKeycloakTestConfig("invalid-url", "test-client", "test-user", "/nonexistent/file", true, 5*time.Minute)
 
 	service, err := New(ctx, invalidCfg)
 
@@ -283,8 +276,8 @@ func TestUserByMail_CacheHit(t *testing.T) {
 	expectedUser := &graph.User{
 		UserID:    "cached-user-id",
 		Email:     userEmail,
-		FirstName: stringPtr("Cached"),
-		LastName:  stringPtr("User"),
+		FirstName: ptr.To("Cached"),
+		LastName:  ptr.To("User"),
 	}
 
 	// Pre-populate cache
@@ -297,11 +290,6 @@ func TestUserByMail_CacheHit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, expectedUser, result)
-}
-
-// Helper function to create string pointers
-func stringPtr(s string) *string {
-	return &s
 }
 
 func TestFetchUserFromKeycloak_Non200Status(t *testing.T) {
@@ -511,8 +499,8 @@ func TestGetUsersByEmails_WithCache(t *testing.T) {
 	cachedUser := &graph.User{
 		UserID:    "cached-user-id",
 		Email:     "cached@example.com",
-		FirstName: stringPtr("Cached"),
-		LastName:  stringPtr("User"),
+		FirstName: ptr.To("Cached"),
+		LastName:  ptr.To("User"),
 	}
 	userCache.Set("test-realm", "cached@example.com", cachedUser)
 
@@ -644,30 +632,7 @@ func TestNew_PasswordFileNotFound(t *testing.T) {
 	// since the OIDC provider check happens first in actual test environment
 	ctx := context.Background()
 
-	cfg := &config.ServiceConfig{
-		Keycloak: struct {
-			BaseURL      string `mapstructure:"keycloak-base-url" default:"https://portal.dev.local:8443/keycloak"`
-			ClientID     string `mapstructure:"keycloak-client-id" default:"admin-cli"`
-			User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
-			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
-			Cache        struct {
-				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
-			} `mapstructure:",squash"`
-		}{
-			BaseURL:      "https://valid-url.com/keycloak", // Valid URL but will fail on password file
-			ClientID:     "test-client",
-			User:         "test-user",
-			PasswordFile: "/nonexistent/path/password.txt",
-			Cache: struct {
-				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
-			}{
-				TTL:     5 * time.Minute,
-				Enabled: true,
-			},
-		},
-	}
+	cfg := createKeycloakTestConfig("https://valid-url.com/keycloak", "test-client", "test-user", "/nonexistent/path/password.txt", true, 5*time.Minute)
 
 	service, err := New(ctx, cfg)
 
@@ -694,30 +659,7 @@ func TestNew_CacheEnabled(t *testing.T) {
 	assert.NoError(t, err)
 	_ = tmpFile.Close()
 
-	cfg := &config.ServiceConfig{
-		Keycloak: struct {
-			BaseURL      string `mapstructure:"keycloak-base-url" default:"https://portal.dev.local:8443/keycloak"`
-			ClientID     string `mapstructure:"keycloak-client-id" default:"admin-cli"`
-			User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
-			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
-			Cache        struct {
-				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
-			} `mapstructure:",squash"`
-		}{
-			BaseURL:      "https://valid-issuer.com/keycloak", // This will still fail at OIDC provider creation
-			ClientID:     "test-client",
-			User:         "test-user",
-			PasswordFile: tmpFile.Name(),
-			Cache: struct {
-				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
-			}{
-				TTL:     5 * time.Minute,
-				Enabled: true,
-			},
-		},
-	}
+	cfg := createKeycloakTestConfig("https://valid-issuer.com/keycloak", "test-client", "test-user", tmpFile.Name(), true, 5*time.Minute)
 
 	// This will fail at OIDC provider creation, but that's expected in test environment
 	service, err := New(ctx, cfg)
@@ -743,30 +685,7 @@ func TestNew_CacheDisabled(t *testing.T) {
 	assert.NoError(t, err)
 	_ = tmpFile.Close()
 
-	cfg := &config.ServiceConfig{
-		Keycloak: struct {
-			BaseURL      string `mapstructure:"keycloak-base-url" default:"https://portal.dev.local:8443/keycloak"`
-			ClientID     string `mapstructure:"keycloak-client-id" default:"admin-cli"`
-			User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
-			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
-			Cache        struct {
-				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
-			} `mapstructure:",squash"`
-		}{
-			BaseURL:      "https://valid-issuer.com/keycloak", // This will still fail at OIDC provider creation
-			ClientID:     "test-client",
-			User:         "test-user",
-			PasswordFile: tmpFile.Name(),
-			Cache: struct {
-				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"1h"`
-			}{
-				TTL:     5 * time.Minute,
-				Enabled: false, // Cache disabled
-			},
-		},
-	}
+	cfg := createKeycloakTestConfig("https://valid-issuer.com/keycloak", "test-client", "test-user", tmpFile.Name(), false, 5*time.Minute)
 
 	// This will fail at OIDC provider creation, but that's expected in test environment
 	service, err := New(ctx, cfg)

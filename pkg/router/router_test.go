@@ -51,7 +51,7 @@ func (s *testResolverService) RemoveRole(ctx context.Context, resourceContext gr
 }
 
 // createTestResolver creates a GraphQL resolver for HTTP routing tests
-// Since router tests focus on HTTP behavior (CORS, middleware, endpoints) rather than
+// Since router tests focus on HTTP behavior (middleware, endpoints) rather than
 // GraphQL business logic, a simple test service implementation is appropriate
 func createTestResolver(t *testing.T) graph.ResolverRoot {
 	// Create minimal test service for HTTP routing tests
@@ -88,44 +88,6 @@ func TestCreateRouter_BasicConfiguration(t *testing.T) {
 	// Assert
 	assert.NotNil(t, router)
 	assert.IsType(t, &chi.Mux{}, router)
-}
-
-func TestCreateRouter_LocalEnvironment_EnablesCORS(t *testing.T) {
-	// Setup
-	commonCfg := &pmconfig.CommonServiceConfig{
-		IsLocal: true,
-	}
-	serviceCfg := &config.ServiceConfig{}
-	resolver := createTestResolver(t)
-	log, err := logger.New(logger.Config{Level: "info"})
-	require.NoError(t, err)
-
-	// Execute
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil, createEmptyDirectiveRoot())
-
-	// Test CORS with a simple actual request (not preflight)
-	req := httptest.NewRequest("POST", "/graphql", strings.NewReader(`{"query": "{ __typename }"}`))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Origin", "http://localhost:3000")
-
-	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
-
-	// CORS should add origin header to actual requests
-	assert.Equal(t, "*", rr.Header().Get("Access-Control-Allow-Origin"))
-
-	// Also test preflight request
-	preflightReq := httptest.NewRequest("OPTIONS", "/graphql", nil)
-	preflightReq.Header.Set("Origin", "http://localhost:3000")
-	preflightReq.Header.Set("Access-Control-Request-Method", "POST")
-	preflightReq.Header.Set("Access-Control-Request-Headers", "Content-Type")
-
-	preflightRR := httptest.NewRecorder()
-	router.ServeHTTP(preflightRR, preflightReq)
-
-	// Preflight should return 204 and have vary headers
-	assert.Equal(t, http.StatusNoContent, preflightRR.Code)
-	assert.Contains(t, preflightRR.Header().Get("Vary"), "Origin")
 }
 
 func TestCreateRouter_LocalEnvironment_EnablesPlayground(t *testing.T) {
@@ -279,51 +241,6 @@ func TestCreateRouter_GraphQLHandlerConfiguration(t *testing.T) {
 			// Should not return 404 or 405 (method not allowed)
 			assert.NotEqual(t, http.StatusNotFound, rr.Code)
 			assert.NotEqual(t, http.StatusMethodNotAllowed, rr.Code)
-		})
-	}
-}
-
-func TestCreateRouter_CORSConfiguration(t *testing.T) {
-	// Setup for local environment
-	commonCfg := &pmconfig.CommonServiceConfig{
-		IsLocal: true,
-	}
-	serviceCfg := &config.ServiceConfig{}
-	resolver := createTestResolver(t)
-	log, err := logger.New(logger.Config{Level: "info"})
-	require.NoError(t, err)
-
-	router := CreateRouter(commonCfg, serviceCfg, resolver, log, nil, createEmptyDirectiveRoot())
-
-	// Test CORS headers are properly set with actual requests
-	testCases := []struct {
-		name   string
-		origin string
-	}{
-		{
-			name:   "Local development origin",
-			origin: "http://localhost:3000",
-		},
-		{
-			name:   "Different origin",
-			origin: "https://example.com",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// Test with actual POST request to see CORS response headers
-			req := httptest.NewRequest("POST", "/graphql", strings.NewReader(`{"query": "{ __typename }"}`))
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("Origin", tc.origin)
-
-			rr := httptest.NewRecorder()
-			router.ServeHTTP(rr, req)
-
-			// With AllowedOrigins: ["*"], CORS returns "*" as the origin
-			assert.Equal(t, "*", rr.Header().Get("Access-Control-Allow-Origin"))
-			// Check for credentials header
-			assert.Equal(t, "true", rr.Header().Get("Access-Control-Allow-Credentials"))
 		})
 	}
 }

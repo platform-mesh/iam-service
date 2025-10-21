@@ -2,6 +2,7 @@ package accountinfo
 
 import (
 	"context"
+	"fmt"
 
 	kcpclientset "github.com/kcp-dev/kcp/sdk/client/clientset/versioned/cluster"
 	"github.com/kcp-dev/logicalcluster/v3"
@@ -21,11 +22,14 @@ type accountInfoRetriever struct {
 	clusterClient kcpclientset.ClusterInterface
 }
 
-func New(mgr mcmanager.Manager, clusterClient kcpclientset.ClusterInterface) Retriever {
+func New(mgr mcmanager.Manager, clusterClient kcpclientset.ClusterInterface) (Retriever, error) {
+	if clusterClient == nil || mgr == nil {
+		return nil, fmt.Errorf("cluster client and manager cannot be nil")
+	}
 	return &accountInfoRetriever{
 		mgr:           mgr,
 		clusterClient: clusterClient,
-	}
+	}, nil
 }
 
 func (a *accountInfoRetriever) Get(ctx context.Context, accountPath string) (*accountsv1alpha1.AccountInfo, error) {
