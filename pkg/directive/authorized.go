@@ -24,6 +24,7 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/config"
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	"github.com/platform-mesh/iam-service/pkg/fga"
+	"github.com/platform-mesh/iam-service/pkg/fga/tuples"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 
@@ -94,6 +95,9 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 }
 
 func (a AuthorizedDirective) testIfAllowed(ctx context.Context, ai *accountsv1alpha1.AccountInfo, rctx *graph.ResourceContext, permission string, token jwt.WebToken) (bool, error) {
+
+	ct := tuples.GenerateContextualTuples(rctx, ai)
+
 	fgaTypeName := util.ConvertToTypeName(rctx.Group, rctx.Kind)
 	object := fmt.Sprintf("%s:%s/%s", fgaTypeName, ai.Spec.Account.GeneratedClusterId, rctx.Resource.Name)
 	if rctx.Resource.Namespace != nil {
@@ -106,7 +110,8 @@ func (a AuthorizedDirective) testIfAllowed(ctx context.Context, ai *accountsv1al
 	}
 
 	req := openfgav1.CheckRequest{
-		StoreId: storeID,
+		ContextualTuples: ct,
+		StoreId:          storeID,
 		TupleKey: &openfgav1.CheckRequestTupleKey{
 			Object:   object,
 			Relation: permission,

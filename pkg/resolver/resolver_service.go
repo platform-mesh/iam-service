@@ -34,7 +34,13 @@ func (s *Service) Me(ctx context.Context) (*graph.User, error) {
 	if err != nil {
 		return nil, serrors.ErrInternal
 	}
-	return s.keycloakService.UserByMail(ctx, webToken.Mail)
+
+	return &graph.User{
+		UserID:    webToken.Subject,
+		Email:     webToken.Mail,
+		FirstName: &webToken.FirstName,
+		LastName:  &webToken.LastName,
+	}, nil
 }
 
 func (s *Service) User(ctx context.Context, userID string) (*graph.User, error) {

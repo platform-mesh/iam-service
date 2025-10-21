@@ -7,3 +7,11 @@ roles:
       - id: member
         displayName: Member
         description: Limited access to resources within the account. Can view and interact with resources but cannot administrate them.
+  - groupResource: Namespace
+    roles:
+      - id: owner
+        displayName: Owner
+        description: Full access to all resources within the account.
+      - id: member
+        displayName: Member
+        description: Limited access to resources within the account. Can view and interact with resources but cannot administrate them.

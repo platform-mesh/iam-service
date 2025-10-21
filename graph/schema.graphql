@@ -117,7 +117,7 @@ type Query {
     """ returns a specific user by userId"""
     user(userId: String!): User
     """ returns my user information"""
-    me: User # only me can access this public
+    me: User
 }
 
 

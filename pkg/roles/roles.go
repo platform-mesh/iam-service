@@ -3,6 +3,7 @@ package roles
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/platform-mesh/golang-commons/errors"
 	"gopkg.in/yaml.v3"
@@ -77,7 +78,7 @@ func (r *FileBasedRolesRetriever) GetRoleDefinitions(rctx graph.ResourceContext)
 	}
 
 	for _, groupRoles := range r.config.Roles {
-		groupResource := fmt.Sprintf("%s/%s", rctx.Group, rctx.Kind)
+		groupResource := strings.TrimPrefix(fmt.Sprintf("%s/%s", rctx.Group, rctx.Kind), "/")
 		if groupRoles.GroupResource == groupResource {
 			return groupRoles.Roles, nil
 		}

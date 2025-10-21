@@ -300,8 +300,8 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 				continue
 			}
 
-			// Create the tuple for this user-role combination
-			tuple := &openfgav1.TupleKey{
+			// Create the roleTuple for this user-role combination
+			roleTuple := &openfgav1.TupleKey{
 				User:     fmt.Sprintf("user:%s", change.UserID),
 				Relation: "assignee",
 				Object: fmt.Sprintf("role:%s/%s/%s/%s",
@@ -311,17 +311,32 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 					role),
 			}
 
-			// Write the tuple to FGA
+			targetFGATypeName := util.ConvertToTypeName(rctx.Group, rctx.Kind)
+			targetObject := fmt.Sprintf("%s:%s/%s", targetFGATypeName, ai.Spec.Account.GeneratedClusterId, rctx.Resource.Name)
+			if rctx.Resource.Namespace != nil {
+				targetObject = fmt.Sprintf("%s:%s/%s/%s", targetFGATypeName, ai.Spec.Account.GeneratedClusterId, *rctx.Resource.Namespace, rctx.Resource.Name)
+			}
+			assignRoleTuple := &openfgav1.TupleKey{
+				User: fmt.Sprintf("role:%s/%s/%s/%s#assignee",
+					fgaTypeName,
+					ai.Spec.Account.GeneratedClusterId,
+					rctx.Resource.Name,
+					role),
+				Relation: role,
+				Object:   targetObject,
+			}
+
+			// Write the roleTuple to FGA
 			writeReq := &openfgav1.WriteRequest{
 				StoreId: storeID,
 				Writes: &openfgav1.WriteRequestWrites{
-					TupleKeys: []*openfgav1.TupleKey{tuple},
+					TupleKeys: []*openfgav1.TupleKey{roleTuple, assignRoleTuple},
 				},
 			}
 
 			_, err := s.client.Write(ctx, writeReq)
 			if err != nil {
-				// Check if this is a duplicate write error (tuple already exists)
+				// Check if this is a duplicate write error (roleTuple already exists)
 				if s.helper.IsDuplicateWriteError(err) {
 					// Treat duplicate writes as successful - the role is already assigned
 					totalAssigned++
@@ -330,7 +345,7 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 					// This is a real error
 					errMsg := fmt.Sprintf("failed to assign role '%s' to user '%s': %v", role, change.UserID, err)
 					allErrors = append(allErrors, errMsg)
-					log.Error().Err(err).Str("role", role).Str("userId", change.UserID).Msg("Failed to write tuple to FGA")
+					log.Error().Err(err).Str("role", role).Str("userId", change.UserID).Msg("Failed to write roleTuple to FGA")
 				}
 			} else {
 				totalAssigned++

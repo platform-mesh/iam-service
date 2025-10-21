@@ -337,11 +337,12 @@ func TestService_AssignRolesToUsers_Success(t *testing.T) {
 	}
 	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
 
-	// Mock Write calls for each role assignment
+	// Mock Write calls for each role assignment (now writes 2 tuples per role)
 	client.EXPECT().Write(mock.Anything, mock.MatchedBy(func(req *openfgav1.WriteRequest) bool {
 		return req.StoreId == storeID &&
-			len(req.Writes.TupleKeys) == 1 &&
+			len(req.Writes.TupleKeys) == 2 &&
 			req.Writes.TupleKeys[0].Relation == "assignee"
+		// Second tuple relation varies by role (owner, member, etc.)
 	})).Return(&openfgav1.WriteResponse{}, nil).Times(2)
 
 	result, err := service.AssignRolesToUsers(ctx, rCtx, ai, changes)
@@ -403,13 +404,14 @@ func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
 	}
 	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
 
-	// Mock Write call for owner role only (admin should be rejected)
+	// Mock Write call for owner role only (admin should be rejected) - now writes 2 tuples per role
 	client.EXPECT().Write(mock.Anything, mock.MatchedBy(func(req *openfgav1.WriteRequest) bool {
 		return req.StoreId == storeID &&
-			len(req.Writes.TupleKeys) == 1 &&
+			len(req.Writes.TupleKeys) == 2 &&
 			req.Writes.TupleKeys[0].User == "user:user1@example.com" &&
 			req.Writes.TupleKeys[0].Object == "role:core_platform-mesh_io_account/cluster-123/test-account/owner" &&
-			req.Writes.TupleKeys[0].Relation == "assignee"
+			req.Writes.TupleKeys[0].Relation == "assignee" &&
+			req.Writes.TupleKeys[1].Relation == "owner"
 	})).Return(&openfgav1.WriteResponse{}, nil).Once()
 
 	result, err := service.AssignRolesToUsers(ctx, rCtx, ai, changes)
