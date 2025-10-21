@@ -32,11 +32,11 @@ import (
 type AuthorizedDirective struct {
 	mgr    mcmanager.Manager
 	oc     openfgav1.OpenFGAServiceClient
-	helper *fga.StoreHelper
+	helper fga.StoreHelper
 }
 
 func NewAuthorizedDirective(mgr mcmanager.Manager, oc openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) *AuthorizedDirective {
-	return &AuthorizedDirective{mgr: mgr, oc: oc, helper: fga.NewStoreHelperWithTTL(cfg.Keycloak.Cache.TTL)}
+	return &AuthorizedDirective{mgr: mgr, oc: oc, helper: fga.NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL)}
 }
 func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql.Resolver, permission string) (any, error) {
 	log := logger.LoadLoggerFromContext(ctx)

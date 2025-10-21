@@ -5,7 +5,8 @@ import "time"
 type ServiceConfig struct {
 	Port    int `mapstructure:"port" default:"8080"`
 	OpenFGA struct {
-		GRPCAddr string `mapstructure:"openfga-grpc-addr" default:"openfga:8081"`
+		GRPCAddr      string        `mapstructure:"openfga-grpc-addr" default:"openfga:8081"`
+		StoreCacheTTL time.Duration `mapstructure:"openfga-store-cache-ttl" default:"5m"`
 	} `mapstructure:",squash"`
 	JWT struct {
 		UserIDClaim string `mapstructure:"jwt-user-id-claim" default:"sub"`
@@ -19,8 +20,8 @@ type ServiceConfig struct {
 		User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
 		PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
 		Cache        struct {
-			TTL     time.Duration `mapstructure:"keycloak-cache-ttl" default:"5m"`
 			Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
+			TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
 		} `mapstructure:",squash"`
 	} `mapstructure:",squash"`
 	Pagination struct {

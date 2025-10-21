@@ -9,6 +9,7 @@ import (
 
 	"github.com/platform-mesh/golang-commons/logger"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/client-go/rest"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
@@ -142,3 +143,96 @@ func TestSetKCPUserContext(t *testing.T) {
 
 // TestGetKCPInfosForContext is removed as the method was refactored away
 // The new implementation uses checkToken function and direct subdomain extraction
+
+// Note: Testing the full SetKCPUserContext middleware requires complex setup
+// of web tokens, auth headers, and proper manager mocking. For coverage improvement,
+// we focus on testing the checkToken function and middleware construction.
+
+// Tests for checkToken function
+func TestCheckToken_InvalidURL(t *testing.T) {
+	ctx := context.Background()
+	ctx = logger.SetLoggerInContext(ctx, logger.StdLogger)
+
+	cfg := &rest.Config{
+		Host: "://invalid-url",
+	}
+
+	result, err := checkToken(ctx, "Bearer token", "test-org", cfg)
+
+	assert.Error(t, err)
+	assert.False(t, result)
+	assert.Contains(t, err.Error(), "invalid KCP host URL")
+}
+
+func TestCheckToken_ValidURL(t *testing.T) {
+	// Create a mock HTTP server to simulate KCP API
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check the request path and authorization
+		expectedPath := "/clusters/root:orgs:test-org/version"
+		if r.URL.Path != expectedPath {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		authHeader := r.Header.Get("Authorization")
+		if authHeader != "Bearer test-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	ctx := context.Background()
+	ctx = logger.SetLoggerInContext(ctx, logger.StdLogger)
+
+	cfg := &rest.Config{
+		Host: server.URL,
+	}
+
+	result, err := checkToken(ctx, "Bearer test-token", "test-org", cfg)
+
+	assert.NoError(t, err)
+	assert.True(t, result)
+}
+
+func TestCheckToken_Unauthorized(t *testing.T) {
+	// Create a mock HTTP server that returns unauthorized
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer server.Close()
+
+	ctx := context.Background()
+	ctx = logger.SetLoggerInContext(ctx, logger.StdLogger)
+
+	cfg := &rest.Config{
+		Host: server.URL,
+	}
+
+	result, err := checkToken(ctx, "Bearer invalid-token", "test-org", cfg)
+
+	assert.NoError(t, err)
+	assert.False(t, result)
+}
+
+func TestCheckToken_Forbidden(t *testing.T) {
+	// Create a mock HTTP server that returns forbidden (which is considered valid)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	ctx := context.Background()
+	ctx = logger.SetLoggerInContext(ctx, logger.StdLogger)
+
+	cfg := &rest.Config{
+		Host: server.URL,
+	}
+
+	result, err := checkToken(ctx, "Bearer test-token", "test-org", cfg)
+
+	assert.NoError(t, err)
+	assert.True(t, result) // Forbidden is considered a valid response
+}

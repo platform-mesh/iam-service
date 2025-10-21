@@ -12,19 +12,21 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type StoreHelper struct {
+type StoreHelper interface {
+	GetStoreID(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error)
+	GetModelID(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error)
+	IsDuplicateWriteError(err error) bool
+}
+
+type PMStoreHelper struct {
 	cache *expirable.LRU[string, string]
 }
 
-func NewStoreHelper() *StoreHelper {
-	return &StoreHelper{cache: expirable.NewLRU[string, string](10, nil, 10*time.Minute)}
+func NewFGAStoreHelper(ttl time.Duration) StoreHelper {
+	return &PMStoreHelper{cache: expirable.NewLRU[string, string](10, nil, ttl)}
 }
 
-func NewStoreHelperWithTTL(ttl time.Duration) *StoreHelper {
-	return &StoreHelper{cache: expirable.NewLRU[string, string](10, nil, ttl)}
-}
-
-func (d StoreHelper) GetStoreID(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error) {
+func (d PMStoreHelper) GetStoreID(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error) {
 
 	cacheKey := "store-" + orgID
 	s, ok := d.cache.Get(cacheKey)
@@ -49,8 +51,7 @@ func (d StoreHelper) GetStoreID(ctx context.Context, conn openfgav1.OpenFGAServi
 	d.cache.Add(cacheKey, storeID)
 	return storeID, nil
 }
-
-func (d StoreHelper) GetModelID(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error) {
+func (d PMStoreHelper) GetModelID(ctx context.Context, conn openfgav1.OpenFGAServiceClient, orgID string) (string, error) {
 
 	cacheKey := "model-" + orgID
 	s, ok := d.cache.Get(cacheKey)
@@ -76,7 +77,7 @@ func (d StoreHelper) GetModelID(ctx context.Context, conn openfgav1.OpenFGAServi
 
 	return modelID, nil
 }
-func (d StoreHelper) IsDuplicateWriteError(err error) bool {
+func (d PMStoreHelper) IsDuplicateWriteError(err error) bool {
 	if err == nil {
 		return false
 	}

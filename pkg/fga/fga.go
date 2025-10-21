@@ -26,7 +26,7 @@ type UserIDToRoles map[string][]string
 
 type Service struct {
 	client         openfgav1.OpenFGAServiceClient
-	helper         *StoreHelper
+	helper         StoreHelper
 	rolesRetriever roles.RolesRetriever
 }
 
@@ -39,16 +39,16 @@ func New(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) (*Ser
 
 	return &Service{
 		client:         client,
-		helper:         NewStoreHelperWithTTL(cfg.Keycloak.Cache.TTL),
+		helper:         NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL),
 		rolesRetriever: rolesRetriever,
 	}, nil
 }
 
 // NewWithRolesRetriever creates a new FGA service with a custom roles retriever
 func NewWithRolesRetriever(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig, rolesRetriever roles.RolesRetriever) *Service {
-	helper := NewStoreHelper()
+	helper := NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL)
 	if cfg != nil {
-		helper = NewStoreHelperWithTTL(cfg.Keycloak.Cache.TTL)
+		helper = NewFGAStoreHelper(cfg.Keycloak.Cache.TTL)
 	}
 
 	return &Service{
