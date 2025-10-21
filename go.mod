@@ -6,12 +6,13 @@ require (
 	github.com/99designs/gqlgen v0.17.81
 	github.com/coreos/go-oidc v2.4.0+incompatible
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a
+	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/kcp-dev/kcp/sdk v0.28.3
 	github.com/kcp-dev/multicluster-provider v0.2.1
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/openfga/api/proto v0.0.0-20250909173124-0ac19aac54f2
-	github.com/platform-mesh/account-operator v0.5.3
+	github.com/platform-mesh/account-operator v0.5.5
 	github.com/platform-mesh/golang-commons v0.7.0
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.21.0
@@ -37,7 +38,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
