@@ -52,25 +52,22 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 
 			tokenInfo, err := pmcontext.GetWebTokenFromContext(ctx)
 			if err != nil {
-				msg := "Error while retrieving tokenInfo"
-				log.Error().Err(err).Msg(msg)
-				http.Error(w, msg, http.StatusInternalServerError)
+				log.Error().Err(err).Msg("Error while retrieving tokenInfo")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 
 			idmTenant, err := m.tenantRetriever.GetIDMTenant(tokenInfo.Issuer)
 			if err != nil {
-				msg := "Error while retrieving realm info"
-				log.Error().Err(err).Msg(msg)
-				http.Error(w, msg, http.StatusInternalServerError)
+				log.Error().Err(err).Msg("Error while retrieving realm info")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 
 			authHeader, err := pmcontext.GetAuthHeaderFromContext(ctx)
 			if err != nil {
-				msg := "Error while retrieving tokenInfo"
-				log.Error().Err(err).Msg(msg)
-				http.Error(w, msg, http.StatusInternalServerError)
+				log.Error().Err(err).Msg("Error while retrieving auth header")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 
@@ -81,15 +78,12 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 			// Create API Request against root:orgs:subdomain
 			allowed, err := checkToken(ctx, authHeader, subdomain, m.mgr.GetLocalManager().GetConfig())
 			if err != nil {
-				msg := "Error while checking auth"
-				log.Error().Err(err).Msg(msg)
-				http.Error(w, msg, http.StatusInternalServerError)
+				log.Error().Err(err).Msg("Error while checking auth")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 			if !allowed {
-				msg := "access denied"
-				log.Error().Err(err).Msg(msg)
-				http.Error(w, msg, http.StatusForbidden)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 
@@ -109,6 +103,14 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 
 func checkToken(ctx context.Context, authHeader string, subdomain string, mgrcfg *rest.Config) (bool, error) {
 	cfg := rest.CopyConfig(mgrcfg)
+	// Ensure no client certificates are used
+	cfg.TLSClientConfig.CertData = nil
+	cfg.TLSClientConfig.KeyData = nil
+	cfg.CertData = nil
+	cfg.CertFile = ""
+	cfg.KeyData = nil
+	cfg.KeyFile = ""
+
 	log := logger.LoadLoggerFromContext(ctx)
 	clusterUrl, err := url.Parse(cfg.Host)
 	if err != nil {
