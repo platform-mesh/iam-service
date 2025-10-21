@@ -1,20 +1,17 @@
-- displayName: Owner
-  technicalName: owner
-  entityType: project
-- displayName: Member
-  technicalName: member
-  entityType: project
-- displayName: Vault Maintainer
-  technicalName: vault_maintainer
-  entityType: project
-
-- displayName: Owner
-  technicalName: owner
-  entityType: team
-- displayName: Member
-  technicalName: member
-  entityType: team
-- displayName: Vault Maintainer
-  technicalName: vault_maintainer
-  entityType: team
-
+roles:
+  - groupResource: core.platform-mesh.io/Account
+    roles:
+      - id: owner
+        displayName: Owner
+        description: Full access to all resources within the account.
+      - id: member
+        displayName: Member
+        description: Limited access to resources within the account. Can view and interact with resources but cannot administrate them.
+  - groupResource: Namespace
+    roles:
+      - id: owner
+        displayName: Owner
+        description: Full access to all resources within the account.
+      - id: member
+        displayName: Member
+        description: Limited access to resources within the account. Can view and interact with resources but cannot administrate them.

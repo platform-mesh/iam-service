@@ -1,0 +1,141 @@
+package kcp
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
+
+	pmcontext "github.com/platform-mesh/golang-commons/context"
+	"github.com/platform-mesh/golang-commons/errors"
+	"github.com/platform-mesh/golang-commons/logger"
+	"k8s.io/client-go/rest"
+
+	"github.com/platform-mesh/iam-service/pkg/config"
+	appcontext "github.com/platform-mesh/iam-service/pkg/context"
+	"github.com/platform-mesh/iam-service/pkg/middleware/idm"
+)
+
+type Middleware struct {
+	restcfg                  *rest.Config
+	cfg                      *config.ServiceConfig
+	log                      *logger.Logger
+	tenantRetriever          idm.IDMTenantRetriever
+	excludedIDMTenants       []string
+	orgsWorkspaceClusterName string
+}
+
+func New(restcfg *rest.Config, cfg *config.ServiceConfig, log *logger.Logger, tenantRetriever idm.IDMTenantRetriever, orgsWorkspaceClusterName string) *Middleware {
+	excludedIDMTenants := cfg.IDM.ExcludedTenants
+	return &Middleware{
+		restcfg:                  restcfg,
+		cfg:                      cfg,
+		log:                      log,
+		tenantRetriever:          tenantRetriever,
+		excludedIDMTenants:       excludedIDMTenants,
+		orgsWorkspaceClusterName: orgsWorkspaceClusterName,
+	}
+}
+
+func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			log := logger.LoadLoggerFromContext(ctx)
+
+			tokenInfo, err := pmcontext.GetWebTokenFromContext(ctx)
+			if err != nil {
+				log.Error().Err(err).Msg("Error while retrieving tokenInfo")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+
+			idmTenant, err := m.tenantRetriever.GetIDMTenant(tokenInfo.Issuer)
+			if err != nil {
+				log.Error().Err(err).Msg("Error while retrieving realm info")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+
+			authHeader, err := pmcontext.GetAuthHeaderFromContext(ctx)
+			if err != nil {
+				log.Error().Err(err).Msg("Error while retrieving auth header")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+
+			// retrieve subdomain from url
+			subdomain := strings.Split(r.Host, ".")[0]
+			log.Debug().Str("subdmain", subdomain).Msg("processing request")
+
+			// Create API Request against root:orgs:subdomain
+			allowed, err := checkToken(ctx, authHeader, subdomain, m.restcfg)
+			if err != nil {
+				log.Error().Err(err).Msg("Error while checking auth")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			if !allowed {
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+
+			kctx := appcontext.KCPContext{
+				OrganizationName: subdomain,
+				IDMTenant:        idmTenant,
+			}
+			ctx = appcontext.SetKCPContext(ctx, kctx)
+			log.Trace().
+				Str("organization", kctx.OrganizationName).
+				Msg("Added information to context was added to the context")
+
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func checkToken(ctx context.Context, authHeader string, subdomain string, mgrcfg *rest.Config) (bool, error) {
+	cfg := rest.CopyConfig(mgrcfg)
+	// Ensure no client certificates are used
+	cfg.CertData = nil
+	cfg.KeyData = nil
+	cfg.CertFile = ""
+	cfg.KeyFile = ""
+
+	log := logger.LoadLoggerFromContext(ctx)
+	clusterUrl, err := url.Parse(cfg.Host)
+	if err != nil {
+		log.Error().Err(errors.WithStack(err)).Msg("Error parsing KCP host URL")
+	}
+
+	if clusterUrl == nil {
+		return false, errors.New("invalid KCP host URL")
+	}
+
+	clusterPath := fmt.Sprintf("root:orgs:%s", subdomain)
+	requestURL := fmt.Sprintf("%s://%s/clusters/%s/version", clusterUrl.Scheme, clusterUrl.Host, clusterPath)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, http.NoBody)
+	if err != nil {
+		return false, err
+	}
+	req.Header.Set("Authorization", authHeader)
+
+	wsClient, err := rest.HTTPClientFor(cfg)
+	if err != nil {
+		return false, err
+	}
+
+	res, err := wsClient.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer res.Body.Close() //nolint:errcheck
+
+	switch res.StatusCode {
+	case http.StatusOK, http.StatusCreated, http.StatusForbidden:
+		return true, nil
+	}
+	return false, nil
+}

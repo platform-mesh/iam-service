@@ -1,15 +1,9 @@
 FROM golang:1.25.2-trixie AS builder
 
-ENV GOSUMDB=off
-RUN git config --global credential.helper store
-RUN --mount=type=secret,id=org_token \
-    echo "https://gha:$(cat /run/secrets/org_token)@github.com" > /root/.git-credentials
-
-
 WORKDIR /workspace
 
 COPY go.mod go.sum ./
-RUN --mount=type=secret,id=org_token go mod download
+RUN go mod download
 
 COPY ./ ./
 

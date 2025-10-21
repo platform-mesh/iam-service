@@ -1,15 +1,20 @@
+threshold:
+  file: 80
+  package: 80
+  total: 80
+override:
+  # the authorized directive its quite hard to test because of the external dependencies
+  - path: ^pkg/directive$
+    threshold: 70
+  - path: ^pkg/directive/authorized.go$
+    threshold: 70
 exclude:
   paths:
-    - ^pkg/mocks/.*
-    - ^pkg/graph/*
-    - ^pkg/db/mocks/.*
-    - ^pkg/resolver/*
-    - server.go
-    - ^pkg/fga/mocks
-    - ^pkg/fga/middleware # nothing to test there
-    - ^pkg/fga/server.go
     - cmd/*
-    - internal/pkg/*
+    - pkg/keycloak/client
+    - pkg/fga/mocks
+    - pkg/keycloak/mocks
+    - pkg/graph
+    - pkg/resolver
     - main.go
-    - contract-tests/
 

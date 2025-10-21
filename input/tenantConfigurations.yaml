@@ -1,5 +1,0 @@
-
-configs:
-  - tenantId: example-tenant
-    issuer: https://issuer.my.corp
-    audience: a2b50a84-f380-4c88-84d4-424059236cb3

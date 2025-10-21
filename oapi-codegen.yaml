@@ -1,0 +1,10 @@
+package: keycloak
+output: pkg/keycloak/client/client.go
+generate:
+  client: true
+  models: true
+  embedded-spec: false
+output-options:
+  skip-prune: false
+import-mapping:
+  "time": "time"

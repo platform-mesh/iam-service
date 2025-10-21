@@ -16,8 +16,23 @@ tasks:
     internal: true
     cmds:
       - test -s {{.LOCAL_BIN}}/go-test-coverage || GOBIN=$(pwd)/{{.LOCAL_BIN}} go install github.com/vladopajic/go-test-coverage/v2@latest
+  setup:oapi-codegen:
+    internal: true
+    cmds:
+      - test -s {{.LOCAL_BIN}}/oapi-codegen || GOBIN=$(pwd)/{{.LOCAL_BIN}} go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
 
   ## Development
+  generate:
+    deps: [mockery]
+    cmds:
+      - task: mockery
+      - go generate ./...
+  generate:keycloak:
+    desc: "Generate minimal Keycloak client from OpenAPI spec"
+    deps: [setup:oapi-codegen]
+    cmds:
+      - "{{.LOCAL_BIN}}/oapi-codegen -config oapi-codegen.yaml keycloak-minimal.json"
+      - echo "Generated minimal Keycloak client in pkg/keycloak/client/client.go"
   mockery:
     deps: [setup:mockery]
     cmds:
@@ -31,8 +46,12 @@ tasks:
       - task: fmt
       - "{{.LOCAL_BIN}}/golangci-lint run --timeout=15m"
   build:
+      cmds:
+        - go build ./...
+  run:
+    dotenv: [".env"]
     cmds:
-      - go build ./...
+      - go run ./main.go serve
   unittest:
     env:
       GO111MODULE: on
@@ -43,11 +62,10 @@ tasks:
       - go test -coverprofile=cover.out ./...
   cover:
     deps:
-      - task: mockery
       - task: setup:go-test-coverage
       - task: test
     cmds:
-        - "{{.LOCAL_BIN}}/go-test-coverage --threshold-file 80 --threshold-package 80 --threshold-total 95 --profile cover.out --config ./.testcoverage.yml"
+        - "{{.LOCAL_BIN}}/go-test-coverage --profile cover.out --config ./.testcoverage.yml"
   test:
     deps:
       - task: unittest

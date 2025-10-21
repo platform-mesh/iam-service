@@ -1,0 +1,67 @@
+package tuples
+
+import (
+	"fmt"
+	"strings"
+
+	openfgav1 "github.com/openfga/api/proto/openfga/v1"
+	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
+	"github.com/platform-mesh/golang-commons/fga/util"
+
+	"github.com/platform-mesh/iam-service/pkg/graph"
+)
+
+func GenerateContextualTuples(rctx *graph.ResourceContext, ai *accountsv1alpha1.AccountInfo) *openfgav1.ContextualTupleKeys {
+	tuples := &openfgav1.ContextualTupleKeys{}
+
+	accFGATypeName := util.ConvertToTypeName("core.platform-mesh.io", "Account")
+	accObject := fmt.Sprintf("%s:%s/%s", accFGATypeName, ai.Spec.Account.OriginClusterId, ai.Spec.Account.Name)
+
+	var nsObject string
+	if rctx.Resource.Namespace != nil {
+		nsFGATypeName := util.ConvertToTypeName("", "Namespace")
+		nsObject = fmt.Sprintf("%s:%s/%s", nsFGATypeName, ai.Spec.Account.GeneratedClusterId, *rctx.Resource.Namespace)
+
+		// Add namespace contextual tuple
+		namespaceTuple := &openfgav1.TupleKey{
+			Object:   nsObject,
+			Relation: "parent",
+			User:     accObject,
+		}
+		tuples.TupleKeys = append(tuples.TupleKeys, namespaceTuple)
+	}
+
+	if !managedTuple(rctx.Group, rctx.Kind) {
+		resFGATypeName := util.ConvertToTypeName(rctx.Group, rctx.Kind)
+		var resObject string
+		if rctx.Resource.Namespace != nil {
+			resObject = fmt.Sprintf("%s:%s/%s/%s", resFGATypeName, ai.Spec.Account.GeneratedClusterId, *rctx.Resource.Namespace, rctx.Resource.Name)
+		} else {
+			resObject = fmt.Sprintf("%s:%s/%s", resFGATypeName, ai.Spec.Account.GeneratedClusterId, rctx.Resource.Name)
+		}
+
+		resTuple := &openfgav1.TupleKey{
+			Object:   resObject,
+			Relation: "parent",
+		}
+		if rctx.Resource.Namespace != nil {
+			resTuple.User = nsObject
+		} else {
+			resTuple.User = accObject
+		}
+		tuples.TupleKeys = append(tuples.TupleKeys, resTuple)
+	}
+
+	return tuples
+}
+
+func managedTuple(group, kind string) bool {
+	switch strings.ToLower(group) {
+	case "core.platform-mesh.io":
+		switch strings.ToLower(kind) {
+		case "account":
+			return true
+		}
+	}
+	return false
+}

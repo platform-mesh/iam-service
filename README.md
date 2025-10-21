@@ -15,64 +15,47 @@ go run ./main.go serve
 
 ## Description
 
-The Platform Mesh iam-service exposes a graphql and a grpc API. The Graphql API is primarily used by user management UIs, while the GRPC API is used to authorize write calls into OpenFGA.
+The Platform Mesh IAM service is a Go-based microservice that provides a GraphQL API for user management and authorization. The service uses:
+
+- **OpenFGA** for fine-grained authorization backend
+- **KCP** for multi-cluster resource management
+- **Keycloak** for identity management
 
 ## Features
-- Backend for frontend API's to manage user data
-- Write GRPC API to validate write requests into the FGA schema
+- GraphQL API for user and role management
+- Multi-tenant authorization through OpenFGA
+- Multi-cluster resource coordination via KCP
+- Keycloak integration for identity provider support
+- Robust JWT token validation and tenant context management
 
-## Architecture overview
-`iam-service`has 2 base layers
-- DB 
-- Core layer, which is responsible for business logic. It is being called by consumer(or Transport layer) and interacts with all other layers(Hooks, etc.)
-Core layers also is responsible for the proper error handling and logging.
+## Architecture
 
-## No-Op
-If there is no actual implementation for an interface, you can find a no-op implementation in the `./pkg/interfaces/no-op` package. 
+This service has been refactored to eliminate traditional database dependencies, instead using:
+- OpenFGA as the authorization data backend
+- KCP for Kubernetes resource management
+- Keycloak for user identity management
 
-## Packages
+## Quick Start
 
-### graph
+### Prerequisites
+1. Go 1.25.1+
+2. Platform Mesh installation (OpenFGA and KCP)
+3. Task runner (optional)
 
-This package contains the GraphQL models and resolvers as reusable code. The `graph/platform-mesh.graphql` file contains the schema.
+### Development Setup
+1. Copy `.env.sample` to `.env` and configure services
+2. Start your local platform-mesh using the local-setup, see `local-setup` in https://github.com/platform-mesh/helm-charts
+3. Start a port-forward to make openfga available on your local host, e.g. `kubectl port-forward -n platform-mesh-system svc/openfga 3000 8080 8081:8081`
+4. Prepare a kubeconfig for the iam-service to connect to kcp and set the `KCP_KUBECONFIG` environment
+5. Run the service: `go run ./main.go serve`
 
-## Getting started
-
-TBD
-
-### DataLoader
-
-To seed Postgresql and FGA store with the initial data, you can use DataLoader job.
-
-This job does 3 things:
-1. Imports FGA schema
-2. Loads data to FGA store
-3. Loads data to Postgresql
-
-#### Prerequisites
-
-1. Postgresql
-2. OpenFGA server
-
-#### Golang configuration
-
-Dataloader uses the following fields from the `../intenral/pkg/config.Config` struct:
-
-1. `Config.Database` must reflect your postgresql setup.
-2. `Config.Openfga` must reflect your FGA server setup.
-
-#### Quickstart
-
-Dataloader needs the following params:
-1. `schema` - path to the FGA schema file (you can find the example in `./contract-tests/assets`)
-2. `file` - path to the FGA data  (you can find the example in `./contract-tests/assets`)
-3. `tenants` - list of tenants to load data for
-
-##### Terminal
-
-```bash 
-go run main.go dataload --schema=$SCHEMA_PATH  --file=$DATA_PATH --tenants=tenant1,tenant2
+### Testing
+Run tests with coverage reporting:
+```bash
+task cover
 ```
+
+For detailed development information, architecture details, and contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Releasing
 
