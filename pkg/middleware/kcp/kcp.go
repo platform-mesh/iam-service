@@ -14,13 +14,8 @@ import (
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
+	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	"github.com/platform-mesh/iam-service/pkg/middleware/idm"
-)
-
-type ContextKey string
-
-const (
-	UserContextKey ContextKey = "KCPContext"
 )
 
 type Middleware struct {
@@ -87,11 +82,11 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 				return
 			}
 
-			kctx := KCPContext{
+			kctx := appcontext.KCPContext{
 				OrganizationName: subdomain,
 				IDMTenant:        idmTenant,
 			}
-			ctx = context.WithValue(ctx, UserContextKey, kctx)
+			ctx = appcontext.SetKCPContext(ctx, kctx)
 			log.Trace().
 				Str("organization", kctx.OrganizationName).
 				Msg("Added information to context was added to the context")
@@ -146,22 +141,4 @@ func checkToken(ctx context.Context, authHeader string, subdomain string, mgrcfg
 		return true, nil
 	}
 	return false, nil
-}
-func GetKcpUserContext(ctx context.Context) (KCPContext, error) {
-	val := ctx.Value(UserContextKey)
-	if val == nil {
-		return KCPContext{}, errors.New("kcp user context not found in context")
-	}
-
-	kctx, ok := val.(KCPContext)
-	if !ok {
-		return KCPContext{}, errors.New("invalid kcp user context type")
-	}
-
-	return kctx, nil
-}
-
-type KCPContext struct {
-	IDMTenant        string
-	OrganizationName string
 }

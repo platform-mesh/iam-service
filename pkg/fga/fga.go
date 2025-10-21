@@ -13,8 +13,8 @@ import (
 	"go.opentelemetry.io/otel"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
+	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	"github.com/platform-mesh/iam-service/pkg/graph"
-	"github.com/platform-mesh/iam-service/pkg/middleware/kcp"
 	"github.com/platform-mesh/iam-service/pkg/roles"
 )
 
@@ -63,7 +63,7 @@ func (s *Service) ListUsers(ctx context.Context, rctx graph.ResourceContext, rol
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.ListUsers")
 	defer span.End()
 
-	kctx, err := kcp.GetKcpUserContext(ctx)
+	kctx, err := appcontext.GetKCPContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get kcp user context")
 	}
@@ -84,11 +84,11 @@ func (s *Service) ListUsers(ctx context.Context, rctx graph.ResourceContext, rol
 	}
 
 	// Use parallel processing for multiple roles
-	return s.listUsersParallel(ctx, rctx, kctx, storeID, appliedRoles, ai)
+	return s.listUsersParallel(ctx, rctx, storeID, appliedRoles, ai)
 }
 
 // listUsersParallel performs parallel ListUsers calls for multiple roles
-func (s *Service) listUsersParallel(ctx context.Context, rctx graph.ResourceContext, kctx kcp.KCPContext, storeID string, roles []string, ai *accountsv1alpha1.AccountInfo) ([]*graph.UserRoles, error) {
+func (s *Service) listUsersParallel(ctx context.Context, rctx graph.ResourceContext, storeID string, roles []string, ai *accountsv1alpha1.AccountInfo) ([]*graph.UserRoles, error) {
 
 	type roleResult struct {
 		role  string
@@ -264,7 +264,7 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.AssignRolesToUsers")
 	defer span.End()
 
-	kctx, err := kcp.GetKcpUserContext(ctx)
+	kctx, err := appcontext.GetKCPContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get kcp user context")
 	}
@@ -357,7 +357,7 @@ func (s *Service) RemoveRole(ctx context.Context, rctx graph.ResourceContext, in
 	defer span.End()
 
 	fgaTypeName := util.ConvertToTypeName(rctx.Group, rctx.Kind)
-	kctx, err := kcp.GetKcpUserContext(ctx)
+	kctx, err := appcontext.GetKCPContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get kcp user context")
 	}

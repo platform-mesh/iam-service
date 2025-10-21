@@ -15,9 +15,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
+	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	fgamocks "github.com/platform-mesh/iam-service/pkg/fga/mocks"
 	"github.com/platform-mesh/iam-service/pkg/graph"
-	"github.com/platform-mesh/iam-service/pkg/middleware/kcp"
 	"github.com/platform-mesh/iam-service/pkg/roles"
 )
 
@@ -81,7 +81,7 @@ func TestService_ListUsers_Success(t *testing.T) {
 	service, client := createTestService(t)
 
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
 		IDMTenant:        "test-tenant",
 		OrganizationName: "test-org",
 	})
@@ -291,7 +291,7 @@ func TestService_AssignRolesToUsers_Success(t *testing.T) {
 	service, client := createTestService(t)
 
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
 		IDMTenant:        "test-tenant",
 		OrganizationName: "test-org",
 	})
@@ -357,7 +357,7 @@ func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
 	service, client := createTestService(t)
 
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
 		IDMTenant:        "test-tenant",
 		OrganizationName: "test-org",
 	})
@@ -426,7 +426,7 @@ func TestService_RemoveRole_Success(t *testing.T) {
 	service, client := createTestService(t)
 
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
 		IDMTenant:        "test-tenant",
 		OrganizationName: "test-org",
 	})
@@ -512,7 +512,7 @@ func TestService_RemoveRole_RoleNotAssigned(t *testing.T) {
 	service, client := createTestService(t)
 
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
 		IDMTenant:        "test-tenant",
 		OrganizationName: "test-org",
 	})

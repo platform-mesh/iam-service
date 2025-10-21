@@ -12,9 +12,9 @@ import (
 
 	"github.com/platform-mesh/iam-service/pkg/cache"
 	"github.com/platform-mesh/iam-service/pkg/config"
+	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	keycloakClient "github.com/platform-mesh/iam-service/pkg/keycloak/client"
-	"github.com/platform-mesh/iam-service/pkg/middleware/kcp"
 )
 
 type Service struct {
@@ -24,7 +24,7 @@ type Service struct {
 }
 
 func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, error) {
-	kctx, err := kcp.GetKcpUserContext(ctx)
+	kctx, err := appcontext.GetKCPContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get KCP user context")
 	}
@@ -108,7 +108,7 @@ func (s *Service) GetUsersByEmails(ctx context.Context, emails []string) (map[st
 		return map[string]*graph.User{}, nil
 	}
 
-	kctx, err := kcp.GetKcpUserContext(ctx)
+	kctx, err := appcontext.GetKCPContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get KCP user context")
 	}

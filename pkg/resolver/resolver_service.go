@@ -9,7 +9,7 @@ import (
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
-	"github.com/platform-mesh/iam-service/pkg/directive"
+	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	"github.com/platform-mesh/iam-service/pkg/fga"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/keycloak"
@@ -43,7 +43,7 @@ func (s *Service) User(ctx context.Context, userID string) (*graph.User, error) 
 
 func (s *Service) Users(ctx context.Context, rctx graph.ResourceContext, roleFilters []string, sortBy *graph.SortByInput, page *graph.PageInput) (*graph.UserConnection, error) {
 
-	ai, err := directive.GetAccountInfoFromContext(ctx)
+	ai, err := appcontext.GetAccountInfo(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get cluster ID from account path")
 	}
@@ -67,7 +67,7 @@ func (s *Service) Users(ctx context.Context, rctx graph.ResourceContext, roleFil
 }
 
 func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
-	ai, err := directive.GetAccountInfoFromContext(ctx)
+	ai, err := appcontext.GetAccountInfo(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get cluster ID from account path")
 	}
@@ -75,7 +75,7 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceCon
 }
 
 func (s *Service) RemoveRole(ctx context.Context, rCtx graph.ResourceContext, input graph.RemoveRoleInput) (*graph.RoleRemovalResult, error) {
-	ai, err := directive.GetAccountInfoFromContext(ctx)
+	ai, err := appcontext.GetAccountInfo(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get cluster ID from account path")
 	}

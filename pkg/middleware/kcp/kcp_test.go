@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
+	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	"github.com/platform-mesh/iam-service/pkg/middleware/idm"
 )
 
@@ -53,7 +54,7 @@ func TestNew(t *testing.T) {
 	assert.Equal(t, "test-orgs-cluster", middleware.orgsWorkspaceClusterName)
 }
 
-func TestGetKcpUserContext(t *testing.T) {
+func TestGetKCPContext(t *testing.T) {
 	tests := []struct {
 		name         string
 		contextValue interface{}
@@ -62,7 +63,7 @@ func TestGetKcpUserContext(t *testing.T) {
 	}{
 		{
 			name: "success",
-			contextValue: KCPContext{
+			contextValue: appcontext.KCPContext{
 				IDMTenant:        "test-tenant",
 				OrganizationName: "test-org",
 			},
@@ -74,29 +75,25 @@ func TestGetKcpUserContext(t *testing.T) {
 			expectError:  true,
 			expectedErr:  "kcp user context not found in context",
 		},
-		{
-			name:         "invalid type",
-			contextValue: "invalid-type",
-			expectError:  true,
-			expectedErr:  "invalid kcp user context type",
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var ctx context.Context
 			if tt.contextValue != nil {
-				ctx = context.WithValue(context.Background(), UserContextKey, tt.contextValue)
+				if kcpCtx, ok := tt.contextValue.(appcontext.KCPContext); ok {
+					ctx = appcontext.SetKCPContext(context.Background(), kcpCtx)
+				}
 			} else {
 				ctx = context.Background()
 			}
 
-			result, err := GetKcpUserContext(ctx)
+			result, err := appcontext.GetKCPContext(ctx)
 
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.expectedErr)
-				assert.Equal(t, KCPContext{}, result)
+				assert.Equal(t, appcontext.KCPContext{}, result)
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.contextValue, result)

@@ -22,9 +22,9 @@ import (
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
+	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	"github.com/platform-mesh/iam-service/pkg/fga"
 	"github.com/platform-mesh/iam-service/pkg/graph"
-	"github.com/platform-mesh/iam-service/pkg/middleware/kcp"
 )
 
 type AuthorizedDirective struct {
@@ -45,7 +45,7 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 		return nil, errors.Wrap(err, "failed to get web token from context")
 	}
 
-	kctx, err := kcp.GetKcpUserContext(ctx)
+	kctx, err := appcontext.GetKCPContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get kcp user context")
 	}
@@ -71,7 +71,7 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 		return nil, gqlerror.Errorf("unauthorized")
 	}
 	// Store account info in context for future use
-	ctx = saveAccountInfoInContext(ctx, ai)
+	ctx = appcontext.SetAccountInfo(ctx, ai)
 
 	// Test if resource exists
 	exists, err := a.testIfResourceExists(ctx, rctx)
@@ -213,24 +213,4 @@ func extractResourceContextFromArguments(args map[string]any) (*graph.ResourceCo
 		return nil, fmt.Errorf("failed to unmarshal param to ResourceContext: %w", err)
 	}
 	return &paramValue, nil
-}
-
-type contextKey string
-
-const accountInfoContextKey contextKey = "accountInfo"
-
-func saveAccountInfoInContext(ctx context.Context, ai *accountsv1alpha1.AccountInfo) context.Context {
-	return context.WithValue(ctx, accountInfoContextKey, ai)
-}
-
-func GetAccountInfoFromContext(ctx context.Context) (*accountsv1alpha1.AccountInfo, error) {
-	val := ctx.Value(accountInfoContextKey)
-	if val == nil {
-		return nil, fmt.Errorf("account info not found in context")
-	}
-	ai, ok := val.(*accountsv1alpha1.AccountInfo)
-	if !ok {
-		return nil, fmt.Errorf("invalid account info type in context")
-	}
-	return ai, nil
 }

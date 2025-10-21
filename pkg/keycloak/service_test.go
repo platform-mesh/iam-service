@@ -11,16 +11,16 @@ import (
 
 	"github.com/platform-mesh/iam-service/pkg/cache"
 	"github.com/platform-mesh/iam-service/pkg/config"
+	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	keycloakClient "github.com/platform-mesh/iam-service/pkg/keycloak/client"
 	"github.com/platform-mesh/iam-service/pkg/keycloak/mocks"
-	"github.com/platform-mesh/iam-service/pkg/middleware/kcp"
 )
 
 func TestUserByMail_Success(t *testing.T) {
 	// Setup
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
 		IDMTenant: "test-realm",
 	})
 
@@ -71,7 +71,7 @@ func TestUserByMail_Success(t *testing.T) {
 func TestUserByMail_UserNotFound(t *testing.T) {
 	// Setup
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
 		IDMTenant: "test-realm",
 	})
 
@@ -124,7 +124,7 @@ func TestUserByMail_NoKcpContext(t *testing.T) {
 func TestEnrichUserRoles_Success(t *testing.T) {
 	// Setup
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
 		IDMTenant: "test-realm",
 	})
 
@@ -268,7 +268,7 @@ func TestNew_InvalidConfig(t *testing.T) {
 func TestUserByMail_CacheHit(t *testing.T) {
 	// Test cache hit scenario
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, kcp.UserContextKey, kcp.KCPContext{
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
 		IDMTenant: "test-realm",
 	})
 
