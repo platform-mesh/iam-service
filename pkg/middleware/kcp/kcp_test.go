@@ -2,7 +2,6 @@ package kcp
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -19,13 +18,9 @@ import (
 // Mock IDM tenant retriever
 type mockIDMTenantRetriever struct {
 	tenant string
-	err    error
 }
 
 func (m *mockIDMTenantRetriever) GetIDMTenant(issuer string) (string, error) {
-	if m.err != nil {
-		return "", m.err
-	}
 	if m.tenant != "" {
 		return m.tenant, nil
 	}
@@ -103,7 +98,7 @@ func TestGetKCPContext(t *testing.T) {
 	}
 }
 
-func TestSetKCPUserContext(t *testing.T) {
+func TestSetKCPUserContext_MiddlewareCreation(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
 	cfg := &config.ServiceConfig{
@@ -115,8 +110,6 @@ func TestSetKCPUserContext(t *testing.T) {
 	}
 
 	middleware := New(nil, cfg, log, mockTenantRetriever, "test-orgs-cluster")
-
-	// Test middleware wrapper creation
 	middlewareFunc := middleware.SetKCPUserContext()
 	assert.NotNil(t, middlewareFunc)
 
@@ -125,20 +118,36 @@ func TestSetKCPUserContext(t *testing.T) {
 	})
 	wrappedHandler := middlewareFunc(testHandler)
 	assert.NotNil(t, wrappedHandler)
-	assert.IsType(t, http.HandlerFunc(nil), wrappedHandler)
+}
 
-	// Test error handling (nil manager causes cluster retrieval to fail)
+func TestSetKCPUserContext_NoWebTokenInContext(t *testing.T) {
+	mockTenantRetriever := &mockIDMTenantRetriever{}
+	log, _ := logger.New(logger.Config{Level: "debug"})
+	cfg := &config.ServiceConfig{
+		IDM: struct {
+			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
+		}{
+			ExcludedTenants: []string{},
+		},
+	}
+
+	middleware := New(nil, cfg, log, mockTenantRetriever, "test-orgs-cluster")
+	middlewareFunc := middleware.SetKCPUserContext()
+
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("Handler should not be called when web token is missing")
+	})
+	wrappedHandler := middlewareFunc(testHandler)
+
+	// Test with no web token in context (this should fail early)
 	req, _ := http.NewRequest("GET", "/test", nil)
+	ctx := logger.SetLoggerInContext(req.Context(), log)
+	req = req.WithContext(ctx)
 	rr := httptest.NewRecorder()
 
-	func() {
-		defer func() {
-			if r := recover(); r != nil {
-				assert.Contains(t, fmt.Sprintf("%v", r), "nil pointer dereference")
-			}
-		}()
-		wrappedHandler.ServeHTTP(rr, req)
-	}()
+	wrappedHandler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
 
 // TestGetKCPInfosForContext is removed as the method was refactored away
@@ -235,4 +244,54 @@ func TestCheckToken_Forbidden(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.True(t, result) // Forbidden is considered a valid response
+}
+
+func TestCheckToken_Created(t *testing.T) {
+	// Create a mock HTTP server that returns created (which is considered valid)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer server.Close()
+
+	ctx := context.Background()
+	ctx = logger.SetLoggerInContext(ctx, logger.StdLogger)
+
+	cfg := &rest.Config{
+		Host: server.URL,
+	}
+
+	result, err := checkToken(ctx, "Bearer test-token", "test-org", cfg)
+
+	assert.NoError(t, err)
+	assert.True(t, result) // Created is considered a valid response
+}
+
+func TestCheckToken_ConnectionError(t *testing.T) {
+	ctx := context.Background()
+	ctx = logger.SetLoggerInContext(ctx, logger.StdLogger)
+
+	// Use a config that points to a non-existent server (connection will fail)
+	cfg := &rest.Config{
+		Host: "http://localhost:99999", // Port that doesn't exist
+	}
+
+	result, err := checkToken(ctx, "Bearer token", "test-org", cfg)
+
+	assert.Error(t, err)
+	assert.False(t, result)
+}
+
+func TestCheckToken_RequestCreationError(t *testing.T) {
+	ctx := context.Background()
+	ctx = logger.SetLoggerInContext(ctx, logger.StdLogger)
+
+	cfg := &rest.Config{
+		Host: "http://test-server.com",
+	}
+
+	// Use an invalid URL that will cause request creation to fail
+	result, err := checkToken(ctx, "Bearer token", "test-org\x00invalid", cfg)
+
+	assert.Error(t, err)
+	assert.False(t, result)
 }

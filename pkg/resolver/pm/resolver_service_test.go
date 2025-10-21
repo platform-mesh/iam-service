@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/platform-mesh/golang-commons/logger"
 	"github.com/stretchr/testify/assert"
@@ -34,9 +35,6 @@ func createTestResolverService(t *testing.T) (*Service, *mocks.OpenFGAServiceCli
 		t.Fatalf("Failed to create roles retriever: %v", err)
 	}
 
-	// Create FGA service with real roles retriever
-	fgaService := fga.NewWithRolesRetriever(mockFGA, nil, rolesRetriever)
-
 	cfg := &config.ServiceConfig{
 		Sorting: struct {
 			DefaultField     string `mapstructure:"sorting-default-field" default:"LastName"`
@@ -52,7 +50,28 @@ func createTestResolverService(t *testing.T) (*Service, *mocks.OpenFGAServiceCli
 			DefaultLimit: 10,
 			DefaultPage:  1,
 		},
+		Keycloak: struct {
+			BaseURL      string `mapstructure:"keycloak-base-url" default:"https://portal.dev.local:8443/keycloak"`
+			ClientID     string `mapstructure:"keycloak-client-id" default:"admin-cli"`
+			User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
+			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
+			Cache        struct {
+				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+			} `mapstructure:",squash"`
+		}{
+			Cache: struct {
+				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
+			}{
+				TTL:     5 * time.Minute,
+				Enabled: true,
+			},
+		},
 	}
+
+	// Create FGA service with real roles retriever
+	fgaService := fga.NewWithRolesRetriever(mockFGA, cfg, rolesRetriever)
 
 	userSorter := sorter.NewUserSorter()
 	paginator := pager.NewPager(cfg)

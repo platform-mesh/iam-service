@@ -1,27 +1,25 @@
-package fga
+package store
 
 import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	fgamocks "github.com/platform-mesh/iam-service/pkg/fga/mocks"
 )
 
-func TestNewStoreHelper(t *testing.T) {
-	helper := NewStoreHelper()
+func TestNewFGAStoreHelper(t *testing.T) {
+	helper := NewFGAStoreHelper(5 * time.Minute)
 	assert.NotNil(t, helper)
-	assert.NotNil(t, helper.cache)
 }
 
 func TestStoreHelper_GetStoreID_Success(t *testing.T) {
 	client := fgamocks.NewOpenFGAServiceClient(t)
-	helper := NewStoreHelper()
+	helper := NewFGAStoreHelper(5 * time.Minute)
 
 	ctx := context.Background()
 	orgID := "test-org"
@@ -50,25 +48,38 @@ func TestStoreHelper_GetStoreID_Success(t *testing.T) {
 
 func TestStoreHelper_GetStoreID_CachedResult(t *testing.T) {
 	client := fgamocks.NewOpenFGAServiceClient(t)
-	helper := NewStoreHelper()
+	helper := NewFGAStoreHelper(5 * time.Minute)
 
 	ctx := context.Background()
 	orgID := "test-org"
 	expectedStoreID := "store-123"
 
-	// Pre-populate cache
-	helper.cache.Add("store-"+orgID, expectedStoreID)
+	listStoresResponse := &openfgav1.ListStoresResponse{
+		Stores: []*openfgav1.Store{
+			{
+				Id:   expectedStoreID,
+				Name: orgID,
+			},
+		},
+	}
 
-	// Should not call ListStores since it's cached
-	storeID, err := helper.GetStoreID(ctx, client, orgID)
+	// First call should hit ListStores and cache the result
+	client.EXPECT().ListStores(ctx, &openfgav1.ListStoresRequest{}).Return(listStoresResponse, nil).Once()
 
+	// First call
+	storeID1, err := helper.GetStoreID(ctx, client, orgID)
 	assert.NoError(t, err)
-	assert.Equal(t, expectedStoreID, storeID)
+	assert.Equal(t, expectedStoreID, storeID1)
+
+	// Second call should use cached result (no additional ListStores call expected)
+	storeID2, err := helper.GetStoreID(ctx, client, orgID)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedStoreID, storeID2)
 }
 
 func TestStoreHelper_GetStoreID_StoreNotFound(t *testing.T) {
 	client := fgamocks.NewOpenFGAServiceClient(t)
-	helper := NewStoreHelper()
+	helper := NewFGAStoreHelper(5 * time.Minute)
 
 	ctx := context.Background()
 	orgID := "nonexistent-org"
@@ -93,7 +104,7 @@ func TestStoreHelper_GetStoreID_StoreNotFound(t *testing.T) {
 
 func TestStoreHelper_GetStoreID_ListStoresError(t *testing.T) {
 	client := fgamocks.NewOpenFGAServiceClient(t)
-	helper := NewStoreHelper()
+	helper := NewFGAStoreHelper(5 * time.Minute)
 
 	ctx := context.Background()
 	orgID := "test-org"
@@ -109,7 +120,7 @@ func TestStoreHelper_GetStoreID_ListStoresError(t *testing.T) {
 
 func TestStoreHelper_GetModelID_Success(t *testing.T) {
 	client := fgamocks.NewOpenFGAServiceClient(t)
-	helper := NewStoreHelper()
+	helper := NewFGAStoreHelper(5 * time.Minute)
 
 	ctx := context.Background()
 	orgID := "test-org"
@@ -150,24 +161,50 @@ func TestStoreHelper_GetModelID_Success(t *testing.T) {
 
 func TestStoreHelper_GetModelID_CachedResult(t *testing.T) {
 	client := fgamocks.NewOpenFGAServiceClient(t)
-	helper := NewStoreHelper()
+	helper := NewFGAStoreHelper(5 * time.Minute)
 
 	ctx := context.Background()
 	orgID := "test-org"
+	storeID := "store-123"
 	expectedModelID := "model-456"
 
-	// Pre-populate cache
-	helper.cache.Add("model-"+orgID, expectedModelID)
+	// Mock ListStores for GetStoreID
+	listStoresResponse := &openfgav1.ListStoresResponse{
+		Stores: []*openfgav1.Store{
+			{
+				Id:   storeID,
+				Name: orgID,
+			},
+		},
+	}
+	client.EXPECT().ListStores(ctx, &openfgav1.ListStoresRequest{}).Return(listStoresResponse, nil).Once()
 
-	modelID, err := helper.GetModelID(ctx, client, orgID)
+	// Mock ReadAuthorizationModels
+	readModelsResponse := &openfgav1.ReadAuthorizationModelsResponse{
+		AuthorizationModels: []*openfgav1.AuthorizationModel{
+			{
+				Id: expectedModelID,
+			},
+		},
+	}
+	client.EXPECT().ReadAuthorizationModels(ctx, &openfgav1.ReadAuthorizationModelsRequest{
+		StoreId: storeID,
+	}).Return(readModelsResponse, nil).Once()
 
+	// First call should hit the actual methods and cache the result
+	modelID1, err := helper.GetModelID(ctx, client, orgID)
 	assert.NoError(t, err)
-	assert.Equal(t, expectedModelID, modelID)
+	assert.Equal(t, expectedModelID, modelID1)
+
+	// Second call should use cached result (no additional API calls expected)
+	modelID2, err := helper.GetModelID(ctx, client, orgID)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedModelID, modelID2)
 }
 
 func TestStoreHelper_GetModelID_GetStoreIDError(t *testing.T) {
 	client := fgamocks.NewOpenFGAServiceClient(t)
-	helper := NewStoreHelper()
+	helper := NewFGAStoreHelper(5 * time.Minute)
 
 	ctx := context.Background()
 	orgID := "test-org"
@@ -184,7 +221,7 @@ func TestStoreHelper_GetModelID_GetStoreIDError(t *testing.T) {
 
 func TestStoreHelper_GetModelID_NoModels(t *testing.T) {
 	client := fgamocks.NewOpenFGAServiceClient(t)
-	helper := NewStoreHelper()
+	helper := NewFGAStoreHelper(5 * time.Minute)
 
 	ctx := context.Background()
 	orgID := "test-org"
@@ -218,7 +255,7 @@ func TestStoreHelper_GetModelID_NoModels(t *testing.T) {
 
 func TestStoreHelper_GetModelID_ReadModelsError(t *testing.T) {
 	client := fgamocks.NewOpenFGAServiceClient(t)
-	helper := NewStoreHelper()
+	helper := NewFGAStoreHelper(5 * time.Minute)
 
 	ctx := context.Background()
 	orgID := "test-org"
@@ -245,41 +282,4 @@ func TestStoreHelper_GetModelID_ReadModelsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Empty(t, modelID)
 	assert.Contains(t, err.Error(), "read models failed")
-}
-
-func TestStoreHelper_IsDuplicateWriteError_True(t *testing.T) {
-	helper := NewStoreHelper()
-
-	// Create a gRPC status error with the specific error code
-	grpcError := status.Error(codes.Code(openfgav1.ErrorCode_write_failed_due_to_invalid_input), "duplicate write")
-
-	result := helper.IsDuplicateWriteError(grpcError)
-	assert.True(t, result)
-}
-
-func TestStoreHelper_IsDuplicateWriteError_False_DifferentCode(t *testing.T) {
-	helper := NewStoreHelper()
-
-	// Create a gRPC status error with a different error code
-	grpcError := status.Error(codes.NotFound, "not found")
-
-	result := helper.IsDuplicateWriteError(grpcError)
-	assert.False(t, result)
-}
-
-func TestStoreHelper_IsDuplicateWriteError_False_NonGRPCError(t *testing.T) {
-	helper := NewStoreHelper()
-
-	// Create a regular error
-	regularError := errors.New("regular error")
-
-	result := helper.IsDuplicateWriteError(regularError)
-	assert.False(t, result)
-}
-
-func TestStoreHelper_IsDuplicateWriteError_False_NilError(t *testing.T) {
-	helper := NewStoreHelper()
-
-	result := helper.IsDuplicateWriteError(nil)
-	assert.False(t, result)
 }

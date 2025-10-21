@@ -240,8 +240,8 @@ func TestNew_InvalidConfig(t *testing.T) {
 			User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
 			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
 			Cache        struct {
-				TTL     time.Duration `mapstructure:"keycloak-cache-ttl" default:"5m"`
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
 			} `mapstructure:",squash"`
 		}{
 			BaseURL:      "invalid-url", // Invalid URL
@@ -249,8 +249,8 @@ func TestNew_InvalidConfig(t *testing.T) {
 			User:         "test-user",
 			PasswordFile: "/nonexistent/file",
 			Cache: struct {
-				TTL     time.Duration `mapstructure:"keycloak-cache-ttl" default:"5m"`
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
 			}{
 				TTL:     5 * time.Minute,
 				Enabled: true,

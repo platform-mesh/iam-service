@@ -25,6 +25,7 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/config"
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	fgamocks "github.com/platform-mesh/iam-service/pkg/fga/mocks"
+	"github.com/platform-mesh/iam-service/pkg/fga/store"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 
@@ -524,10 +525,8 @@ func (m *mockStoreHelper) GetModelID(ctx context.Context, conn openfgav1.OpenFGA
 	return args.String(0), args.Error(1)
 }
 
-func (m *mockStoreHelper) IsDuplicateWriteError(err error) bool {
-	args := m.Called(err)
-	return args.Bool(0)
-}
+// Ensure mockStoreHelper implements store.StoreHelper interface
+var _ store.StoreHelper = (*mockStoreHelper)(nil)
 
 // Tests for NewAuthorizedDirective constructor
 func TestNewAuthorizedDirective(t *testing.T) {

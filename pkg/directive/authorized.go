@@ -24,7 +24,7 @@ import (
 
 	"github.com/platform-mesh/iam-service/pkg/config"
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
-	"github.com/platform-mesh/iam-service/pkg/fga"
+	"github.com/platform-mesh/iam-service/pkg/fga/store"
 	"github.com/platform-mesh/iam-service/pkg/fga/tuples"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 )
@@ -32,11 +32,11 @@ import (
 type AuthorizedDirective struct {
 	mgr    mcmanager.Manager
 	oc     openfgav1.OpenFGAServiceClient
-	helper fga.StoreHelper
+	helper store.StoreHelper
 }
 
 func NewAuthorizedDirective(mgr mcmanager.Manager, oc openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) *AuthorizedDirective {
-	return &AuthorizedDirective{mgr: mgr, oc: oc, helper: fga.NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL)}
+	return &AuthorizedDirective{mgr: mgr, oc: oc, helper: store.NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL)}
 }
 func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql.Resolver, permission string) (any, error) {
 	log := logger.LoadLoggerFromContext(ctx)

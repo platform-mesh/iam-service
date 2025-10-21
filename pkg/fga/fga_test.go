@@ -25,6 +25,13 @@ import (
 func createTestConfig() *config.ServiceConfig {
 	testRolesFile := filepath.Join("testdata", "roles.yaml")
 	return &config.ServiceConfig{
+		OpenFGA: struct {
+			GRPCAddr      string        `mapstructure:"openfga-grpc-addr" default:"openfga:8081"`
+			StoreCacheTTL time.Duration `mapstructure:"openfga-store-cache-ttl" default:"5m"`
+		}{
+			GRPCAddr:      "localhost:8081",
+			StoreCacheTTL: 5 * time.Minute,
+		},
 		Roles: struct {
 			FilePath string `mapstructure:"roles-file-path" default:"input/roles.yaml"`
 		}{
@@ -36,15 +43,16 @@ func createTestConfig() *config.ServiceConfig {
 			User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
 			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
 			Cache        struct {
-				TTL     time.Duration `mapstructure:"keycloak-cache-ttl" default:"5m"`
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
 			} `mapstructure:",squash"`
 		}{
 			Cache: struct {
-				TTL     time.Duration `mapstructure:"keycloak-cache-ttl" default:"5m"`
 				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
+				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
 			}{
-				TTL: 5 * time.Minute,
+				TTL:     5 * time.Minute,
+				Enabled: true,
 			},
 		},
 	}
@@ -61,7 +69,9 @@ func createTestService(t *testing.T) (*Service, *fgamocks.OpenFGAServiceClient) 
 		t.Fatalf("Failed to create roles retriever: %v", err)
 	}
 
-	service := NewWithRolesRetriever(client, nil, rolesRetriever)
+	// Create config with proper OpenFGA settings
+	cfg := createTestConfig()
+	service := NewWithRolesRetriever(client, cfg, rolesRetriever)
 	return service, client
 }
 

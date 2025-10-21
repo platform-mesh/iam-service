@@ -11,9 +11,11 @@ import (
 	"github.com/platform-mesh/golang-commons/fga/util"
 	"github.com/platform-mesh/golang-commons/logger"
 	"go.opentelemetry.io/otel"
+	"google.golang.org/grpc/status"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
+	"github.com/platform-mesh/iam-service/pkg/fga/store"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/roles"
 )
@@ -26,7 +28,7 @@ type UserIDToRoles map[string][]string
 
 type Service struct {
 	client         openfgav1.OpenFGAServiceClient
-	helper         StoreHelper
+	helper         store.StoreHelper
 	rolesRetriever roles.RolesRetriever
 }
 
@@ -39,18 +41,14 @@ func New(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) (*Ser
 
 	return &Service{
 		client:         client,
-		helper:         NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL),
+		helper:         store.NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL),
 		rolesRetriever: rolesRetriever,
 	}, nil
 }
 
 // NewWithRolesRetriever creates a new FGA service with a custom roles retriever
 func NewWithRolesRetriever(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig, rolesRetriever roles.RolesRetriever) *Service {
-	helper := NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL)
-	if cfg != nil {
-		helper = NewFGAStoreHelper(cfg.Keycloak.Cache.TTL)
-	}
-
+	helper := store.NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL)
 	return &Service{
 		client:         client,
 		helper:         helper,
@@ -347,7 +345,7 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 			_, err := s.client.Write(ctx, writeReq)
 			if err != nil {
 				// Check if this is a duplicate write error (roleTuple already exists)
-				if s.helper.IsDuplicateWriteError(err) {
+				if isDuplicateWriteError(err) {
 					// Treat duplicate writes as successful - the role is already assigned
 					totalAssigned++
 					log.Info().Str("role", role).Str("userId", change.UserID).Msg("Role already assigned to user - skipping duplicate")
@@ -504,4 +502,13 @@ var containsString = func(arr []string, s string) bool {
 		}
 	}
 	return false
+}
+
+func isDuplicateWriteError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	s, ok := status.FromError(err)
+	return ok && int32(s.Code()) == int32(openfgav1.ErrorCode_write_failed_due_to_invalid_input)
 }
