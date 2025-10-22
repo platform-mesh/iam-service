@@ -947,9 +947,9 @@ func TestAuthorizedDirective_Authorized_Success(t *testing.T) {
 	nextCalled := false
 	next := func(ctx context.Context) (any, error) {
 		nextCalled = true
-		// Verify account info was set in context
-		ai, _ := appcontext.GetAccountInfo(ctx)
-		assert.NotNil(t, ai)
+		// Verify cluster ID was set in context
+		clusterId, _ := appcontext.GetClusterId(ctx)
+		assert.NotEmpty(t, clusterId)
 		return "success", nil
 	}
 

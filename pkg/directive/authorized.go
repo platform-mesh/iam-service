@@ -70,7 +70,11 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 	log.Debug().Str("context", fmt.Sprintf("%+v", rctx)).Msg("Retrieved resource context")
 
 	// Retrieve account info from kcp workspace
-	ai, err := a.air.Get(ctx, rctx.AccountPath)
+	path := rctx.AccountPath
+	if rctx.Group == "core.platform-mesh.io" && rctx.Kind == "Account" {
+		path = fmt.Sprintf("%s:%s", path, rctx.Resource.Name)
+	}
+	ai, err := a.air.Get(ctx, path)
 	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get account info from kcp context")
 	}
@@ -79,8 +83,14 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 		return nil, gqlerror.Errorf("unauthorized")
 	}
 
-	// Store account info in context for future use
-	ctx = appcontext.SetAccountInfo(ctx, ai)
+	// The clusterID will be set to the cluster where the resource is located.
+	// The used account info is from with the account's workspace,
+	// so if we manage access for accounts the origin cluster ID must be used.
+	clusterId := ai.Spec.Account.GeneratedClusterId
+	if rctx.Group == "core.platform-mesh.io" && rctx.Kind == "Account" {
+		clusterId = ai.Spec.Account.OriginClusterId
+	}
+	ctx = appcontext.SetClusterId(ctx, clusterId)
 
 	// Test if resource exists
 	wsClient, err := getWSClient(rctx.AccountPath, log, a.restCfg, a.scheme)
@@ -111,9 +121,15 @@ func (a AuthorizedDirective) testIfAllowed(ctx context.Context, ai *accountsv1al
 	ct := tuples.GenerateContextualTuples(rctx, ai)
 
 	fgaTypeName := util.ConvertToTypeName(rctx.Group, rctx.Kind)
-	object := fmt.Sprintf("%s:%s/%s", fgaTypeName, ai.Spec.Account.GeneratedClusterId, rctx.Resource.Name)
+
+	clusterId := ai.Spec.Account.GeneratedClusterId
+	if rctx.Group == "core.platform-mesh.io" && rctx.Kind == "Account" {
+		clusterId = ai.Spec.Account.OriginClusterId
+	}
+
+	object := fmt.Sprintf("%s:%s/%s", fgaTypeName, clusterId, rctx.Resource.Name)
 	if rctx.Resource.Namespace != nil {
-		object = fmt.Sprintf("%s:%s/%s/%s", fgaTypeName, ai.Spec.Account.GeneratedClusterId, *rctx.Resource.Namespace, rctx.Resource.Name)
+		object = fmt.Sprintf("%s:%s/%s/%s", fgaTypeName, clusterId, *rctx.Resource.Namespace, rctx.Resource.Name)
 	}
 
 	user := fmt.Sprintf("user:%s", token.Mail) // TODO: what happens if mail is not uid?

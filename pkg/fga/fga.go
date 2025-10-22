@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
-	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
 	"github.com/platform-mesh/golang-commons/errors"
 	"github.com/platform-mesh/golang-commons/fga/util"
 	"github.com/platform-mesh/golang-commons/logger"
@@ -70,11 +69,6 @@ func (s *Service) ListUsers(ctx context.Context, rctx graph.ResourceContext, rol
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.ListUsers")
 	defer span.End()
 
-	ai, err := appcontext.GetAccountInfo(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get cluster ID from account path")
-	}
-
 	kctx, err := appcontext.GetKCPContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get kcp user context")
@@ -96,11 +90,11 @@ func (s *Service) ListUsers(ctx context.Context, rctx graph.ResourceContext, rol
 	}
 
 	// Use parallel processing for multiple roles
-	return s.listUsersParallel(ctx, rctx, storeID, appliedRoles, ai)
+	return s.listUsersParallel(ctx, rctx, storeID, appliedRoles)
 }
 
 // listUsersParallel performs parallel ListUsers calls for multiple roles
-func (s *Service) listUsersParallel(ctx context.Context, rctx graph.ResourceContext, storeID string, roles []string, ai *accountsv1alpha1.AccountInfo) ([]*graph.UserRoles, error) {
+func (s *Service) listUsersParallel(ctx context.Context, rctx graph.ResourceContext, storeID string, roles []string) ([]*graph.UserRoles, error) {
 
 	type roleResult struct {
 		role  string
@@ -112,6 +106,11 @@ func (s *Service) listUsersParallel(ctx context.Context, rctx graph.ResourceCont
 	// Create channels for goroutine communication
 	resultChan := make(chan roleResult, len(roles))
 
+	clusterId, err := appcontext.GetClusterId(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get cluster ID from context")
+	}
+
 	// Launch goroutines for each role
 	for _, role := range roles {
 		go func(role string) {
@@ -121,7 +120,7 @@ func (s *Service) listUsersParallel(ctx context.Context, rctx graph.ResourceCont
 					Type: "role",
 					Id: fmt.Sprintf("%s/%s/%s/%s",
 						fgaTypeName,
-						ai.Spec.Account.GeneratedClusterId,
+						clusterId,
 						rctx.Resource.Name,
 						role),
 				},
@@ -266,7 +265,7 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.AssignRolesToUsers")
 	defer span.End()
 
-	ai, err := appcontext.GetAccountInfo(ctx)
+	clusterId, err := appcontext.GetClusterId(ctx)
 	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get cluster ID from account path")
 	}
@@ -313,20 +312,20 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 				Relation: "assignee",
 				Object: fmt.Sprintf("role:%s/%s/%s/%s",
 					fgaTypeName,
-					ai.Spec.Account.GeneratedClusterId,
+					clusterId,
 					rctx.Resource.Name,
 					role),
 			}
 
 			targetFGATypeName := util.ConvertToTypeName(rctx.Group, rctx.Kind)
-			targetObject := fmt.Sprintf("%s:%s/%s", targetFGATypeName, ai.Spec.Account.GeneratedClusterId, rctx.Resource.Name)
+			targetObject := fmt.Sprintf("%s:%s/%s", targetFGATypeName, clusterId, rctx.Resource.Name)
 			if rctx.Resource.Namespace != nil {
-				targetObject = fmt.Sprintf("%s:%s/%s/%s", targetFGATypeName, ai.Spec.Account.GeneratedClusterId, *rctx.Resource.Namespace, rctx.Resource.Name)
+				targetObject = fmt.Sprintf("%s:%s/%s/%s", targetFGATypeName, clusterId, *rctx.Resource.Namespace, rctx.Resource.Name)
 			}
 			assignRoleTuple := &openfgav1.TupleKey{
 				User: fmt.Sprintf("role:%s/%s/%s/%s#assignee",
 					fgaTypeName,
-					ai.Spec.Account.GeneratedClusterId,
+					clusterId,
 					rctx.Resource.Name,
 					role),
 				Relation: role,
@@ -378,7 +377,7 @@ func (s *Service) RemoveRole(ctx context.Context, rctx graph.ResourceContext, in
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.RemoveRole")
 	defer span.End()
 
-	ai, err := appcontext.GetAccountInfo(ctx)
+	clusterId, err := appcontext.GetClusterId(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get cluster ID from account path")
 	}
@@ -425,7 +424,7 @@ func (s *Service) RemoveRole(ctx context.Context, rctx graph.ResourceContext, in
 		Relation: "assignee",
 		Object: fmt.Sprintf("role:%s/%s/%s/%s",
 			fgaTypeName,
-			ai.Spec.Account.GeneratedClusterId,
+			clusterId,
 			rctx.Resource.Name,
 			input.Role),
 	}
@@ -463,7 +462,7 @@ func (s *Service) RemoveRole(ctx context.Context, rctx graph.ResourceContext, in
 		Relation: "assignee",
 		Object: fmt.Sprintf("role:%s/%s/%s/%s",
 			fgaTypeName,
-			ai.Spec.Account.GeneratedClusterId,
+			clusterId,
 			rctx.Resource.Name,
 			input.Role),
 	}
