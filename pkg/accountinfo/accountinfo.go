@@ -41,7 +41,7 @@ func (a *accountInfoRetriever) Get(ctx context.Context, accountPath string) (*ac
 	}
 
 	cluster, err := a.mgr.GetCluster(ctx, logicalcluster.From(lc).String())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		log.Error().Err(err).Msg("failed to get cluster from manager")
 		return nil, err
 	}

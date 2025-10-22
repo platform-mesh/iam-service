@@ -33,3 +33,40 @@ packages:
         config:
           mockname: KeycloakClientInterface
 
+  github.com/kcp-dev/kcp/sdk/client/clientset/versioned/cluster:
+    config:
+      dir: pkg/accountinfo/mocks
+      outpkg: mocks
+    interfaces:
+      ClusterInterface:
+        config:
+          mockname: ClusterInterface
+
+  github.com/kcp-dev/kcp/sdk/client/clientset/versioned:
+    config:
+      dir: pkg/accountinfo/mocks
+      outpkg: mocks
+    interfaces:
+      CoreV1alpha1Interface:
+        config:
+          mockname: CoreV1alpha1Interface
+      Interface:
+        config:
+          mockname: Interface
+
+  github.com/kcp-dev/kcp/sdk/client/clientset/versioned/typed/core/v1alpha1:
+    config:
+      dir: pkg/accountinfo/mocks
+      outpkg: mocks
+    interfaces:
+      CoreV1alpha1Interface:
+        config:
+          mockname: CoreV1alpha1Interface
+      LogicalClusterInterface:
+        config:
+          mockname: LogicalClusterInterface
+
+
+
+
+

@@ -12,6 +12,7 @@ exclude:
   paths:
     - cmd/*
     - pkg/keycloak/client
+    - pkg/accountinfo/mocks
     - pkg/fga/mocks
     - pkg/keycloak/mocks
     - pkg/graph
