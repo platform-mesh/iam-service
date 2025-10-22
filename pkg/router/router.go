@@ -48,6 +48,14 @@ func CreateRouter(
 		router.Handle("/", playground.Handler("GraphQL playground", "/graphql"))
 	}
 
+	router.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	router.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	router.With(mws...).Handle("/graphql", gqHandler)
 	return router
 }
