@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/rest"
 
-	"github.com/platform-mesh/iam-service/pkg/config"
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	"github.com/platform-mesh/iam-service/pkg/middleware/idm"
 )
@@ -39,22 +38,17 @@ var _ idm.IDMTenantRetriever = (*mockIDMTenantRetriever)(nil)
 func TestNew(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
-	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
-			ExcludedTenants: []string{"excluded1", "excluded2"},
-		},
-	}
+	excludedTenants := []string{"excluded1", "excluded2"}
+	restConfig := &rest.Config{Host: "https://test.example.com"}
 
-	middleware := New(nil, cfg, log, mockTenantRetriever, "test-orgs-cluster")
+	middleware := New(restConfig, excludedTenants, mockTenantRetriever, "test-orgs-cluster", log)
 
 	assert.NotNil(t, middleware)
-	assert.Equal(t, cfg, middleware.cfg)
 	assert.Equal(t, log, middleware.log)
 	assert.Equal(t, mockTenantRetriever, middleware.tenantRetriever)
-	assert.Equal(t, []string{"excluded1", "excluded2"}, middleware.excludedIDMTenants)
+	assert.Equal(t, excludedTenants, middleware.excludedIDMTenants)
 	assert.Equal(t, "test-orgs-cluster", middleware.orgsWorkspaceClusterName)
+	assert.Equal(t, restConfig, middleware.restcfg)
 }
 
 func TestGetKCPContext(t *testing.T) {
@@ -108,15 +102,10 @@ func TestGetKCPContext(t *testing.T) {
 func TestSetKCPUserContext_MiddlewareCreation(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
-	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
-			ExcludedTenants: []string{},
-		},
-	}
+	excludedTenants := []string{}
+	restConfig := &rest.Config{Host: "https://test.example.com"}
 
-	middleware := New(nil, cfg, log, mockTenantRetriever, "test-orgs-cluster")
+	middleware := New(restConfig, excludedTenants, mockTenantRetriever, "test-orgs-cluster", log)
 	middlewareFunc := middleware.SetKCPUserContext()
 	assert.NotNil(t, middlewareFunc)
 
@@ -130,15 +119,10 @@ func TestSetKCPUserContext_MiddlewareCreation(t *testing.T) {
 func TestSetKCPUserContext_NoWebTokenInContext(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
-	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
-			ExcludedTenants: []string{},
-		},
-	}
+	excludedTenants := []string{}
+	restConfig := &rest.Config{Host: "https://test.example.com"}
 
-	middleware := New(nil, cfg, log, mockTenantRetriever, "test-orgs-cluster")
+	middleware := New(restConfig, excludedTenants, mockTenantRetriever, "test-orgs-cluster", log)
 	middlewareFunc := middleware.SetKCPUserContext()
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -154,7 +138,7 @@ func TestSetKCPUserContext_NoWebTokenInContext(t *testing.T) {
 
 	wrappedHandler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
 // TestGetKCPInfosForContext is removed as the method was refactored away
@@ -330,15 +314,10 @@ func TestSetKCPUserContext_IDMTenantError(t *testing.T) {
 		shouldErr: true, // Force error
 	}
 	log, _ := logger.New(logger.Config{Level: "debug"})
-	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
-			ExcludedTenants: []string{},
-		},
-	}
+	excludedTenants := []string{}
+	restConfig := &rest.Config{Host: "https://test.example.com"}
 
-	middleware := New(nil, cfg, log, mockTenantRetriever, "test-orgs-cluster")
+	middleware := New(restConfig, excludedTenants, mockTenantRetriever, "test-orgs-cluster", log)
 	middlewareFunc := middleware.SetKCPUserContext()
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -365,15 +344,10 @@ func TestSetKCPUserContext_IDMTenantError(t *testing.T) {
 func TestSetKCPUserContext_AuthHeaderError(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
-	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
-			ExcludedTenants: []string{},
-		},
-	}
+	excludedTenants := []string{}
+	restConfig := &rest.Config{Host: "https://test.example.com"}
 
-	middleware := New(nil, cfg, log, mockTenantRetriever, "test-orgs-cluster")
+	middleware := New(restConfig, excludedTenants, mockTenantRetriever, "test-orgs-cluster", log)
 	middlewareFunc := middleware.SetKCPUserContext()
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -394,7 +368,7 @@ func TestSetKCPUserContext_AuthHeaderError(t *testing.T) {
 
 	wrappedHandler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
 // Test coverage for specific middleware error paths with simpler approach
@@ -402,15 +376,10 @@ func TestSetKCPUserContext_DirectWebTokenContext(t *testing.T) {
 	// This test directly adds a WebToken to context to bypass JWT parsing
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
-	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
-			ExcludedTenants: []string{},
-		},
-	}
+	excludedTenants := []string{}
+	restConfig := &rest.Config{Host: "https://test.example.com"}
 
-	middleware := New(nil, cfg, log, mockTenantRetriever, "test-orgs-cluster")
+	middleware := New(restConfig, excludedTenants, mockTenantRetriever, "test-orgs-cluster", log)
 	middlewareFunc := middleware.SetKCPUserContext()
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -439,9 +408,9 @@ func TestSetKCPUserContext_DirectWebTokenContext(t *testing.T) {
 
 	wrappedHandler.ServeHTTP(rr, req)
 
-	// This will likely return 500 due to token type mismatch, but it exercises the code path
+	// This will likely return 401 due to token type mismatch, but it exercises the code path
 	// The goal is to increase coverage, not necessarily make all tests pass perfectly
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
 // Test for HTTPClientFor error coverage in checkToken
@@ -509,15 +478,10 @@ func TestCheckToken_HTTPClientForError_ForceError(t *testing.T) {
 func TestSetKCPUserContext_SubdomainExtraction(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
-	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
-			ExcludedTenants: []string{},
-		},
-	}
+	excludedTenants := []string{}
+	restConfig := &rest.Config{Host: "https://test.example.com"}
 
-	middleware := New(nil, cfg, log, mockTenantRetriever, "test-orgs-cluster")
+	middleware := New(restConfig, excludedTenants, mockTenantRetriever, "test-orgs-cluster", log)
 	middlewareFunc := middleware.SetKCPUserContext()
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -547,8 +511,8 @@ func TestSetKCPUserContext_SubdomainExtraction(t *testing.T) {
 			wrappedHandler.ServeHTTP(rr, req)
 
 			// These will fail early due to missing web token, but they exercise
-			// the subdomain extraction logic (line 140: strings.Split(r.Host, ".")[0])
-			assert.Equal(t, http.StatusInternalServerError, rr.Code)
+			// the subdomain extraction logic (line 71: strings.Split(r.Host, ".")[0])
+			assert.Equal(t, http.StatusUnauthorized, rr.Code)
 		})
 	}
 }
@@ -585,19 +549,13 @@ func TestSetKCPUserContext_IDMTenantSuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
-			ExcludedTenants: []string{},
-		},
-	}
+	excludedTenants := []string{}
 
 	restConfig := &rest.Config{
 		Host: server.URL,
 	}
 
-	middleware := New(restConfig, cfg, log, mockTenantRetriever, "test-orgs-cluster")
+	middleware := New(restConfig, excludedTenants, mockTenantRetriever, "test-orgs-cluster", log)
 	middlewareFunc := middleware.SetKCPUserContext()
 
 	// Handler that checks if KCP context was set correctly
@@ -634,15 +592,10 @@ func TestSetKCPUserContext_IDMTenantRetrievalError(t *testing.T) {
 		shouldErr: true,
 	}
 	log, _ := logger.New(logger.Config{Level: "debug"})
-	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
-			ExcludedTenants: []string{},
-		},
-	}
+	excludedTenants := []string{}
+	restConfig := &rest.Config{Host: "https://test.example.com"}
 
-	middleware := New(nil, cfg, log, mockTenantRetriever, "test-orgs-cluster")
+	middleware := New(restConfig, excludedTenants, mockTenantRetriever, "test-orgs-cluster", log)
 	middlewareFunc := middleware.SetKCPUserContext()
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -669,15 +622,10 @@ func TestSetKCPUserContext_IDMTenantRetrievalError(t *testing.T) {
 func TestSetKCPUserContext_MissingAuthHeader(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
-	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
-			ExcludedTenants: []string{},
-		},
-	}
+	excludedTenants := []string{}
+	restConfig := &rest.Config{Host: "https://test.example.com"}
 
-	middleware := New(nil, cfg, log, mockTenantRetriever, "test-orgs-cluster")
+	middleware := New(restConfig, excludedTenants, mockTenantRetriever, "test-orgs-cluster", log)
 	middlewareFunc := middleware.SetKCPUserContext()
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -697,7 +645,7 @@ func TestSetKCPUserContext_MissingAuthHeader(t *testing.T) {
 
 	wrappedHandler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
 // Test SetKCPUserContext with token check failure
@@ -711,19 +659,13 @@ func TestSetKCPUserContext_TokenCheckFailure(t *testing.T) {
 	}))
 	defer server.Close()
 
-	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
-			ExcludedTenants: []string{},
-		},
-	}
+	excludedTenants := []string{}
 
 	restConfig := &rest.Config{
 		Host: server.URL,
 	}
 
-	middleware := New(restConfig, cfg, log, mockTenantRetriever, "test-orgs-cluster")
+	middleware := New(restConfig, excludedTenants, mockTenantRetriever, "test-orgs-cluster", log)
 	middlewareFunc := middleware.SetKCPUserContext()
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -752,20 +694,14 @@ func TestSetKCPUserContext_TokenCheckError(t *testing.T) {
 	mockTenantRetriever := &mockIDMTenantRetriever{}
 	log, _ := logger.New(logger.Config{Level: "debug"})
 
-	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
-			ExcludedTenants: []string{},
-		},
-	}
+	excludedTenants := []string{}
 
 	// Use invalid config that will cause checkToken to error
 	restConfig := &rest.Config{
 		Host: "://invalid-url",
 	}
 
-	middleware := New(restConfig, cfg, log, mockTenantRetriever, "test-orgs-cluster")
+	middleware := New(restConfig, excludedTenants, mockTenantRetriever, "test-orgs-cluster", log)
 	middlewareFunc := middleware.SetKCPUserContext()
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -800,19 +736,13 @@ func TestSetKCPUserContext_SubdomainPatterns(t *testing.T) {
 	}))
 	defer server.Close()
 
-	cfg := &config.ServiceConfig{
-		IDM: struct {
-			ExcludedTenants []string `mapstructure:"idm-excluded-tenants"`
-		}{
-			ExcludedTenants: []string{},
-		},
-	}
+	excludedTenants := []string{}
 
 	restConfig := &rest.Config{
 		Host: server.URL,
 	}
 
-	middleware := New(restConfig, cfg, log, mockTenantRetriever, "test-orgs-cluster")
+	middleware := New(restConfig, excludedTenants, mockTenantRetriever, "test-orgs-cluster", log)
 	middlewareFunc := middleware.SetKCPUserContext()
 
 	testCases := []struct {

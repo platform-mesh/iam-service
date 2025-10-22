@@ -3,12 +3,16 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
+	"sync"
 
 	"github.com/coreos/go-oidc"
 	"github.com/platform-mesh/golang-commons/errors"
 	"github.com/platform-mesh/golang-commons/logger"
 	"golang.org/x/oauth2"
+	"golang.org/x/sync/errgroup"
+	"k8s.io/utils/ptr"
 
 	"github.com/platform-mesh/iam-service/pkg/cache"
 	"github.com/platform-mesh/iam-service/pkg/config"
@@ -17,10 +21,70 @@ import (
 	keycloakClient "github.com/platform-mesh/iam-service/pkg/keycloak/client"
 )
 
+// sanitizeEmail returns a sanitized version of the email for logging (first 3 chars + ***)
+// to avoid logging PII information
+func sanitizeEmail(email string) string {
+	if len(email) <= 3 {
+		return email
+	}
+	return email[:3] + "***"
+}
+
 type Service struct {
 	cfg            *config.ServiceConfig
 	keycloakClient KeycloakClientInterface
 	userCache      *cache.UserCache
+}
+
+func New(ctx context.Context, cfg *config.ServiceConfig) (*Service, error) {
+	log := logger.LoadLoggerFromContext(ctx)
+	issuer := fmt.Sprintf("%s/realms/master", cfg.Keycloak.BaseURL)
+	provider, err := oidc.NewProvider(ctx, issuer)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create OIDC provider for issuer %s", issuer)
+	}
+
+	oauthC := oauth2.Config{
+		ClientID: cfg.Keycloak.ClientID,
+		Endpoint: provider.Endpoint(),
+	}
+
+	pwd, err := os.ReadFile(cfg.Keycloak.PasswordFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read Keycloak password file %s", cfg.Keycloak.PasswordFile)
+	}
+
+	token, err := oauthC.PasswordCredentialsToken(ctx, cfg.Keycloak.User, string(pwd))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to obtain password credentials token for user %s", cfg.Keycloak.User)
+	}
+
+	// Create authenticated HTTP client
+	httpClient := oauthC.Client(ctx, token)
+
+	// Create Keycloak client with the authenticated HTTP client
+	kcClient, err := keycloakClient.NewClientWithResponses(
+		cfg.Keycloak.BaseURL,
+		keycloakClient.WithHTTPClient(httpClient),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Keycloak client: %w", err)
+	}
+
+	// Initialize cache if enabled
+	var userCache *cache.UserCache
+	if cfg.Keycloak.Cache.Enabled {
+		userCache = cache.NewUserCache(cfg.Keycloak.Cache.TTL)
+		log.Info().Dur("ttl", cfg.Keycloak.Cache.TTL).Msg("Keycloak user cache enabled")
+	} else {
+		log.Info().Msg("Keycloak user cache disabled")
+	}
+
+	return &Service{
+		cfg:            cfg,
+		keycloakClient: kcClient,
+		userCache:      userCache,
+	}, nil
 }
 
 func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, error) {
@@ -55,27 +119,25 @@ func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, e
 // fetchUserFromKeycloak fetches a single user from Keycloak by email
 func (s *Service) fetchUserFromKeycloak(ctx context.Context, realm, email string) (*graph.User, error) {
 	log := logger.LoadLoggerFromContext(ctx)
+
 	// Configure search parameters
-	briefRepresentation := true
-	maxResults := int32(1)
-	exact := true
 	params := &keycloakClient.GetUsersParams{
 		Email:               &email,
-		Max:                 &maxResults,
-		BriefRepresentation: &briefRepresentation,
-		Exact:               &exact,
+		Max:                 ptr.To[int32](1),
+		BriefRepresentation: ptr.To(true),
+		Exact:               ptr.To(true),
 	}
 
 	// Query users using the generated client
 	resp, err := s.keycloakClient.GetUsersWithResponse(ctx, realm, params)
 	if err != nil { // coverage-ignore
-		log.Err(err).Str("email", email).Msg("Failed to query user")
-		return nil, errors.Wrap(err, "failed to query Keycloak API for user %s in realm %s", email, realm)
+		log.Err(err).Str("email", sanitizeEmail(email)).Msg("Failed to query user")
+		return nil, errors.Wrap(err, "failed to query Keycloak API for user %s in realm %s", sanitizeEmail(email), realm)
 	}
 
-	if resp.StatusCode() != 200 {
-		log.Error().Int("status_code", resp.StatusCode()).Str("email", email).Msg("Non-200 response from Keycloak")
-		return nil, errors.New("keycloak API returned status %d for user %s", resp.StatusCode(), email)
+	if resp.StatusCode() != http.StatusOK {
+		log.Error().Int("status_code", resp.StatusCode()).Str("email", sanitizeEmail(email)).Msg("Non-200 response from Keycloak")
+		return nil, errors.New("keycloak API returned status %d for user %s", resp.StatusCode(), sanitizeEmail(email))
 	}
 
 	if resp.JSON200 == nil {
@@ -86,9 +148,10 @@ func (s *Service) fetchUserFromKeycloak(ctx context.Context, realm, email string
 	if len(users) == 0 {
 		return nil, nil
 	}
+
 	if len(users) != 1 {
-		log.Info().Str("email", email).Int("count", len(users)).Msg("unexpected user count")
-		return nil, errors.New("expected 1 user, got %d for email %s", len(users), email)
+		log.Info().Str("email", sanitizeEmail(email)).Int("count", len(users)).Msg("unexpected user count")
+		return nil, errors.New("expected 1 user, got %d for email %s", len(users), sanitizeEmail(email))
 	}
 
 	user := users[0]
@@ -166,49 +229,40 @@ func (s *Service) GetUsersByEmails(ctx context.Context, emails []string) (map[st
 	return result, nil
 }
 
-// fetchUsersInParallel fetches multiple users from Keycloak in parallel
+// fetchUsersInParallel fetches multiple users from Keycloak in parallel using errgroup
+// Fails fast on the first encountered error
 func (s *Service) fetchUsersInParallel(ctx context.Context, realm string, emails []string) (map[string]*graph.User, error) {
-	log := logger.LoadLoggerFromContext(ctx)
-	type userResult struct {
-		email string
-		user  *graph.User
-		err   error
-	}
+	// Use errgroup with context for fail-fast behavior
+	g, gCtx := errgroup.WithContext(ctx)
 
-	resultChan := make(chan userResult, len(emails))
-
-	// Launch goroutines for each email
-	for _, email := range emails {
-		go func(email string) {
-			user, err := s.fetchUserFromKeycloak(ctx, realm, email)
-			resultChan <- userResult{
-				email: email,
-				user:  user,
-				err:   err,
-			}
-		}(email)
-	}
-
-	// Collect results
+	// Thread-safe map to store results
+	var mu sync.Mutex
 	userMap := make(map[string]*graph.User)
-	var errors []string
 
-	for i := 0; i < len(emails); i++ {
-		result := <-resultChan
+	// Launch goroutines for each email using errgroup
+	for _, email := range emails {
+		email := email // capture loop variable
+		g.Go(func() error {
+			user, err := s.fetchUserFromKeycloak(gCtx, realm, email)
+			if err != nil {
+				// Return error immediately to trigger fail-fast behavior
+				// Only log first few characters of email to avoid PII exposure
+				return fmt.Errorf("failed to fetch user %s: %w", sanitizeEmail(email), err)
+			}
 
-		if result.err != nil {
-			errors = append(errors, fmt.Sprintf("%s: %v", result.email, result.err))
-			continue
-		}
+			mu.Lock()
+			defer mu.Unlock()
+			if user != nil {
+				userMap[email] = user
+			}
 
-		if result.user != nil {
-			userMap[result.email] = result.user
-		}
+			return nil
+		})
 	}
 
-	// Log any errors but don't fail the entire operation
-	if len(errors) > 0 {
-		log.Warn().Strs("errors", errors).Msg("Some user fetches failed")
+	// Wait for all goroutines to complete or first error
+	if err := g.Wait(); err != nil {
+		return nil, errors.Wrap(err, "error group failed during user fetching")
 	}
 
 	return userMap, nil
@@ -258,51 +312,4 @@ func (s *Service) EnrichUserRoles(ctx context.Context, userRoles []*graph.UserRo
 	}
 
 	return nil
-}
-
-func New(ctx context.Context, cfg *config.ServiceConfig) (*Service, error) {
-	log := logger.LoadLoggerFromContext(ctx)
-	issuer := fmt.Sprintf("%s/realms/master", cfg.Keycloak.BaseURL)
-	provider, err := oidc.NewProvider(ctx, issuer)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create OIDC provider for issuer %s", issuer)
-	}
-
-	oauthC := oauth2.Config{ClientID: cfg.Keycloak.ClientID, Endpoint: provider.Endpoint()}
-	pwd, err := os.ReadFile(cfg.Keycloak.PasswordFile)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read Keycloak password file %s", cfg.Keycloak.PasswordFile)
-	}
-
-	token, err := oauthC.PasswordCredentialsToken(ctx, cfg.Keycloak.User, string(pwd))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to obtain password credentials token for user %s", cfg.Keycloak.User)
-	}
-
-	// Create authenticated HTTP client
-	httpClient := oauthC.Client(ctx, token)
-
-	// Create Keycloak client with the authenticated HTTP client
-	kcClient, err := keycloakClient.NewClientWithResponses(
-		cfg.Keycloak.BaseURL,
-		keycloakClient.WithHTTPClient(httpClient),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Keycloak client: %w", err)
-	}
-
-	// Initialize cache if enabled
-	var userCache *cache.UserCache
-	if cfg.Keycloak.Cache.Enabled {
-		userCache = cache.NewUserCache(cfg.Keycloak.Cache.TTL)
-		log.Info().Dur("ttl", cfg.Keycloak.Cache.TTL).Msg("Keycloak user cache enabled")
-	} else {
-		log.Info().Msg("Keycloak user cache disabled")
-	}
-
-	return &Service{
-		cfg:            cfg,
-		keycloakClient: kcClient,
-		userCache:      userCache,
-	}, nil
 }

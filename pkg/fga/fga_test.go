@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
@@ -25,32 +26,15 @@ import (
 func createTestConfig() *config.ServiceConfig {
 	testRolesFile := filepath.Join("testdata", "roles.yaml")
 	return &config.ServiceConfig{
-		OpenFGA: struct {
-			GRPCAddr      string        `mapstructure:"openfga-grpc-addr" default:"openfga:8081"`
-			StoreCacheTTL time.Duration `mapstructure:"openfga-store-cache-ttl" default:"5m"`
-		}{
+		OpenFGA: config.OpenFGAConfig{
 			GRPCAddr:      "localhost:8081",
 			StoreCacheTTL: 5 * time.Minute,
 		},
-		Roles: struct {
-			FilePath string `mapstructure:"roles-file-path" default:"input/roles.yaml"`
-		}{
+		Roles: config.RolesConfig{
 			FilePath: testRolesFile,
 		},
-		Keycloak: struct {
-			BaseURL      string `mapstructure:"keycloak-base-url" default:"https://portal.dev.local:8443/keycloak"`
-			ClientID     string `mapstructure:"keycloak-client-id" default:"admin-cli"`
-			User         string `mapstructure:"keycloak-user" default:"keycloak-admin"`
-			PasswordFile string `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
-			Cache        struct {
-				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
-			} `mapstructure:",squash"`
-		}{
-			Cache: struct {
-				Enabled bool          `mapstructure:"keycloak-cache-enabled" default:"true"`
-				TTL     time.Duration `mapstructure:"keycloak-user-cache-ttl" default:"5m"`
-			}{
+		Keycloak: config.KeycloakConfig{
+			Cache: config.KeycloakCacheConfig{
 				TTL:     5 * time.Minute,
 				Enabled: true,
 			},
@@ -101,7 +85,7 @@ func TestService_ListUsers_Success(t *testing.T) {
 		Kind:  "Account",
 		Resource: &graph.Resource{
 			Name:      "test-account",
-			Namespace: stringPtr("default"),
+			Namespace: ptr.To("default"),
 		},
 		AccountPath: "test-account",
 	}
@@ -225,7 +209,7 @@ func TestService_ListUsers_NoKCPContext(t *testing.T) {
 		Kind:  "Account",
 		Resource: &graph.Resource{
 			Name:      "test-account",
-			Namespace: stringPtr("default"),
+			Namespace: ptr.To("default"),
 		},
 		AccountPath: "test-account",
 	}
@@ -275,7 +259,7 @@ func TestService_GetRoles_Success(t *testing.T) {
 		Kind:  "Account",
 		Resource: &graph.Resource{
 			Name:      "test-account",
-			Namespace: stringPtr("default"),
+			Namespace: ptr.To("default"),
 		},
 		AccountPath: "test-account",
 	}
@@ -319,7 +303,7 @@ func TestService_AssignRolesToUsers_Success(t *testing.T) {
 		Kind:  "Account",
 		Resource: &graph.Resource{
 			Name:      "test-account",
-			Namespace: stringPtr("default"),
+			Namespace: ptr.To("default"),
 		},
 		AccountPath: "test-account",
 	}
@@ -389,7 +373,7 @@ func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
 		Kind:  "Account",
 		Resource: &graph.Resource{
 			Name:      "test-account",
-			Namespace: stringPtr("default"),
+			Namespace: ptr.To("default"),
 		},
 		AccountPath: "test-account",
 	}
@@ -462,7 +446,7 @@ func TestService_RemoveRole_Success(t *testing.T) {
 		Kind:  "Account",
 		Resource: &graph.Resource{
 			Name:      "test-account",
-			Namespace: stringPtr("default"),
+			Namespace: ptr.To("default"),
 		},
 		AccountPath: "test-account",
 	}
@@ -551,7 +535,7 @@ func TestService_RemoveRole_RoleNotAssigned(t *testing.T) {
 		Kind:  "Account",
 		Resource: &graph.Resource{
 			Name:      "test-account",
-			Namespace: stringPtr("default"),
+			Namespace: ptr.To("default"),
 		},
 		AccountPath: "test-account",
 	}
@@ -606,9 +590,4 @@ func TestService_RemoveRole_RoleNotAssigned(t *testing.T) {
 	assert.True(t, result.Success)      // Still successful since idempotent
 	assert.False(t, result.WasAssigned) // But role wasn't assigned
 	assert.Nil(t, result.Error)
-}
-
-// Helper function to create string pointers
-func stringPtr(s string) *string {
-	return &s
 }

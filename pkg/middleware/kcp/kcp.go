@@ -12,29 +12,31 @@ import (
 	"github.com/platform-mesh/golang-commons/logger"
 	"k8s.io/client-go/rest"
 
-	"github.com/platform-mesh/iam-service/pkg/config"
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	"github.com/platform-mesh/iam-service/pkg/middleware/idm"
 )
 
 type Middleware struct {
-	restcfg                  *rest.Config
-	cfg                      *config.ServiceConfig
 	log                      *logger.Logger
 	tenantRetriever          idm.IDMTenantRetriever
 	excludedIDMTenants       []string
 	orgsWorkspaceClusterName string
+	restcfg                  *rest.Config
 }
 
-func New(restcfg *rest.Config, cfg *config.ServiceConfig, log *logger.Logger, tenantRetriever idm.IDMTenantRetriever, orgsWorkspaceClusterName string) *Middleware {
-	excludedIDMTenants := cfg.IDM.ExcludedTenants
+func New(restcfg *rest.Config, excludedIDMTenants []string, tenantRetriever idm.IDMTenantRetriever, orgsClustedrName string, log *logger.Logger) *Middleware {
+	restcfg = rest.CopyConfig(restcfg)
+	restcfg.KeyData = nil
+	restcfg.CertData = nil
+	restcfg.KeyFile = ""
+	restcfg.CertFile = ""
+
 	return &Middleware{
-		restcfg:                  restcfg,
-		cfg:                      cfg,
 		log:                      log,
 		tenantRetriever:          tenantRetriever,
 		excludedIDMTenants:       excludedIDMTenants,
-		orgsWorkspaceClusterName: orgsWorkspaceClusterName,
+		orgsWorkspaceClusterName: orgsClustedrName,
+		restcfg:                  restcfg,
 	}
 }
 
@@ -46,8 +48,8 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 
 			tokenInfo, err := pmcontext.GetWebTokenFromContext(ctx)
 			if err != nil {
-				log.Error().Err(err).Msg("Error while retrieving tokenInfo")
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				log.Debug().Err(err).Msg("No Token info found in context")
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 
@@ -60,8 +62,8 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 
 			authHeader, err := pmcontext.GetAuthHeaderFromContext(ctx)
 			if err != nil {
-				log.Error().Err(err).Msg("Error while retrieving auth header")
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				log.Debug().Err(err).Msg("No Token info found in context")
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 
@@ -85,6 +87,7 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 				OrganizationName: subdomain,
 				IDMTenant:        idmTenant,
 			}
+
 			ctx = appcontext.SetKCPContext(ctx, kctx)
 			log.Trace().
 				Str("organization", kctx.OrganizationName).
@@ -95,13 +98,7 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 	}
 }
 
-func checkToken(ctx context.Context, authHeader string, subdomain string, mgrcfg *rest.Config) (bool, error) {
-	cfg := rest.CopyConfig(mgrcfg)
-	// Ensure no client certificates are used
-	cfg.CertData = nil
-	cfg.KeyData = nil
-	cfg.CertFile = ""
-	cfg.KeyFile = ""
+func checkToken(ctx context.Context, authHeader string, subdomain string, cfg *rest.Config) (bool, error) {
 
 	log := logger.LoadLoggerFromContext(ctx)
 	clusterUrl, err := url.Parse(cfg.Host)
@@ -137,5 +134,6 @@ func checkToken(ctx context.Context, authHeader string, subdomain string, mgrcfg
 	case http.StatusOK, http.StatusCreated, http.StatusForbidden:
 		return true, nil
 	}
+
 	return false, nil
 }

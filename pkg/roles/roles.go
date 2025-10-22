@@ -42,33 +42,22 @@ type FileBasedRolesRetriever struct {
 
 // NewFileBasedRolesRetriever creates a new file-based roles retriever
 func NewFileBasedRolesRetriever(filePath string) (*FileBasedRolesRetriever, error) {
-	retriever := &FileBasedRolesRetriever{
-		filePath: filePath,
-	}
-
-	err := retriever.reload()
+	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to load roles from %s", filePath)
-	}
-
-	return retriever, nil
-}
-
-// reload reloads the roles configuration from the file
-func (r *FileBasedRolesRetriever) reload() error {
-	data, err := os.ReadFile(r.filePath)
-	if err != nil {
-		return errors.Wrap(err, "failed to read roles file %s", r.filePath)
+		return nil, errors.Wrap(err, "failed to read roles file %s", filePath)
 	}
 
 	var config RolesConfig
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
-		return errors.Wrap(err, "failed to unmarshal roles YAML from file %s", r.filePath)
+		return nil, errors.Wrap(err, "failed to unmarshal roles YAML from file %s", filePath)
 	}
 
-	r.config = &config
-	return nil
+	retriever := &FileBasedRolesRetriever{
+		filePath: filePath,
+		config:   &config,
+	}
+	return retriever, nil
 }
 
 // GetRoleDefinitions returns the full role definitions for a given group resource

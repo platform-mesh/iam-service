@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
@@ -21,7 +22,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/platform-mesh/iam-service/pkg/config"
+	"github.com/platform-mesh/iam-service/pkg/accountinfo"
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	"github.com/platform-mesh/iam-service/pkg/fga/store"
 	"github.com/platform-mesh/iam-service/pkg/fga/tuples"
@@ -29,15 +30,23 @@ import (
 )
 
 type AuthorizedDirective struct {
-	oc         openfgav1.OpenFGAServiceClient
-	helper     store.StoreHelper
-	restConfig *rest.Config
-	scheme     *runtime.Scheme
+	fga     openfgav1.OpenFGAServiceClient
+	helper  store.StoreHelper
+	air     accountinfo.Retriever
+	restCfg *rest.Config
+	scheme  *runtime.Scheme
 }
 
-func NewAuthorizedDirective(restConfig *rest.Config, scheme *runtime.Scheme, oc openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) *AuthorizedDirective {
-	return &AuthorizedDirective{restConfig: restConfig, scheme: scheme, oc: oc, helper: store.NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL)}
+func NewAuthorizedDirective(oc openfgav1.OpenFGAServiceClient, air accountinfo.Retriever, storeTTL time.Duration, restCfg *rest.Config, scheme *runtime.Scheme) *AuthorizedDirective {
+	return &AuthorizedDirective{
+		fga:     oc,
+		helper:  store.NewFGAStoreHelper(storeTTL),
+		air:     air,
+		restCfg: restCfg,
+		scheme:  scheme,
+	}
 }
+
 func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql.Resolver, permission string) (any, error) {
 	log := logger.LoadLoggerFromContext(ctx)
 	log.Debug().Msg("Authorized directive called with permission: " + permission)
@@ -60,16 +69,12 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 	}
 	log.Debug().Str("context", fmt.Sprintf("%+v", rctx)).Msg("Retrieved resource context")
 
-	wsClient, err := getWSClient(rctx.AccountPath, log, a.restConfig, a.scheme)
-	if err != nil { // coverage-ignore
-		return nil, errors.Wrap(err, "failed to get workspace client")
-	}
-
 	// Retrieve account info from kcp workspace
-	ai, err := getAccountInfoFromKcpContext(ctx, wsClient)
+	ai, err := a.air.Get(ctx, rctx.AccountPath)
 	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get account info from kcp context")
 	}
+
 	if ai.Spec.Organization.Name != kctx.OrganizationName {
 		return nil, gqlerror.Errorf("unauthorized")
 	}
@@ -78,6 +83,10 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 	ctx = appcontext.SetAccountInfo(ctx, ai)
 
 	// Test if resource exists
+	wsClient, err := getWSClient(rctx.AccountPath, log, a.restCfg, a.scheme)
+	if err != nil { // coverage-ignore
+		return nil, errors.Wrap(err, "failed to get workspace client")
+	}
 	exists, err := a.testIfResourceExists(ctx, rctx, wsClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to test if resource exists")
@@ -106,8 +115,9 @@ func (a AuthorizedDirective) testIfAllowed(ctx context.Context, ai *accountsv1al
 	if rctx.Resource.Namespace != nil {
 		object = fmt.Sprintf("%s:%s/%s/%s", fgaTypeName, ai.Spec.Account.GeneratedClusterId, *rctx.Resource.Namespace, rctx.Resource.Name)
 	}
-	user := fmt.Sprintf("user:%s", token.Mail)
-	storeID, err := a.helper.GetStoreID(ctx, a.oc, ai.Spec.Organization.Name)
+
+	user := fmt.Sprintf("user:%s", token.Mail) // TODO: what happens if mail is not uid?
+	storeID, err := a.helper.GetStoreID(ctx, a.fga, ai.Spec.Organization.Name)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to get store ID for organization %s", ai.Spec.Organization.Name)
 	}
@@ -121,11 +131,13 @@ func (a AuthorizedDirective) testIfAllowed(ctx context.Context, ai *accountsv1al
 			User:     user,
 		},
 	}
-	checkResp, err := a.oc.Check(ctx, &req)
+
+	res, err := a.fga.Check(ctx, &req)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to check permission with openfga")
 	}
-	return checkResp.Allowed, nil
+
+	return res.Allowed, nil
 }
 
 func (a AuthorizedDirective) testIfResourceExists(ctx context.Context, rctx *graph.ResourceContext, wsClient client.Client) (bool, error) {
@@ -133,10 +145,12 @@ func (a AuthorizedDirective) testIfResourceExists(ctx context.Context, rctx *gra
 		Group:    rctx.Group,
 		Resource: rctx.Kind,
 	}
+
 	gvr, err := wsClient.RESTMapper().ResourceFor(gvr)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to get GVR for resource")
 	}
+
 	gvk, err := wsClient.RESTMapper().KindFor(gvr)
 	if err != nil { // coverage-ignore
 		return false, errors.Wrap(err, "failed to get GVK for resource")
@@ -161,6 +175,7 @@ func (a AuthorizedDirective) testIfResourceExists(ctx context.Context, rctx *gra
 
 func getWSClient(accountPath string, log *logger.Logger, restcfg *rest.Config, scheme *runtime.Scheme) (client.Client, error) {
 	cfg := rest.CopyConfig(restcfg)
+
 	parsed, err := url.Parse(cfg.Host)
 	if err != nil {
 		log.Error().Err(err).Msg("unable to parse host")
@@ -176,17 +191,6 @@ func getWSClient(accountPath string, log *logger.Logger, restcfg *rest.Config, s
 		return nil, err
 	}
 	return cl, nil
-}
-
-func getAccountInfoFromKcpContext(ctx context.Context, cl client.Client) (*accountsv1alpha1.AccountInfo, error) {
-	log := logger.LoadLoggerFromContext(ctx)
-	ai := &accountsv1alpha1.AccountInfo{}
-	err := cl.Get(ctx, client.ObjectKey{Name: "account"}, ai)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to get orgs workspace from kcp")
-		return nil, err
-	}
-	return ai, nil
 }
 
 const resourceContextParamName = "context"
