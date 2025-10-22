@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/kcp-dev/kcp/sdk/apis/core/v1alpha1"
 	kcpclientset "github.com/kcp-dev/kcp/sdk/client/clientset/versioned/cluster"
 	"github.com/kcp-dev/logicalcluster/v3"
 	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
+	"github.com/platform-mesh/account-operator/pkg/subroutines/accountinfo"
 	"github.com/platform-mesh/golang-commons/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,7 +36,7 @@ func New(mgr mcmanager.Manager, clusterClient kcpclientset.ClusterInterface) (Re
 
 func (a *accountInfoRetriever) Get(ctx context.Context, accountPath string) (*accountsv1alpha1.AccountInfo, error) {
 	log := logger.LoadLoggerFromContext(ctx)
-	lc, err := a.clusterClient.Cluster(logicalcluster.NewPath(accountPath)).CoreV1alpha1().LogicalClusters().Get(ctx, "cluster", metav1.GetOptions{})
+	lc, err := a.clusterClient.Cluster(logicalcluster.NewPath(accountPath)).CoreV1alpha1().LogicalClusters().Get(ctx, v1alpha1.LogicalClusterName, metav1.GetOptions{})
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get logical cluster from kcp")
 		return nil, err
@@ -48,7 +50,7 @@ func (a *accountInfoRetriever) Get(ctx context.Context, accountPath string) (*ac
 	cl := cluster.GetClient()
 
 	ai := &accountsv1alpha1.AccountInfo{}
-	err = cl.Get(ctx, client.ObjectKey{Name: "account"}, ai)
+	err = cl.Get(ctx, client.ObjectKey{Name: accountinfo.DefaultAccountInfoName}, ai)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get orgs workspace from kcp")
 		return nil, err
