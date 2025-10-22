@@ -138,7 +138,7 @@ func TestSetKCPUserContext_NoWebTokenInContext(t *testing.T) {
 
 	wrappedHandler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
 // TestGetKCPInfosForContext is removed as the method was refactored away
@@ -368,7 +368,7 @@ func TestSetKCPUserContext_AuthHeaderError(t *testing.T) {
 
 	wrappedHandler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
 // Test coverage for specific middleware error paths with simpler approach
@@ -408,9 +408,9 @@ func TestSetKCPUserContext_DirectWebTokenContext(t *testing.T) {
 
 	wrappedHandler.ServeHTTP(rr, req)
 
-	// This will likely return 500 due to token type mismatch, but it exercises the code path
+	// This will likely return 401 due to token type mismatch, but it exercises the code path
 	// The goal is to increase coverage, not necessarily make all tests pass perfectly
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
 // Test for HTTPClientFor error coverage in checkToken
@@ -511,8 +511,8 @@ func TestSetKCPUserContext_SubdomainExtraction(t *testing.T) {
 			wrappedHandler.ServeHTTP(rr, req)
 
 			// These will fail early due to missing web token, but they exercise
-			// the subdomain extraction logic (line 140: strings.Split(r.Host, ".")[0])
-			assert.Equal(t, http.StatusInternalServerError, rr.Code)
+			// the subdomain extraction logic (line 71: strings.Split(r.Host, ".")[0])
+			assert.Equal(t, http.StatusUnauthorized, rr.Code)
 		})
 	}
 }
@@ -645,7 +645,7 @@ func TestSetKCPUserContext_MissingAuthHeader(t *testing.T) {
 
 	wrappedHandler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
 // Test SetKCPUserContext with token check failure

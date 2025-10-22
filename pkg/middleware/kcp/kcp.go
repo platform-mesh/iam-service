@@ -25,6 +25,11 @@ type Middleware struct {
 }
 
 func New(restcfg *rest.Config, excludedIDMTenants []string, tenantRetriever idm.IDMTenantRetriever, orgsClustedrName string, log *logger.Logger) *Middleware {
+	restcfg = rest.CopyConfig(restcfg)
+	restcfg.KeyData = nil
+	restcfg.CertData = nil
+	restcfg.KeyFile = ""
+	restcfg.CertFile = ""
 
 	return &Middleware{
 		log:                      log,
@@ -43,8 +48,8 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 
 			tokenInfo, err := pmcontext.GetWebTokenFromContext(ctx)
 			if err != nil {
-				log.Error().Err(err).Msg("Error while retrieving tokenInfo")
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				log.Debug().Err(err).Msg("No Token info found in context")
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 
@@ -57,8 +62,8 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 
 			authHeader, err := pmcontext.GetAuthHeaderFromContext(ctx)
 			if err != nil {
-				log.Error().Err(err).Msg("Error while retrieving auth header")
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				log.Debug().Err(err).Msg("No Token info found in context")
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 
@@ -93,8 +98,7 @@ func (m *Middleware) SetKCPUserContext() func(http.Handler) http.Handler {
 	}
 }
 
-func checkToken(ctx context.Context, authHeader string, subdomain string, mgrcfg *rest.Config) (bool, error) {
-	cfg := rest.CopyConfig(mgrcfg)
+func checkToken(ctx context.Context, authHeader string, subdomain string, cfg *rest.Config) (bool, error) {
 
 	log := logger.LoadLoggerFromContext(ctx)
 	clusterUrl, err := url.Parse(cfg.Host)
