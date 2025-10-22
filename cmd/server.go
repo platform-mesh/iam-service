@@ -63,6 +63,9 @@ var serverCmd = &cobra.Command{
 
 func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1.OpenFGAServiceClient) *chi.Mux {
 	restcfg, err := getRootConfig(mgr)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to get root config")
+	}
 
 	clusterClient, err := kcpclientset.NewForConfig(restcfg)
 	if err != nil {

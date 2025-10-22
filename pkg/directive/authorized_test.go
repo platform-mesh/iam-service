@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/platform-mesh/iam-service/pkg/accountinfo"
-	"github.com/platform-mesh/iam-service/pkg/config"
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	fgamocks "github.com/platform-mesh/iam-service/pkg/fga/mocks"
 	"github.com/platform-mesh/iam-service/pkg/fga/store"
@@ -35,17 +34,6 @@ import (
 )
 
 // Helper functions
-func createTestConfig() *config.ServiceConfig {
-	return &config.ServiceConfig{
-		Keycloak: config.KeycloakConfig{
-			Cache: config.KeycloakCacheConfig{
-				TTL:     5 * time.Minute,
-				Enabled: true,
-			},
-		},
-	}
-}
-
 func createTestAccountInfo() *accountsv1alpha1.AccountInfo {
 	return &accountsv1alpha1.AccountInfo{
 		ObjectMeta: metav1.ObjectMeta{Name: "account"},

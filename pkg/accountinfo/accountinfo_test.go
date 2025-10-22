@@ -54,7 +54,7 @@ func TestAccountInfoRetriever_Get_NilDependencies(t *testing.T) {
 
 	// The method panics with nil dependencies - this demonstrates the need for proper initialization
 	assert.Panics(t, func() {
-		retriever.Get(ctx, accountPath)
+		_, _ = retriever.Get(ctx, accountPath)
 	})
 }
 
@@ -119,7 +119,7 @@ func TestAccountInfoRetriever_Get_NilContext(t *testing.T) {
 
 	// This will panic with nil dependencies
 	assert.Panics(t, func() {
-		retriever.Get(nil, "test-account")
+		_, _ = retriever.Get(context.Background(), "test-account")
 	})
 }
 
@@ -135,6 +135,6 @@ func TestAccountInfoRetriever_Get_EmptyAccountPath(t *testing.T) {
 
 	// This will panic with nil dependencies
 	assert.Panics(t, func() {
-		retriever.Get(ctx, "")
+		_, _ = retriever.Get(ctx, "")
 	})
 }
