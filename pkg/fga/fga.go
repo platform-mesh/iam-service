@@ -24,6 +24,15 @@ var (
 	userFilter = []*openfgav1.UserTypeFilter{{Type: "user"}}
 )
 
+// sanitizeUserID returns a sanitized version of the userID for logging (first 3 chars + ***)
+// to avoid logging PII information
+func sanitizeUserID(userID string) string {
+	if len(userID) <= 3 {
+		return userID
+	}
+	return userID[:3] + "***"
+}
+
 type UserIDToRoles map[string][]string
 
 type Service struct {
@@ -278,7 +287,7 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 
 	// Process each user role change
 	for _, change := range changes {
-		log.Debug().Str("userId", change.UserID).Interface("roles", change.Roles).Msg("Processing role assignment")
+		log.Debug().Str("userId", sanitizeUserID(change.UserID)).Interface("roles", change.Roles).Msg("Processing role assignment")
 
 		// Validate that only available roles are being assigned
 		roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rctx)
@@ -292,9 +301,9 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 
 		for _, role := range change.Roles {
 			if !containsString(availableRoles, role) {
-				errMsg := fmt.Sprintf("role '%s' is not allowed for user '%s'. Only roles %v are permitted", role, change.UserID, availableRoles)
+				errMsg := fmt.Sprintf("role '%s' is not allowed for user '%s'. Only roles %v are permitted", role, sanitizeUserID(change.UserID), availableRoles)
 				allErrors = append(allErrors, errMsg)
-				log.Warn().Str("role", role).Str("userId", change.UserID).Interface("availableRoles", availableRoles).Msg("Invalid role assignment attempted")
+				log.Warn().Str("role", role).Str("userId", sanitizeUserID(change.UserID)).Interface("availableRoles", availableRoles).Msg("Invalid role assignment attempted")
 				continue
 			}
 
@@ -338,16 +347,16 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 				if isDuplicateWriteError(err) {
 					// Treat duplicate writes as successful - the role is already assigned
 					totalAssigned++
-					log.Info().Str("role", role).Str("userId", change.UserID).Msg("Role already assigned to user - skipping duplicate")
+					log.Info().Str("role", role).Str("userId", sanitizeUserID(change.UserID)).Msg("Role already assigned to user - skipping duplicate")
 				} else {
 					// This is a real error
-					errMsg := fmt.Sprintf("failed to assign role '%s' to user '%s': %v", role, change.UserID, err)
+					errMsg := fmt.Sprintf("failed to assign role '%s' to user '%s': %v", role, sanitizeUserID(change.UserID), err)
 					allErrors = append(allErrors, errMsg)
-					log.Error().Err(err).Str("role", role).Str("userId", change.UserID).Msg("Failed to write roleTuple to FGA")
+					log.Error().Err(err).Str("role", role).Str("userId", sanitizeUserID(change.UserID)).Msg("Failed to write roleTuple to FGA")
 				}
 			} else {
 				totalAssigned++
-				log.Info().Str("role", role).Str("userId", change.UserID).Msg("Successfully assigned role to user")
+				log.Info().Str("role", role).Str("userId", sanitizeUserID(change.UserID)).Msg("Successfully assigned role to user")
 			}
 		}
 	}
@@ -385,7 +394,7 @@ func (s *Service) RemoveRole(ctx context.Context, rctx graph.ResourceContext, in
 		return nil, errors.Wrap(err, "failed to get store ID for organization %s", kctx.OrganizationName)
 	}
 
-	log.Debug().Str("userId", input.UserID).Str("role", input.Role).Msg("Processing role removal")
+	log.Debug().Str("userId", sanitizeUserID(input.UserID)).Str("role", input.Role).Msg("Processing role removal")
 
 	// Validate that only available roles can be removed
 	roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rctx)
@@ -402,7 +411,7 @@ func (s *Service) RemoveRole(ctx context.Context, rctx graph.ResourceContext, in
 
 	if !containsString(availableRoles, input.Role) {
 		errMsg := fmt.Sprintf("role '%s' is not allowed. Only roles %v are permitted", input.Role, availableRoles)
-		log.Warn().Str("role", input.Role).Str("userId", input.UserID).Interface("availableRoles", availableRoles).Msg("Invalid role removal attempted")
+		log.Warn().Str("role", input.Role).Str("userId", sanitizeUserID(input.UserID)).Interface("availableRoles", availableRoles).Msg("Invalid role removal attempted")
 		return &graph.RoleRemovalResult{
 			Success:     false,
 			Error:       &errMsg,
@@ -428,7 +437,7 @@ func (s *Service) RemoveRole(ctx context.Context, rctx graph.ResourceContext, in
 
 	readResp, err := s.client.Read(ctx, readReq)
 	if err != nil {
-		log.Error().Err(err).Str("role", input.Role).Str("userId", input.UserID).Msg("Failed to check if tuple exists")
+		log.Error().Err(err).Str("role", input.Role).Str("userId", sanitizeUserID(input.UserID)).Msg("Failed to check if tuple exists")
 		errMsg := fmt.Sprintf("failed to check role assignment: %v", err)
 		return &graph.RoleRemovalResult{
 			Success:     false,
@@ -440,7 +449,7 @@ func (s *Service) RemoveRole(ctx context.Context, rctx graph.ResourceContext, in
 	// Check if the tuple was found
 	wasAssigned := len(readResp.Tuples) > 0
 	if !wasAssigned {
-		log.Info().Str("role", input.Role).Str("userId", input.UserID).Msg("Role was not assigned to user - nothing to remove")
+		log.Info().Str("role", input.Role).Str("userId", sanitizeUserID(input.UserID)).Msg("Role was not assigned to user - nothing to remove")
 		return &graph.RoleRemovalResult{
 			Success:     true,
 			Error:       nil,
@@ -468,8 +477,8 @@ func (s *Service) RemoveRole(ctx context.Context, rctx graph.ResourceContext, in
 
 	_, err = s.client.Write(ctx, deleteReq)
 	if err != nil {
-		log.Error().Err(err).Str("role", input.Role).Str("userId", input.UserID).Msg("Failed to delete tuple from FGA")
-		errMsg := fmt.Sprintf("failed to remove role '%s' from user '%s': %v", input.Role, input.UserID, err)
+		log.Error().Err(err).Str("role", input.Role).Str("userId", sanitizeUserID(input.UserID)).Msg("Failed to delete tuple from FGA")
+		errMsg := fmt.Sprintf("failed to remove role '%s' from user '%s': %v", input.Role, sanitizeUserID(input.UserID), err)
 		return &graph.RoleRemovalResult{
 			Success:     false,
 			Error:       &errMsg,
@@ -477,7 +486,7 @@ func (s *Service) RemoveRole(ctx context.Context, rctx graph.ResourceContext, in
 		}, nil
 	}
 
-	log.Info().Str("role", input.Role).Str("userId", input.UserID).Msg("Successfully removed role from user")
+	log.Info().Str("role", input.Role).Str("userId", sanitizeUserID(input.UserID)).Msg("Successfully removed role from user")
 	return &graph.RoleRemovalResult{
 		Success:     true,
 		Error:       nil,

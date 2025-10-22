@@ -44,7 +44,7 @@ func TestNewFileBasedRolesRetriever_FileNotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, retriever)
-	assert.Contains(t, err.Error(), "failed to load roles")
+	assert.Contains(t, err.Error(), "failed to read roles file")
 }
 
 func TestNewFileBasedRolesRetriever_InvalidYAML(t *testing.T) {

@@ -21,6 +21,15 @@ import (
 	keycloakClient "github.com/platform-mesh/iam-service/pkg/keycloak/client"
 )
 
+// sanitizeEmail returns a sanitized version of the email for logging (first 3 chars + ***)
+// to avoid logging PII information
+func sanitizeEmail(email string) string {
+	if len(email) <= 3 {
+		return email
+	}
+	return email[:3] + "***"
+}
+
 type Service struct {
 	cfg            *config.ServiceConfig
 	keycloakClient KeycloakClientInterface
@@ -122,13 +131,13 @@ func (s *Service) fetchUserFromKeycloak(ctx context.Context, realm, email string
 	// Query users using the generated client
 	resp, err := s.keycloakClient.GetUsersWithResponse(ctx, realm, params)
 	if err != nil { // coverage-ignore
-		log.Err(err).Str("email", email).Msg("Failed to query user")
-		return nil, errors.Wrap(err, "failed to query Keycloak API for user %s in realm %s", email, realm)
+		log.Err(err).Str("email", sanitizeEmail(email)).Msg("Failed to query user")
+		return nil, errors.Wrap(err, "failed to query Keycloak API for user %s in realm %s", sanitizeEmail(email), realm)
 	}
 
 	if resp.StatusCode() != http.StatusOK {
-		log.Error().Int("status_code", resp.StatusCode()).Str("email", email).Msg("Non-200 response from Keycloak")
-		return nil, errors.New("keycloak API returned status %d for user %s", resp.StatusCode(), email)
+		log.Error().Int("status_code", resp.StatusCode()).Str("email", sanitizeEmail(email)).Msg("Non-200 response from Keycloak")
+		return nil, errors.New("keycloak API returned status %d for user %s", resp.StatusCode(), sanitizeEmail(email))
 	}
 
 	if resp.JSON200 == nil {
@@ -141,8 +150,8 @@ func (s *Service) fetchUserFromKeycloak(ctx context.Context, realm, email string
 	}
 
 	if len(users) != 1 {
-		log.Info().Str("email", email).Int("count", len(users)).Msg("unexpected user count")
-		return nil, errors.New("expected 1 user, got %d for email %s", len(users), email)
+		log.Info().Str("email", sanitizeEmail(email)).Int("count", len(users)).Msg("unexpected user count")
+		return nil, errors.New("expected 1 user, got %d for email %s", len(users), sanitizeEmail(email))
 	}
 
 	user := users[0]
@@ -221,33 +230,28 @@ func (s *Service) GetUsersByEmails(ctx context.Context, emails []string) (map[st
 }
 
 // fetchUsersInParallel fetches multiple users from Keycloak in parallel using errgroup
+// Fails fast on the first encountered error
 func (s *Service) fetchUsersInParallel(ctx context.Context, realm string, emails []string) (map[string]*graph.User, error) {
-	log := logger.LoadLoggerFromContext(ctx)
-
-	// Use errgroup for better goroutine management without context replacement
-	// We don't need context cancellation here since we want to continue on individual errors
-	var g errgroup.Group
+	// Use errgroup with context for fail-fast behavior
+	g, gCtx := errgroup.WithContext(ctx)
 
 	// Thread-safe map to store results
 	var mu sync.Mutex
 	userMap := make(map[string]*graph.User)
-	var fetchErrors []string
 
 	// Launch goroutines for each email using errgroup
 	for _, email := range emails {
 		email := email // capture loop variable
 		g.Go(func() error {
-			user, err := s.fetchUserFromKeycloak(ctx, realm, email)
+			user, err := s.fetchUserFromKeycloak(gCtx, realm, email)
+			if err != nil {
+				// Return error immediately to trigger fail-fast behavior
+				// Only log first few characters of email to avoid PII exposure
+				return fmt.Errorf("failed to fetch user %s: %w", sanitizeEmail(email), err)
+			}
 
 			mu.Lock()
 			defer mu.Unlock()
-
-			if err != nil {
-				// Collect errors but don't fail the entire operation
-				fetchErrors = append(fetchErrors, fmt.Sprintf("%s: %v", email, err))
-				return nil // Don't return error to continue with other fetches
-			}
-
 			if user != nil {
 				userMap[email] = user
 			}
@@ -256,16 +260,9 @@ func (s *Service) fetchUsersInParallel(ctx context.Context, realm string, emails
 		})
 	}
 
-	// Wait for all goroutines to complete
+	// Wait for all goroutines to complete or first error
 	if err := g.Wait(); err != nil {
-		// This should not happen since we don't return errors from goroutines,
-		// but handle it just in case
 		return nil, errors.Wrap(err, "error group failed during user fetching")
-	}
-
-	// Log any errors but don't fail the entire operation
-	if len(fetchErrors) > 0 {
-		log.Warn().Strs("errors", fetchErrors).Msg("Some user fetches failed")
 	}
 
 	return userMap, nil

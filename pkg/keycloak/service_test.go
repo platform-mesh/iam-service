@@ -189,7 +189,7 @@ func TestEnrichUserRoles_Success(t *testing.T) {
 
 	// Setup mock expectations for individual user calls
 	mockClient.EXPECT().GetUsersWithResponse(
-		ctx,
+		mock.Anything, // Accept any context type due to errgroup.WithContext()
 		"test-realm",
 		mock.MatchedBy(func(params *keycloakClient.GetUsersParams) bool {
 			return params != nil && params.Email != nil && *params.Email == "user1@example.com"
@@ -201,7 +201,7 @@ func TestEnrichUserRoles_Success(t *testing.T) {
 	}, nil)
 
 	mockClient.EXPECT().GetUsersWithResponse(
-		ctx,
+		mock.Anything, // Accept any context type due to errgroup.WithContext()
 		"test-realm",
 		mock.MatchedBy(func(params *keycloakClient.GetUsersParams) bool {
 			return params != nil && params.Email != nil && *params.Email == "user2@example.com"
@@ -520,7 +520,7 @@ func TestGetUsersByEmails_WithCache(t *testing.T) {
 	}
 
 	mockClient.EXPECT().GetUsersWithResponse(
-		ctx,
+		mock.Anything, // Accept any context type due to errgroup.WithContext()
 		"test-realm",
 		mock.MatchedBy(func(params *keycloakClient.GetUsersParams) bool {
 			return params != nil && params.Email != nil && *params.Email == fetchEmail
@@ -561,7 +561,7 @@ func TestGetUsersByEmails_FetchError(t *testing.T) {
 	}
 
 	mockClient.EXPECT().GetUsersWithResponse(
-		ctx,
+		mock.Anything, // Accept any context type due to errgroup.WithContext()
 		"test-realm",
 		mock.Anything,
 		mock.Anything,
@@ -569,10 +569,10 @@ func TestGetUsersByEmails_FetchError(t *testing.T) {
 
 	result, err := service.GetUsersByEmails(ctx, []string{"test@example.com"})
 
-	// GetUsersByEmails doesn't fail when individual fetches fail - it continues
-	assert.NoError(t, err)
-	assert.NotNil(t, result)
-	assert.Empty(t, result) // No users returned due to error
+	// GetUsersByEmails now fails when fetchUsersInParallel fails (fail-fast behavior)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to fetch users in parallel")
 }
 
 func TestFetchUsersInParallel_WithErrors(t *testing.T) {
@@ -600,7 +600,7 @@ func TestFetchUsersInParallel_WithErrors(t *testing.T) {
 	}
 
 	mockClient.EXPECT().GetUsersWithResponse(
-		ctx,
+		mock.Anything, // Accept any context type due to errgroup.WithContext()
 		"test-realm",
 		mock.MatchedBy(func(params *keycloakClient.GetUsersParams) bool {
 			return params != nil && params.Email != nil && *params.Email == userEmail1
@@ -609,7 +609,7 @@ func TestFetchUsersInParallel_WithErrors(t *testing.T) {
 	).Return(successResponse, nil)
 
 	mockClient.EXPECT().GetUsersWithResponse(
-		ctx,
+		mock.Anything, // Accept any context type due to errgroup.WithContext()
 		"test-realm",
 		mock.MatchedBy(func(params *keycloakClient.GetUsersParams) bool {
 			return params != nil && params.Email != nil && *params.Email == "error@example.com"
@@ -620,10 +620,10 @@ func TestFetchUsersInParallel_WithErrors(t *testing.T) {
 	emails := []string{userEmail1, "error@example.com"}
 	result, err := service.fetchUsersInParallel(ctx, "test-realm", emails)
 
-	// Should not return error (errors are logged but don't fail the operation)
-	assert.NoError(t, err)
-	assert.Len(t, result, 1) // Only successful user should be in result
-	assert.Equal(t, userID1, result[userEmail1].UserID)
+	// Should return error on first failure (fail-fast behavior)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to fetch user err***")
 }
 
 func TestNew_PasswordFileNotFound(t *testing.T) {
