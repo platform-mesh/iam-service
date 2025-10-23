@@ -126,7 +126,7 @@ func (s *Service) GetUsers(ctx context.Context) ([]*graph.User, error) {
 
 	realm := kctx.IDMTenant
 
-	log.Info().
+	log.Debug().
 		Str("realm", realm).
 		Msg("Fetching all users from Keycloak")
 
@@ -136,7 +136,7 @@ func (s *Service) GetUsers(ctx context.Context) ([]*graph.User, error) {
 		return nil, errors.Wrap(err, "failed to fetch all users from Keycloak for realm %s", realm)
 	}
 
-	log.Info().
+	log.Debug().
 		Int("user_count", len(users)).
 		Str("realm", realm).
 		Msg("Successfully fetched all users from Keycloak")
@@ -262,7 +262,7 @@ func (s *Service) GetUsersByEmails(ctx context.Context, emails []string) (map[st
 func (s *Service) fetchAllUsers(ctx context.Context, realm string) ([]*graph.User, error) {
 	log := logger.LoadLoggerFromContext(ctx)
 
-	var allUsers []*graph.User
+	allUsers := make([]*graph.User, 0)
 	var failedPages []int
 	pageSize := s.cfg.Keycloak.PageSize
 	var currentPage int = 0
