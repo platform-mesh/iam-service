@@ -50,6 +50,13 @@ func (s *testResolverService) RemoveRole(ctx context.Context, resourceContext gr
 	return &graph.RoleRemovalResult{Success: true, WasAssigned: true}, nil
 }
 
+func (s *testResolverService) KnownUsers(ctx context.Context, sortBy *graph.SortByInput, page *graph.PageInput) (*graph.UserConnection, error) {
+	return &graph.UserConnection{
+		Users:    []*graph.UserRoles{},
+		PageInfo: &graph.PageInfo{Count: 0, TotalCount: 0, HasNextPage: false, HasPreviousPage: false},
+	}, nil
+}
+
 // createTestResolver creates a GraphQL resolver for HTTP routing tests
 // Since router tests focus on HTTP behavior (middleware, endpoints) rather than
 // GraphQL business logic, a simple test service implementation is appropriate

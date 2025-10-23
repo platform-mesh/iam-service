@@ -241,6 +241,123 @@ func TestDefaultPager_PaginateUserRoles_CustomDefaults(t *testing.T) {
 	assert.False(t, pageInfo.HasPreviousPage)
 }
 
+// Tests for PaginateUsers method
+func TestDefaultPager_PaginateUsers_DefaultValues(t *testing.T) {
+	pager := NewDefaultPager()
+
+	// Create test data
+	users := createTestUsers(25) // 25 users
+
+	// Test with nil page input (should use defaults)
+	paginatedUsers, pageInfo := pager.PaginateUsers(users, nil, len(users))
+
+	// Should return first 10 users (default limit)
+	assert.Equal(t, 10, len(paginatedUsers))
+	assert.Equal(t, 10, pageInfo.Count)
+	assert.Equal(t, 25, pageInfo.TotalCount)
+	assert.True(t, pageInfo.HasNextPage)
+	assert.False(t, pageInfo.HasPreviousPage)
+
+	// Verify we got the first 10 users
+	for i, user := range paginatedUsers {
+		expectedEmail := users[i].Email
+		assert.Equal(t, expectedEmail, user.Email)
+	}
+}
+
+func TestDefaultPager_PaginateUsers_CustomPageSize(t *testing.T) {
+	pager := NewDefaultPager()
+
+	users := createTestUsers(25)
+
+	// Test with custom page size
+	limit := 5
+	page := 2
+	pageInput := &graph.PageInput{
+		Limit: &limit,
+		Page:  &page,
+	}
+
+	paginatedUsers, pageInfo := pager.PaginateUsers(users, pageInput, len(users))
+
+	// Should return 5 users starting from index 5 (page 2 with limit 5)
+	assert.Equal(t, 5, len(paginatedUsers))
+	assert.Equal(t, 5, pageInfo.Count)
+	assert.Equal(t, 25, pageInfo.TotalCount)
+	assert.True(t, pageInfo.HasNextPage)
+	assert.True(t, pageInfo.HasPreviousPage)
+
+	// Verify we got users from index 5-9
+	for i, user := range paginatedUsers {
+		expectedEmail := users[i+5].Email // offset by 5 for page 2
+		assert.Equal(t, expectedEmail, user.Email)
+	}
+}
+
+func TestDefaultPager_PaginateUsers_EmptyResult(t *testing.T) {
+	pager := NewDefaultPager()
+
+	var users []*graph.User
+
+	paginatedUsers, pageInfo := pager.PaginateUsers(users, nil, 0)
+
+	assert.Empty(t, paginatedUsers)
+	assert.Equal(t, 0, pageInfo.Count)
+	assert.Equal(t, 0, pageInfo.TotalCount)
+	assert.False(t, pageInfo.HasNextPage)
+	assert.False(t, pageInfo.HasPreviousPage)
+}
+
+func TestDefaultPager_PaginateUsers_OffsetBeyondTotal(t *testing.T) {
+	pager := NewDefaultPager()
+
+	users := createTestUsers(5)
+
+	// Request page 3 with limit 10 (offset would be 20, beyond total of 5)
+	limit := 10
+	page := 3
+	pageInput := &graph.PageInput{
+		Limit: &limit,
+		Page:  &page,
+	}
+
+	paginatedUsers, pageInfo := pager.PaginateUsers(users, pageInput, len(users))
+
+	assert.Empty(t, paginatedUsers)
+	assert.Equal(t, 0, pageInfo.Count)
+	assert.Equal(t, 5, pageInfo.TotalCount)
+	assert.False(t, pageInfo.HasNextPage)
+	assert.True(t, pageInfo.HasPreviousPage)
+}
+
+func TestDefaultPager_PaginateUsers_LastPage(t *testing.T) {
+	pager := NewDefaultPager()
+
+	users := createTestUsers(23) // 23 users
+
+	// Request page 3 with limit 10 (should get last 3 users)
+	limit := 10
+	page := 3
+	pageInput := &graph.PageInput{
+		Limit: &limit,
+		Page:  &page,
+	}
+
+	paginatedUsers, pageInfo := pager.PaginateUsers(users, pageInput, len(users))
+
+	assert.Equal(t, 3, len(paginatedUsers)) // Only 3 users on last page
+	assert.Equal(t, 3, pageInfo.Count)
+	assert.Equal(t, 23, pageInfo.TotalCount)
+	assert.False(t, pageInfo.HasNextPage)
+	assert.True(t, pageInfo.HasPreviousPage)
+
+	// Verify we got the last 3 users
+	for i, user := range paginatedUsers {
+		expectedEmail := users[i+20].Email // offset by 20 for page 3
+		assert.Equal(t, expectedEmail, user.Email)
+	}
+}
+
 // Helper function to create test user roles data
 func createTestUserRoles(count int) []*graph.UserRoles {
 	userRoles := make([]*graph.UserRoles, count)
@@ -260,4 +377,16 @@ func createTestUserRoles(count int) []*graph.UserRoles {
 		}
 	}
 	return userRoles
+}
+
+// Helper function to create test users data
+func createTestUsers(count int) []*graph.User {
+	users := make([]*graph.User, count)
+	for i := 0; i < count; i++ {
+		users[i] = &graph.User{
+			UserID: "",
+			Email:  "user" + string(rune('0'+i%10)) + "@example.com", // Simple pattern for testing
+		}
+	}
+	return users
 }

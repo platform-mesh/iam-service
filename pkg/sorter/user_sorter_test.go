@@ -465,6 +465,117 @@ func TestParseSortDirection(t *testing.T) {
 	}
 }
 
+// Tests for SortUsers method
+func TestDefaultUserSorter_SortUsers_EmptySlice(t *testing.T) {
+	sorter := NewUserSorter()
+
+	// Test with empty slice
+	var users []*graph.User
+	sorter.SortUsers(users, nil)
+	assert.Empty(t, users)
+
+	// Test with nil slice
+	sorter.SortUsers(nil, nil)
+}
+
+func TestDefaultUserSorter_SortUsers_SingleElement(t *testing.T) {
+	sorter := NewUserSorter()
+
+	users := []*graph.User{
+		{
+			UserID:    "user1",
+			Email:     "user1@example.com",
+			FirstName: stringPtr("John"),
+			LastName:  stringPtr("Doe"),
+		},
+	}
+
+	sorter.SortUsers(users, nil)
+	assert.Len(t, users, 1)
+	assert.Equal(t, "user1", users[0].UserID)
+}
+
+func TestDefaultUserSorter_SortUsers_DefaultSorting(t *testing.T) {
+	sorter := NewUserSorter()
+
+	users := []*graph.User{
+		{UserID: "user1", Email: "user1@example.com", LastName: stringPtr("Zebra")},
+		{UserID: "user2", Email: "user2@example.com", LastName: stringPtr("Alpha")},
+		{UserID: "user3", Email: "user3@example.com", LastName: stringPtr("Beta")},
+	}
+
+	// Default sorting should be by LastName ASC
+	sorter.SortUsers(users, nil)
+
+	assert.Equal(t, "Alpha", *users[0].LastName)
+	assert.Equal(t, "Beta", *users[1].LastName)
+	assert.Equal(t, "Zebra", *users[2].LastName)
+}
+
+func TestDefaultUserSorter_SortUsers_ByEmail(t *testing.T) {
+	sorter := NewUserSorter()
+
+	users := []*graph.User{
+		{UserID: "user1", Email: "c@example.com"},
+		{UserID: "user2", Email: "a@example.com"},
+		{UserID: "user3", Email: "b@example.com"},
+	}
+
+	sortBy := &graph.SortByInput{
+		Field:     graph.UserSortFieldEmail,
+		Direction: graph.SortDirectionAsc,
+	}
+
+	sorter.SortUsers(users, sortBy)
+
+	assert.Equal(t, "a@example.com", users[0].Email)
+	assert.Equal(t, "b@example.com", users[1].Email)
+	assert.Equal(t, "c@example.com", users[2].Email)
+}
+
+func TestDefaultUserSorter_SortUsers_ByFirstNameDesc(t *testing.T) {
+	sorter := NewUserSorter()
+
+	users := []*graph.User{
+		{UserID: "user1", Email: "user1@example.com", FirstName: stringPtr("Alice")},
+		{UserID: "user2", Email: "user2@example.com", FirstName: stringPtr("Charlie")},
+		{UserID: "user3", Email: "user3@example.com", FirstName: stringPtr("Bob")},
+	}
+
+	sortBy := &graph.SortByInput{
+		Field:     graph.UserSortFieldFirstName,
+		Direction: graph.SortDirectionDesc,
+	}
+
+	sorter.SortUsers(users, sortBy)
+
+	assert.Equal(t, "Charlie", *users[0].FirstName)
+	assert.Equal(t, "Bob", *users[1].FirstName)
+	assert.Equal(t, "Alice", *users[2].FirstName)
+}
+
+func TestDefaultUserSorter_SortUsers_WithNilValues(t *testing.T) {
+	sorter := NewUserSorter()
+
+	users := []*graph.User{
+		{UserID: "user1", Email: "user1@example.com", FirstName: stringPtr("Alice"), LastName: nil},
+		{UserID: "user2", Email: "user2@example.com", FirstName: nil, LastName: stringPtr("Smith")},
+		{UserID: "user3", Email: "user3@example.com", FirstName: stringPtr("Bob"), LastName: stringPtr("Jones")},
+	}
+
+	sortBy := &graph.SortByInput{
+		Field:     graph.UserSortFieldLastName,
+		Direction: graph.SortDirectionAsc,
+	}
+
+	sorter.SortUsers(users, sortBy)
+
+	// Nil values should be sorted first (empty string)
+	assert.Nil(t, users[0].LastName)
+	assert.Equal(t, "Jones", *users[1].LastName)
+	assert.Equal(t, "Smith", *users[2].LastName)
+}
+
 // Helper function to create string pointers
 func stringPtr(s string) *string {
 	return &s

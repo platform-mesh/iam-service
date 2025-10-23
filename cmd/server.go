@@ -140,6 +140,7 @@ func setupFGAClient() openfgav1.OpenFGAServiceClient {
 }
 
 func setupManager(ctx context.Context, log *logger.Logger) mcmanager.Manager {
+	ctrl.SetLogger(log.Logr())
 	restCfg := ctrl.GetConfigOrDie()
 	restCfg.Wrap(func(rt http.RoundTripper) http.RoundTripper {
 		return otelhttp.NewTransport(rt)

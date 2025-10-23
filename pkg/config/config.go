@@ -25,6 +25,7 @@ type KeycloakConfig struct {
 	ClientID     string              `mapstructure:"keycloak-client-id" default:"admin-cli"`
 	User         string              `mapstructure:"keycloak-user" default:"keycloak-admin"`
 	PasswordFile string              `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
+	PageSize     int                 `mapstructure:"keycloak-page-size" default:"100"`
 	Cache        KeycloakCacheConfig `mapstructure:",squash"`
 }
 
