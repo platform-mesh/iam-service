@@ -267,7 +267,7 @@ func (s *Service) fetchAllUsers(ctx context.Context, realm string) ([]*graph.Use
 	pageSize := s.cfg.Keycloak.PageSize
 	var currentPage int = 0
 
-	log.Info().
+	log.Debug().
 		Str("realm", realm).
 		Int("page_size", pageSize).
 		Msg("Starting to fetch all users from Keycloak")
@@ -364,7 +364,7 @@ func (s *Service) fetchAllUsers(ctx context.Context, realm string) ([]*graph.Use
 		currentPage++
 	}
 
-	log.Info().
+	log.Debug().
 		Int("total_users", len(allUsers)).
 		Int("failed_pages", len(failedPages)).
 		Int("pages_processed", currentPage).
