@@ -695,3 +695,366 @@ func TestNew_CacheDisabled(t *testing.T) {
 	assert.Nil(t, service)
 	assert.Contains(t, err.Error(), "failed to create OIDC provider")
 }
+
+// Tests for fetchAllUsers functionality
+
+func TestFetchAllUsers_SinglePage(t *testing.T) {
+	// Test fetching all users that fit in a single page
+	ctx := context.Background()
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
+		IDMTenant: "test-realm",
+	})
+
+	mockClient := mocks.NewKeycloakClientInterface(t)
+	userCache := cache.NewUserCache(5 * time.Minute)
+	cfg := &config.ServiceConfig{
+		Keycloak: config.KeycloakConfig{
+			PageSize: 10,
+		},
+	}
+	service := &Service{
+		keycloakClient: mockClient,
+		userCache:      userCache,
+		cfg:            cfg,
+	}
+
+	// Create test users
+	userID1 := "user-1"
+	userID2 := "user-2"
+	userEmail1 := "user1@example.com"
+	userEmail2 := "user2@example.com"
+	users := []keycloakClient.UserRepresentation{
+		{
+			Id:    &userID1,
+			Email: &userEmail1,
+		},
+		{
+			Id:    &userID2,
+			Email: &userEmail2,
+		},
+	}
+
+	// Mock first page response
+	response := &keycloakClient.GetUsersResponse{
+		HTTPResponse: &http.Response{StatusCode: 200},
+		JSON200:      &users,
+	}
+
+	mockClient.EXPECT().GetUsersWithResponse(
+		ctx,
+		"test-realm",
+		mock.MatchedBy(func(params *keycloakClient.GetUsersParams) bool {
+			return params != nil &&
+				params.First != nil && *params.First == int32(0) &&
+				params.Max != nil && *params.Max == int32(10) &&
+				params.BriefRepresentation != nil && *params.BriefRepresentation == true
+		}),
+		mock.Anything,
+	).Return(response, nil)
+
+	// Since we only have 2 users and page size is 10, this is a partial page
+	// fetchAllUsers will stop after the first page since len(users) < pageSize
+
+	// Execute
+	result, err := service.fetchAllUsers(ctx, "test-realm")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Len(t, result, 2)
+	assert.Equal(t, userID1, result[0].UserID)
+	assert.Equal(t, userEmail1, result[0].Email)
+	assert.Equal(t, userID2, result[1].UserID)
+	assert.Equal(t, userEmail2, result[1].Email)
+
+	// Verify users were cached
+	cachedUser1 := userCache.Get("test-realm", userEmail1)
+	cachedUser2 := userCache.Get("test-realm", userEmail2)
+	assert.NotNil(t, cachedUser1)
+	assert.NotNil(t, cachedUser2)
+	assert.Equal(t, userID1, cachedUser1.UserID)
+	assert.Equal(t, userID2, cachedUser2.UserID)
+}
+
+func TestFetchAllUsers_MultiplePages(t *testing.T) {
+	// Test fetching all users across multiple pages
+	ctx := context.Background()
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
+		IDMTenant: "test-realm",
+	})
+
+	mockClient := mocks.NewKeycloakClientInterface(t)
+	cfg := &config.ServiceConfig{
+		Keycloak: config.KeycloakConfig{
+			PageSize: 2,
+		},
+	}
+	service := &Service{
+		keycloakClient: mockClient,
+		cfg:            cfg,
+	}
+
+	// Create test users for multiple pages
+	userID1 := "user-1"
+	userID2 := "user-2"
+	userID3 := "user-3"
+	userEmail1 := "user1@example.com"
+	userEmail2 := "user2@example.com"
+	userEmail3 := "user3@example.com"
+
+	// First page
+	page1Users := []keycloakClient.UserRepresentation{
+		{Id: &userID1, Email: &userEmail1},
+		{Id: &userID2, Email: &userEmail2},
+	}
+	page1Response := &keycloakClient.GetUsersResponse{
+		HTTPResponse: &http.Response{StatusCode: 200},
+		JSON200:      &page1Users,
+	}
+
+	// Second page
+	page2Users := []keycloakClient.UserRepresentation{
+		{Id: &userID3, Email: &userEmail3},
+	}
+	page2Response := &keycloakClient.GetUsersResponse{
+		HTTPResponse: &http.Response{StatusCode: 200},
+		JSON200:      &page2Users,
+	}
+
+	// Mock page requests
+	mockClient.EXPECT().GetUsersWithResponse(
+		ctx,
+		"test-realm",
+		mock.MatchedBy(func(params *keycloakClient.GetUsersParams) bool {
+			return params != nil && params.First != nil && *params.First == int32(0)
+		}),
+		mock.Anything,
+	).Return(page1Response, nil)
+
+	mockClient.EXPECT().GetUsersWithResponse(
+		ctx,
+		"test-realm",
+		mock.MatchedBy(func(params *keycloakClient.GetUsersParams) bool {
+			return params != nil && params.First != nil && *params.First == int32(2)
+		}),
+		mock.Anything,
+	).Return(page2Response, nil)
+
+	// Page 2 has only 1 user, which is < pageSize (2), so pagination will stop
+
+	// Execute
+	result, err := service.fetchAllUsers(ctx, "test-realm")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Len(t, result, 3)
+	assert.Equal(t, userID1, result[0].UserID)
+	assert.Equal(t, userID2, result[1].UserID)
+	assert.Equal(t, userID3, result[2].UserID)
+}
+
+func TestFetchAllUsers_ErrorHandling(t *testing.T) {
+	// Test error handling with best effort approach
+	ctx := context.Background()
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
+		IDMTenant: "test-realm",
+	})
+
+	mockClient := mocks.NewKeycloakClientInterface(t)
+	cfg := &config.ServiceConfig{
+		Keycloak: config.KeycloakConfig{
+			PageSize: 2,
+		},
+	}
+	service := &Service{
+		keycloakClient: mockClient,
+		cfg:            cfg,
+	}
+
+	// Create test data: first page has 2 users (full page)
+	userID1 := "user-1"
+	userID2 := "user-2"
+	userEmail1 := "user1@example.com"
+	userEmail2 := "user2@example.com"
+	page1Users := []keycloakClient.UserRepresentation{
+		{Id: &userID1, Email: &userEmail1},
+		{Id: &userID2, Email: &userEmail2},
+	}
+	page1Response := &keycloakClient.GetUsersResponse{
+		HTTPResponse: &http.Response{StatusCode: 200},
+		JSON200:      &page1Users,
+	}
+
+	// Second page returns error (will be skipped)
+	errorResponse := &keycloakClient.GetUsersResponse{
+		HTTPResponse: &http.Response{StatusCode: 500},
+	}
+
+	// Third page is successful but has less than pageSize (partial page)
+	userID3 := "user-3"
+	userEmail3 := "user3@example.com"
+	page3Users := []keycloakClient.UserRepresentation{
+		{Id: &userID3, Email: &userEmail3},
+	}
+	page3Response := &keycloakClient.GetUsersResponse{
+		HTTPResponse: &http.Response{StatusCode: 200},
+		JSON200:      &page3Users,
+	}
+
+	// Mock page requests
+	mockClient.EXPECT().GetUsersWithResponse(
+		ctx,
+		"test-realm",
+		mock.MatchedBy(func(params *keycloakClient.GetUsersParams) bool {
+			return params != nil && params.First != nil && *params.First == int32(0)
+		}),
+		mock.Anything,
+	).Return(page1Response, nil)
+
+	mockClient.EXPECT().GetUsersWithResponse(
+		ctx,
+		"test-realm",
+		mock.MatchedBy(func(params *keycloakClient.GetUsersParams) bool {
+			return params != nil && params.First != nil && *params.First == int32(2)
+		}),
+		mock.Anything,
+	).Return(errorResponse, nil)
+
+	mockClient.EXPECT().GetUsersWithResponse(
+		ctx,
+		"test-realm",
+		mock.MatchedBy(func(params *keycloakClient.GetUsersParams) bool {
+			return params != nil && params.First != nil && *params.First == int32(4)
+		}),
+		mock.Anything,
+	).Return(page3Response, nil)
+
+	// Execute
+	result, err := service.fetchAllUsers(ctx, "test-realm")
+
+	// Assert - should continue despite errors and get users from pages 1 and 3
+	assert.NoError(t, err)
+	assert.Len(t, result, 3) // 2 from page 1, 1 from page 3
+	assert.Equal(t, userID1, result[0].UserID)
+	assert.Equal(t, userID2, result[1].UserID)
+	assert.Equal(t, userID3, result[2].UserID)
+}
+
+func TestFetchAllUsers_EmptyResult(t *testing.T) {
+	// Test fetchAllUsers when Keycloak returns no users
+	ctx := context.Background()
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
+		IDMTenant: "test-realm",
+	})
+
+	mockClient := mocks.NewKeycloakClientInterface(t)
+	cfg := &config.ServiceConfig{
+		Keycloak: config.KeycloakConfig{
+			PageSize: 10,
+		},
+	}
+	service := &Service{
+		keycloakClient: mockClient,
+		cfg:            cfg,
+	}
+
+	// Mock empty response for first page
+	emptyResponse := &keycloakClient.GetUsersResponse{
+		HTTPResponse: &http.Response{StatusCode: 200},
+		JSON200:      &[]keycloakClient.UserRepresentation{},
+	}
+
+	mockClient.EXPECT().GetUsersWithResponse(
+		ctx,
+		"test-realm",
+		mock.Anything,
+		mock.Anything,
+	).Return(emptyResponse, nil)
+
+	// Execute
+	result, err := service.fetchAllUsers(ctx, "test-realm")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestGetUsers_Success(t *testing.T) {
+	// Test GetUsers method that uses fetchAllUsers
+	ctx := context.Background()
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
+		IDMTenant: "test-realm",
+	})
+
+	mockClient := mocks.NewKeycloakClientInterface(t)
+	userCache := cache.NewUserCache(5 * time.Minute)
+	cfg := &config.ServiceConfig{
+		Keycloak: config.KeycloakConfig{
+			PageSize: 10,
+		},
+	}
+	service := &Service{
+		keycloakClient: mockClient,
+		userCache:      userCache,
+		cfg:            cfg,
+	}
+
+	// Create test users
+	userID1 := "user-1"
+	userEmail1 := "user1@example.com"
+	firstName1 := "John"
+	lastName1 := "Doe"
+	users := []keycloakClient.UserRepresentation{
+		{
+			Id:        &userID1,
+			Email:     &userEmail1,
+			FirstName: &firstName1,
+			LastName:  &lastName1,
+		},
+	}
+
+	// Mock response
+	response := &keycloakClient.GetUsersResponse{
+		HTTPResponse: &http.Response{StatusCode: 200},
+		JSON200:      &users,
+	}
+
+	mockClient.EXPECT().GetUsersWithResponse(
+		ctx,
+		"test-realm",
+		mock.MatchedBy(func(params *keycloakClient.GetUsersParams) bool {
+			return params != nil && params.First != nil && *params.First == int32(0)
+		}),
+		mock.Anything,
+	).Return(response, nil)
+
+	// Only 1 user returned, which is < pageSize (10), so pagination will stop
+
+	// Execute
+	result, err := service.GetUsers(ctx)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Len(t, result, 1)
+	assert.Equal(t, userID1, result[0].UserID)
+	assert.Equal(t, userEmail1, result[0].Email)
+	assert.Equal(t, firstName1, *result[0].FirstName)
+	assert.Equal(t, lastName1, *result[0].LastName)
+
+	// Verify user was cached
+	cachedUser := userCache.Get("test-realm", userEmail1)
+	assert.NotNil(t, cachedUser)
+	assert.Equal(t, userID1, cachedUser.UserID)
+}
+
+func TestGetUsers_NoKCPContext(t *testing.T) {
+	// Test GetUsers without KCP context
+	ctx := context.Background()
+	service := &Service{}
+
+	result, err := service.GetUsers(ctx)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "kcp user context")
+}

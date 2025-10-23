@@ -64,6 +64,33 @@ func (s *Service) Users(ctx context.Context, rctx graph.ResourceContext, roleFil
 	return &graph.UserConnection{Users: paginatedUserRoles, PageInfo: pageInfo}, nil
 }
 
+func (s *Service) KnownUsers(ctx context.Context, sortBy *graph.SortByInput, page *graph.PageInput) (*graph.UserConnection, error) {
+	// Fetch all known users from Keycloak
+	users, err := s.keycloakService.GetUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Sort users using the new SortUsers method
+	s.userSorter.SortUsers(users, sortBy)
+
+	// Paginate users using the new PaginateUsers method
+	totalCount := len(users)
+	paginatedUsers, pageInfo := s.pager.PaginateUsers(users, page, totalCount)
+
+	// Convert []*graph.User to []*graph.UserRoles for GraphQL compatibility
+	// For known users without role context, we create UserRoles with empty roles
+	userRoles := make([]*graph.UserRoles, len(paginatedUsers))
+	for i, user := range paginatedUsers {
+		userRoles[i] = &graph.UserRoles{
+			User:  user,
+			Roles: []*graph.Role{}, // Empty roles for known users query
+		}
+	}
+
+	return &graph.UserConnection{Users: userRoles, PageInfo: pageInfo}, nil
+}
+
 func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
 	return s.fgaService.AssignRolesToUsers(ctx, rCtx, changes)
 }

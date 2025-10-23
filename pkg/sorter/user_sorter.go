@@ -13,6 +13,10 @@ type UserSorter interface {
 	// SortUserRoles sorts a slice of UserRoles based on the provided sort criteria
 	// If sortBy is nil, applies default sorting (LastName ASC)
 	SortUserRoles(userRoles []*graph.UserRoles, sortBy *graph.SortByInput)
+
+	// SortUsers sorts a slice of Users based on the provided sort criteria
+	// If sortBy is nil, applies default sorting (LastName ASC)
+	SortUsers(users []*graph.User, sortBy *graph.SortByInput)
 }
 
 // DefaultUserSorter provides the default implementation for user sorting
@@ -60,6 +64,35 @@ func (s *DefaultUserSorter) SortUserRoles(userRoles []*graph.UserRoles, sortBy *
 		userJ := userRoles[j].User
 
 		compareResult := s.compareUsers(userI, userJ, field)
+
+		// Apply direction
+		if direction == graph.SortDirectionDesc {
+			return compareResult > 0
+		}
+		return compareResult < 0
+	})
+}
+
+// SortUsers sorts the users list based on the sortBy parameter
+// If sortBy is nil, defaults to sorting by LastName in ascending order
+func (s *DefaultUserSorter) SortUsers(users []*graph.User, sortBy *graph.SortByInput) {
+	if len(users) <= 1 {
+		return
+	}
+
+	// Use configured defaults
+	field := s.defaultField
+	direction := s.defaultDirection
+
+	// Override with provided sortBy if available
+	if sortBy != nil {
+		field = sortBy.Field
+		direction = sortBy.Direction
+	}
+
+	// Perform sorting using the sort package
+	sort.Slice(users, func(i, j int) bool {
+		compareResult := s.compareUsers(users[i], users[j], field)
 
 		// Apply direction
 		if direction == graph.SortDirectionDesc {

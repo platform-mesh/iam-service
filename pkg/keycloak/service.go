@@ -116,6 +116,34 @@ func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, e
 	return user, nil
 }
 
+func (s *Service) GetUsers(ctx context.Context) ([]*graph.User, error) {
+	log := logger.LoadLoggerFromContext(ctx)
+
+	kctx, err := appcontext.GetKCPContext(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get KCP user context")
+	}
+
+	realm := kctx.IDMTenant
+
+	log.Debug().
+		Str("realm", realm).
+		Msg("Fetching all users from Keycloak")
+
+	// Fetch all users with pagination and caching
+	users, err := s.fetchAllUsers(ctx, realm)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to fetch all users from Keycloak for realm %s", realm)
+	}
+
+	log.Debug().
+		Int("user_count", len(users)).
+		Str("realm", realm).
+		Msg("Successfully fetched all users from Keycloak")
+
+	return users, nil
+}
+
 // fetchUserFromKeycloak fetches a single user from Keycloak by email
 func (s *Service) fetchUserFromKeycloak(ctx context.Context, realm, email string) (*graph.User, error) {
 	log := logger.LoadLoggerFromContext(ctx)
@@ -227,6 +255,128 @@ func (s *Service) GetUsersByEmails(ctx context.Context, emails []string) (map[st
 		Msg("Completed user lookup with cache")
 
 	return result, nil
+}
+
+// fetchAllUsers retrieves all users from Keycloak using pagination
+// Caches individual users by email and uses best effort error handling
+func (s *Service) fetchAllUsers(ctx context.Context, realm string) ([]*graph.User, error) {
+	log := logger.LoadLoggerFromContext(ctx)
+
+	allUsers := make([]*graph.User, 0)
+	var failedPages []int
+	pageSize := s.cfg.Keycloak.PageSize
+	var currentPage int = 0
+
+	log.Debug().
+		Str("realm", realm).
+		Int("page_size", pageSize).
+		Msg("Starting to fetch all users from Keycloak")
+
+	for {
+		// Calculate offset for current page
+		first := currentPage * pageSize
+
+		// Configure pagination parameters
+		firstArg := int32(first)
+		maxArg := int32(pageSize)
+		params := &keycloakClient.GetUsersParams{
+			First:               &firstArg,
+			Max:                 &maxArg,
+			BriefRepresentation: ptr.To(true),
+		}
+
+		log.Debug().
+			Int("page", currentPage).
+			Int("first", first).
+			Int("max", pageSize).
+			Msg("Fetching users page")
+
+		// Query users for current page
+		resp, err := s.keycloakClient.GetUsersWithResponse(ctx, realm, params)
+		if err != nil {
+			log.Err(err).
+				Int("page", currentPage).
+				Msg("Failed to fetch users page, continuing with next page")
+			failedPages = append(failedPages, currentPage)
+			currentPage++
+			continue
+		}
+
+		if resp.StatusCode() != http.StatusOK {
+			log.Error().
+				Int("status_code", resp.StatusCode()).
+				Int("page", currentPage).
+				Msg("Non-200 response from Keycloak, continuing with next page")
+			failedPages = append(failedPages, currentPage)
+			currentPage++
+			continue
+		}
+
+		if resp.JSON200 == nil {
+			log.Debug().Int("page", currentPage).Msg("No users returned, pagination complete")
+			break
+		}
+
+		users := *resp.JSON200
+		if len(users) == 0 {
+			log.Debug().Int("page", currentPage).Msg("Empty page returned, pagination complete")
+			break
+		}
+
+		log.Debug().
+			Int("page", currentPage).
+			Int("users_on_page", len(users)).
+			Msg("Processing users from page")
+
+		// Process users from current page
+		for _, user := range users {
+			if user.Id == nil || user.Email == nil {
+				log.Warn().
+					Interface("user", user).
+					Msg("Skipping user with missing ID or email")
+				continue
+			}
+
+			graphUser := &graph.User{
+				UserID:    *user.Id,
+				Email:     *user.Email,
+				FirstName: user.FirstName,
+				LastName:  user.LastName,
+			}
+
+			allUsers = append(allUsers, graphUser)
+
+			// Cache individual user by email if cache is enabled
+			if s.userCache != nil {
+				s.userCache.Set(realm, *user.Email, graphUser)
+			}
+		}
+
+		// If we got fewer users than page size, we've reached the end
+		if len(users) < int(pageSize) {
+			log.Debug().
+				Int("page", currentPage).
+				Int("users_on_page", len(users)).
+				Msg("Last page reached (partial page)")
+			break
+		}
+
+		currentPage++
+	}
+
+	log.Debug().
+		Int("total_users", len(allUsers)).
+		Int("failed_pages", len(failedPages)).
+		Int("pages_processed", currentPage).
+		Msg("Completed fetching all users from Keycloak")
+
+	if len(failedPages) > 0 {
+		log.Warn().
+			Interface("failed_pages", failedPages).
+			Msg("Some pages failed to fetch, returning partial results")
+	}
+
+	return allUsers, nil
 }
 
 // fetchUsersInParallel fetches multiple users from Keycloak in parallel using errgroup
