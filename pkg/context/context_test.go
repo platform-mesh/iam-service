@@ -4,10 +4,8 @@ import (
 	"context"
 	"testing"
 
-	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestKCPContext(t *testing.T) {
@@ -34,26 +32,22 @@ func TestKCPContext(t *testing.T) {
 	assert.Contains(t, err.Error(), "kcp user context not found in context")
 }
 
-func TestAccountInfo(t *testing.T) {
+func TestClusterId(t *testing.T) {
 	ctx := context.Background()
 
-	// Test setting and getting account info (use a minimal structure)
-	accountInfo := &accountsv1alpha1.AccountInfo{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-account",
-		},
-	}
+	// Test setting and getting cluster ID
+	clusterId := "test-cluster-123"
 
-	// Set account info
-	ctxWithAccount := SetAccountInfo(ctx, accountInfo)
+	// Set cluster ID
+	ctxWithCluster := SetClusterId(ctx, clusterId)
 
-	// Get account info
-	retrievedAccount, err := GetAccountInfo(ctxWithAccount)
+	// Get cluster ID
+	retrievedClusterId, err := GetClusterId(ctxWithCluster)
 	require.NoError(t, err)
-	assert.Equal(t, accountInfo.Name, retrievedAccount.Name)
+	assert.Equal(t, clusterId, retrievedClusterId)
 
-	// Test getting account info from empty context
-	_, err = GetAccountInfo(ctx)
+	// Test getting cluster ID from empty context
+	_, err = GetClusterId(ctx)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "account info not found in context")
 }
@@ -67,22 +61,18 @@ func TestContextChaining(t *testing.T) {
 		OrganizationName: "test-org",
 	}
 
-	accountInfo := &accountsv1alpha1.AccountInfo{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-account",
-		},
-	}
+	clusterId := "test-cluster-456"
 
 	// Chain context operations
 	ctxWithKCP := SetKCPContext(ctx, kcpCtx)
-	ctxWithBoth := SetAccountInfo(ctxWithKCP, accountInfo)
+	ctxWithBoth := SetClusterId(ctxWithKCP, clusterId)
 
 	// Verify both contexts are accessible
 	retrievedKCP, err := GetKCPContext(ctxWithBoth)
 	require.NoError(t, err)
 	assert.Equal(t, kcpCtx.OrganizationName, retrievedKCP.OrganizationName)
 
-	retrievedAccount, err := GetAccountInfo(ctxWithBoth)
+	retrievedClusterId, err := GetClusterId(ctxWithBoth)
 	require.NoError(t, err)
-	assert.Equal(t, accountInfo.Name, retrievedAccount.Name)
+	assert.Equal(t, clusterId, retrievedClusterId)
 }

@@ -171,8 +171,8 @@ func TestService_ListUsers_Success(t *testing.T) {
 			req.Relation == "assignee"
 	})).Return(memberUsersResponse, nil)
 
-	// Set account info in context since it's now retrieved from context instead of parameter
-	ctx = appcontext.SetAccountInfo(ctx, ai)
+	// Set cluster ID in context since it's now retrieved from context instead of accountinfo
+	ctx = appcontext.SetClusterId(ctx, ai.Spec.Account.GeneratedClusterId)
 
 	result, err := service.ListUsers(ctx, rCtx, roleFilters)
 
@@ -223,8 +223,8 @@ func TestService_ListUsers_NoKCPContext(t *testing.T) {
 		},
 	}
 
-	// Set account info in context since it's now retrieved from context instead of parameter
-	ctx = appcontext.SetAccountInfo(ctx, ai)
+	// Set cluster ID in context since it's now retrieved from context instead of accountinfo
+	ctx = appcontext.SetClusterId(ctx, ai.Spec.Account.GeneratedClusterId)
 
 	result, err := service.ListUsers(ctx, rCtx, []string{"owner"})
 
@@ -345,8 +345,8 @@ func TestService_AssignRolesToUsers_Success(t *testing.T) {
 		// Second tuple relation varies by role (owner, member, etc.)
 	})).Return(&openfgav1.WriteResponse{}, nil).Times(2)
 
-	// Set account info in context since it's now retrieved from context instead of parameter
-	ctx = appcontext.SetAccountInfo(ctx, ai)
+	// Set cluster ID in context since it's now retrieved from context instead of accountinfo
+	ctx = appcontext.SetClusterId(ctx, ai.Spec.Account.GeneratedClusterId)
 
 	result, err := service.AssignRolesToUsers(ctx, rCtx, changes)
 
@@ -417,8 +417,8 @@ func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
 			req.Writes.TupleKeys[1].Relation == "owner"
 	})).Return(&openfgav1.WriteResponse{}, nil).Once()
 
-	// Set account info in context since it's now retrieved from context instead of parameter
-	ctx = appcontext.SetAccountInfo(ctx, ai)
+	// Set cluster ID in context since it's now retrieved from context instead of accountinfo
+	ctx = appcontext.SetClusterId(ctx, ai.Spec.Account.GeneratedClusterId)
 
 	result, err := service.AssignRolesToUsers(ctx, rCtx, changes)
 
@@ -507,8 +507,8 @@ func TestService_RemoveRole_Success(t *testing.T) {
 			req.Deletes.TupleKeys[0].Relation == "assignee"
 	})).Return(&openfgav1.WriteResponse{}, nil).Once()
 
-	// Set account info in context since it's now retrieved from context instead of parameter
-	ctx = appcontext.SetAccountInfo(ctx, ai)
+	// Set cluster ID in context since it's now retrieved from context instead of accountinfo
+	ctx = appcontext.SetClusterId(ctx, ai.Spec.Account.GeneratedClusterId)
 
 	result, err := service.RemoveRole(ctx, rCtx, input)
 
@@ -580,8 +580,8 @@ func TestService_RemoveRole_RoleNotAssigned(t *testing.T) {
 
 	// No Write call should be made since the role wasn't assigned
 
-	// Set account info in context since it's now retrieved from context instead of parameter
-	ctx = appcontext.SetAccountInfo(ctx, ai)
+	// Set cluster ID in context since it's now retrieved from context instead of accountinfo
+	ctx = appcontext.SetClusterId(ctx, ai.Spec.Account.GeneratedClusterId)
 
 	result, err := service.RemoveRole(ctx, rCtx, input)
 

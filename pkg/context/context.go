@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
 	"github.com/platform-mesh/golang-commons/errors"
 )
 
@@ -14,8 +13,8 @@ type contextKey string
 const (
 	// kcpContextKey is the key for storing KCP user context
 	kcpContextKey contextKey = "KCPContext"
-	// accountInfoContextKey is the key for storing account info
-	accountInfoContextKey contextKey = "accountInfo"
+	// clusterIdContextKey is the key for storing Cluster ID
+	clusterIdContextKey contextKey = "clusterId"
 )
 
 // KCPContext holds KCP-related user information
@@ -44,20 +43,20 @@ func GetKCPContext(ctx context.Context) (KCPContext, error) {
 	return kcpCtx, nil
 }
 
-// SetAccountInfo stores account info in the request context
-func SetAccountInfo(ctx context.Context, ai *accountsv1alpha1.AccountInfo) context.Context {
-	return context.WithValue(ctx, accountInfoContextKey, ai)
+// SetClusterId stores the Cluster ID in the request context
+func SetClusterId(ctx context.Context, clusterId string) context.Context {
+	return context.WithValue(ctx, clusterIdContextKey, clusterId)
 }
 
-// GetAccountInfo retrieves account info from the request context
-func GetAccountInfo(ctx context.Context) (*accountsv1alpha1.AccountInfo, error) {
-	val := ctx.Value(accountInfoContextKey)
+// GetClusterId retrieves the Cluster ID from the request context
+func GetClusterId(ctx context.Context) (string, error) {
+	val := ctx.Value(clusterIdContextKey)
 	if val == nil {
-		return nil, fmt.Errorf("account info not found in context")
+		return "", fmt.Errorf("account info not found in context")
 	}
-	ai, ok := val.(*accountsv1alpha1.AccountInfo)
+	clusterId, ok := val.(string)
 	if !ok {
-		return nil, fmt.Errorf("invalid account info type in context")
+		return "", fmt.Errorf("invalid account info type in context")
 	}
-	return ai, nil
+	return clusterId, nil
 }

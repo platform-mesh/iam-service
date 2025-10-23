@@ -13,6 +13,7 @@ exclude:
     - cmd/*
     - pkg/keycloak/client
     - pkg/accountinfo/mocks
+    - pkg/directive/wsclient.go
     - pkg/fga/mocks
     - pkg/keycloak/mocks
     - pkg/graph

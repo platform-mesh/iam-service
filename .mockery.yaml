@@ -33,6 +33,15 @@ packages:
         config:
           mockname: KeycloakClientInterface
 
+  github.com/platform-mesh/iam-service/pkg/accountinfo:
+    config:
+      dir: pkg/accountinfo/mocks
+      outpkg: mocks
+    interfaces:
+      Retriever:
+        config:
+          mockname: Retriever
+
   github.com/kcp-dev/kcp/sdk/client/clientset/versioned/cluster:
     config:
       dir: pkg/accountinfo/mocks

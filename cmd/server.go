@@ -89,12 +89,13 @@ func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1
 	}
 
 	// Prepare Directives
+	wsClientFactory := directive.NewDefaultWSClientFactory(mgr, log)
 	ad := directive.NewAuthorizedDirective(
 		fgaClient,
 		accountInfoRetriever,
 		serviceCfg.OpenFGA.StoreCacheTTL,
-		mgr.GetLocalManager().GetConfig(),
-		mgr.GetLocalManager().GetScheme(),
+		wsClientFactory,
+		log,
 	)
 	dr := graph.DirectiveRoot{
 		Authorized: ad.Authorized,
