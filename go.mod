@@ -5,7 +5,6 @@ go 1.25.1
 require (
 	github.com/99designs/gqlgen v0.17.81
 	github.com/coreos/go-oidc v2.4.0+incompatible
-	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/kcp-dev/kcp/sdk v0.28.3
 	github.com/kcp-dev/logicalcluster/v3 v3.0.5
@@ -41,6 +40,7 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a // indirect
+	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect

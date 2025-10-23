@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -17,9 +16,7 @@ import (
 	"github.com/platform-mesh/golang-commons/logger"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/platform-mesh/iam-service/pkg/accountinfo"
@@ -30,26 +27,36 @@ import (
 )
 
 type AuthorizedDirective struct {
-	fga     openfgav1.OpenFGAServiceClient
-	helper  store.StoreHelper
-	air     accountinfo.Retriever
-	restCfg *rest.Config
-	scheme  *runtime.Scheme
+	fga      openfgav1.OpenFGAServiceClient
+	helper   store.StoreHelper
+	air      accountinfo.Retriever
+	wcClient WorkspaceClient
+	log      *logger.Logger
 }
 
-func NewAuthorizedDirective(oc openfgav1.OpenFGAServiceClient, air accountinfo.Retriever, storeTTL time.Duration, restCfg *rest.Config, scheme *runtime.Scheme) *AuthorizedDirective {
+func NewAuthorizedDirective(oc openfgav1.OpenFGAServiceClient, air accountinfo.Retriever, storeTTL time.Duration, cf WorkspaceClient, log *logger.Logger) *AuthorizedDirective {
 	return &AuthorizedDirective{
-		fga:     oc,
-		helper:  store.NewFGAStoreHelper(storeTTL),
-		air:     air,
-		restCfg: restCfg,
-		scheme:  scheme,
+		fga:      oc,
+		helper:   store.NewFGAStoreHelper(storeTTL),
+		air:      air,
+		wcClient: cf,
+		log:      log,
+	}
+}
+
+// NewAuthorizedDirectiveWithFactory creates a new AuthorizedDirective with a custom WorkspaceClient.
+// This constructor is primarily intended for testing with mock implementations.
+func NewAuthorizedDirectiveWithFactory(oc openfgav1.OpenFGAServiceClient, air accountinfo.Retriever, storeTTL time.Duration, clientFactory WorkspaceClient) *AuthorizedDirective {
+	return &AuthorizedDirective{
+		fga:      oc,
+		helper:   store.NewFGAStoreHelper(storeTTL),
+		air:      air,
+		wcClient: clientFactory,
 	}
 }
 
 func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql.Resolver, permission string) (any, error) {
-	log := logger.LoadLoggerFromContext(ctx)
-	log.Debug().Msg("Authorized directive called with permission: " + permission)
+	a.log.Debug().Msg("Authorized directive called with permission: " + permission)
 
 	token, err := pmcontext.GetWebTokenFromContext(ctx)
 	if err != nil {
@@ -60,14 +67,14 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get kcp user context")
 	}
-	log.Debug().Str("context", fmt.Sprintf("%+v", kctx)).Msg("Retrieved kcp context")
+	a.log.Debug().Str("context", fmt.Sprintf("%+v", kctx)).Msg("Retrieved kcp context")
 
 	fieldCtx := graphql.GetFieldContext(ctx)
 	rctx, err := extractResourceContextFromArguments(fieldCtx.Args)
 	if err != nil { // coverage-ignore
 		return nil, err
 	}
-	log.Debug().Str("context", fmt.Sprintf("%+v", rctx)).Msg("Retrieved resource context")
+	a.log.Debug().Str("context", fmt.Sprintf("%+v", rctx)).Msg("Retrieved resource context")
 
 	// Retrieve account info from kcp workspace
 	path := rctx.AccountPath
@@ -93,7 +100,7 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 	ctx = appcontext.SetClusterId(ctx, clusterId)
 
 	// Test if resource exists
-	wsClient, err := getWSClient(rctx.AccountPath, log, a.restCfg, a.scheme)
+	wsClient, err := a.wcClient.New(rctx.AccountPath)
 	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get workspace client")
 	}
@@ -187,26 +194,6 @@ func (a AuthorizedDirective) testIfResourceExists(ctx context.Context, rctx *gra
 		}
 	}
 	return true, nil
-}
-
-func getWSClient(accountPath string, log *logger.Logger, restcfg *rest.Config, scheme *runtime.Scheme) (client.Client, error) {
-	cfg := rest.CopyConfig(restcfg)
-
-	parsed, err := url.Parse(cfg.Host)
-	if err != nil {
-		log.Error().Err(err).Msg("unable to parse host")
-		return nil, err
-	}
-
-	parsed.Path = fmt.Sprintf("/clusters/%s", accountPath)
-	cfg.Host = parsed.String()
-
-	cl, err := client.New(cfg, client.Options{Scheme: scheme})
-	if err != nil {
-		log.Error().Err(err).Msg("unable to construct root client")
-		return nil, err
-	}
-	return cl, nil
 }
 
 const resourceContextParamName = "context"
