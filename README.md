@@ -13,6 +13,10 @@ To run the application locally, create `.env` config file from `.env.sample` and
 go run ./main.go serve
 ```
 
+**Important**: The service now requires Keycloak client credentials for authentication. Ensure you configure:
+- `KEYCLOAK_CLIENT_ID`: Your Keycloak client ID (default: `iam`)
+- `KEYCLOAK_CLIENT_SECRET`: Your Keycloak client secret (required, no default)
+
 ## Description
 
 The Platform Mesh IAM service is a Go-based microservice that provides a GraphQL API for user management and authorization. The service uses:
@@ -44,10 +48,14 @@ This service has been refactored to eliminate traditional database dependencies,
 
 ### Development Setup
 1. Copy `.env.sample` to `.env` and configure services
-2. Start your local platform-mesh using the local-setup, see `local-setup` in https://github.com/platform-mesh/helm-charts
-3. Start a port-forward to make openfga available on your local host, e.g. `kubectl port-forward -n platform-mesh-system svc/openfga 3000 8080 8081:8081`
-4. Prepare a kubeconfig for the iam-service to connect to kcp and set the `KCP_KUBECONFIG` environment
-5. Run the service: `go run ./main.go serve`
+2. **Configure Keycloak client credentials**:
+   - Set `KEYCLOAK_CLIENT_SECRET` with your Keycloak client secret
+   - Ensure your Keycloak client supports client credentials grant type
+   - Default client ID is `iam` (configurable via `KEYCLOAK_CLIENT_ID`)
+3. Start your local platform-mesh using the local-setup, see `local-setup` in https://github.com/platform-mesh/helm-charts
+4. Start a port-forward to make openfga available on your local host, e.g. `kubectl port-forward -n platform-mesh-system svc/openfga 3000 8080 8081:8081`
+5. Prepare a kubeconfig for the iam-service to connect to kcp and set the `KCP_KUBECONFIG` environment
+6. Run the service: `go run ./main.go serve`
 
 ### Testing
 Run tests with coverage reporting:
