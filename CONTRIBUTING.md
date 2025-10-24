@@ -17,7 +17,10 @@ This is the Platform Mesh IAM (Identity and Access Management) service, a Go-bas
 1. Copy `.env.sample` to `.env`
 2. Configure required services:
    - OpenFGA server (OPENFGA_GRPC_ADDR)
-   - Keycloak (if using IDM features)
+   - **Keycloak client credentials** (required for identity management):
+     - `KEYCLOAK_CLIENT_SECRET`: Your Keycloak client secret (mandatory)
+     - `KEYCLOAK_CLIENT_ID`: Client ID (default: `iam`)
+     - `KEYCLOAK_BASE_URL`: Keycloak server URL
    - Kubernetes context (KUBECONFIG)
 
 ## Development Commands
@@ -96,9 +99,10 @@ task validate
 - gRPC client for OpenFGA server
 - Authorization middleware and store helpers
 
-#### Identity Management (`pkg/service/idm/keycloak/`)
-- Keycloak integration for user identity
-- Token validation and user synchronization
+#### Identity Management (`pkg/keycloak/`)
+- Keycloak integration using client credentials authentication
+- Automatic token refresh for long-running services
+- User identity and synchronization
 - Multi-tenant support
 
 #### KCP Integration (`pkg/middleware/kcp/`)

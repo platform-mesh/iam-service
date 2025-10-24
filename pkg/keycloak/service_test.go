@@ -3,7 +3,6 @@ package keycloak
 import (
 	"context"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
@@ -19,13 +18,12 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/keycloak/mocks"
 )
 
-func createKeycloakTestConfig(baseURL, clientID, user, passwordFile string, cacheEnabled bool, cacheTTL time.Duration) *config.ServiceConfig {
+func createKeycloakTestConfig(baseURL, clientID, clientSecret string, cacheEnabled bool, cacheTTL time.Duration) *config.ServiceConfig {
 	return &config.ServiceConfig{
 		Keycloak: config.KeycloakConfig{
 			BaseURL:      baseURL,
 			ClientID:     clientID,
-			User:         user,
-			PasswordFile: passwordFile,
+			ClientSecret: clientSecret,
 			Cache: config.KeycloakCacheConfig{
 				Enabled: cacheEnabled,
 				TTL:     cacheTTL,
@@ -250,7 +248,7 @@ func TestNew_InvalidConfig(t *testing.T) {
 	ctx := context.Background()
 
 	// Test with invalid Keycloak base URL
-	invalidCfg := createKeycloakTestConfig("invalid-url", "test-client", "test-user", "/nonexistent/file", true, 5*time.Minute)
+	invalidCfg := createKeycloakTestConfig("invalid-url", "test-client", "test-client-secret", true, 5*time.Minute)
 
 	service, err := New(ctx, invalidCfg)
 
@@ -626,19 +624,19 @@ func TestFetchUsersInParallel_WithErrors(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to fetch user err***")
 }
 
-func TestNew_PasswordFileNotFound(t *testing.T) {
-	// Test with non-existent password file
-	// The test expects failure due to OIDC provider creation (not password file)
+func TestNew_InvalidClientSecret(t *testing.T) {
+	// Test with invalid client secret
+	// The test expects failure due to OIDC provider creation
 	// since the OIDC provider check happens first in actual test environment
 	ctx := context.Background()
 
-	cfg := createKeycloakTestConfig("https://valid-url.com/keycloak", "test-client", "test-user", "/nonexistent/path/password.txt", true, 5*time.Minute)
+	cfg := createKeycloakTestConfig("https://valid-url.com/keycloak", "test-client", "", true, 5*time.Minute)
 
 	service, err := New(ctx, cfg)
 
 	assert.Error(t, err)
 	assert.Nil(t, service)
-	// In test environment, this fails at OIDC provider creation, not password file
+	// In test environment, this fails at OIDC provider creation
 	assert.Contains(t, err.Error(), "failed to create OIDC provider")
 }
 
@@ -648,18 +646,7 @@ func TestNew_CacheEnabled(t *testing.T) {
 	// but will test the cache initialization logic
 	ctx := context.Background()
 
-	// Create a temporary password file
-	tmpFile, err := os.CreateTemp("", "keycloak_password_test")
-	assert.NoError(t, err)
-	defer func() {
-		_ = os.Remove(tmpFile.Name())
-	}()
-
-	_, err = tmpFile.WriteString("test-password")
-	assert.NoError(t, err)
-	_ = tmpFile.Close()
-
-	cfg := createKeycloakTestConfig("https://valid-issuer.com/keycloak", "test-client", "test-user", tmpFile.Name(), true, 5*time.Minute)
+	cfg := createKeycloakTestConfig("https://valid-issuer.com/keycloak", "test-client", "test-client-secret", true, 5*time.Minute)
 
 	// This will fail at OIDC provider creation, but that's expected in test environment
 	service, err := New(ctx, cfg)
@@ -674,18 +661,7 @@ func TestNew_CacheDisabled(t *testing.T) {
 	// Test with cache disabled
 	ctx := context.Background()
 
-	// Create a temporary password file
-	tmpFile, err := os.CreateTemp("", "keycloak_password_test")
-	assert.NoError(t, err)
-	defer func() {
-		_ = os.Remove(tmpFile.Name())
-	}()
-
-	_, err = tmpFile.WriteString("test-password")
-	assert.NoError(t, err)
-	_ = tmpFile.Close()
-
-	cfg := createKeycloakTestConfig("https://valid-issuer.com/keycloak", "test-client", "test-user", tmpFile.Name(), false, 5*time.Minute)
+	cfg := createKeycloakTestConfig("https://valid-issuer.com/keycloak", "test-client", "test-client-secret", false, 5*time.Minute)
 
 	// This will fail at OIDC provider creation, but that's expected in test environment
 	service, err := New(ctx, cfg)

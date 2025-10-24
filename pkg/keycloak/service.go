@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"sync"
 
 	"github.com/coreos/go-oidc"
 	"github.com/platform-mesh/golang-commons/errors"
 	"github.com/platform-mesh/golang-commons/logger"
-	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/utils/ptr"
 
@@ -44,23 +43,12 @@ func New(ctx context.Context, cfg *config.ServiceConfig) (*Service, error) {
 		return nil, errors.Wrap(err, "failed to create OIDC provider for issuer %s", issuer)
 	}
 
-	oauthC := oauth2.Config{
-		ClientID: cfg.Keycloak.ClientID,
-		Endpoint: provider.Endpoint(),
+	cCfg := clientcredentials.Config{
+		ClientID:     cfg.Keycloak.ClientID,
+		ClientSecret: cfg.Keycloak.ClientSecret,
+		TokenURL:     provider.Endpoint().TokenURL,
 	}
-
-	pwd, err := os.ReadFile(cfg.Keycloak.PasswordFile)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read Keycloak password file %s", cfg.Keycloak.PasswordFile)
-	}
-
-	token, err := oauthC.PasswordCredentialsToken(ctx, cfg.Keycloak.User, string(pwd))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to obtain password credentials token for user %s", cfg.Keycloak.User)
-	}
-
-	// Create authenticated HTTP client
-	httpClient := oauthC.Client(ctx, token)
+	httpClient := cCfg.Client(ctx)
 
 	// Create Keycloak client with the authenticated HTTP client
 	kcClient, err := keycloakClient.NewClientWithResponses(

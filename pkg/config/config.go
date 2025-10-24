@@ -22,9 +22,8 @@ type KeycloakCacheConfig struct {
 
 type KeycloakConfig struct {
 	BaseURL      string              `mapstructure:"keycloak-base-url" default:"https://portal.dev.local:8443/keycloak"`
-	ClientID     string              `mapstructure:"keycloak-client-id" default:"admin-cli"`
-	User         string              `mapstructure:"keycloak-user" default:"keycloak-admin"`
-	PasswordFile string              `mapstructure:"keycloak-password-file" default:".secret/keycloak/password"`
+	ClientID     string              `mapstructure:"keycloak-client-id" default:"iam"`
+	ClientSecret string              `mapstructure:"keycloak-client-secret"`
 	PageSize     int                 `mapstructure:"keycloak-page-size" default:"100"`
 	Cache        KeycloakCacheConfig `mapstructure:",squash"`
 }
