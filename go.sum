@@ -169,10 +169,10 @@ github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4
 github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
-github.com/platform-mesh/account-operator v0.5.12 h1:jm8aXN8c4f1P38NsmjtyUelCvq2wKniz4nwsX9hObk0=
-github.com/platform-mesh/account-operator v0.5.12/go.mod h1:6IbXO4RjT3ZC8viBQkfAUj1EIcuU5y/MhMej8XUW9gs=
-github.com/platform-mesh/golang-commons v0.7.6 h1:0FapB3V4wlVvR3yETRG7RZ+fb4y1vAkN25woB0F6YQ4=
-github.com/platform-mesh/golang-commons v0.7.6/go.mod h1:INZhMJ6kUsJ/PCyVuPbJV+VG0zdPaizwjTOkLXbF3dE=
+github.com/platform-mesh/account-operator v0.5.13 h1:B8NSNdG3iGmuAC1/0NXWSlO1kK9IDFIVmvXoDw+hqsI=
+github.com/platform-mesh/account-operator v0.5.13/go.mod h1:oYWMhjWcnUUGQRSkuEJ0BIJbAZoKHPatqk3ZLosj3XQ=
+github.com/platform-mesh/golang-commons v0.7.7 h1:taD10Rrra+T0HL0T8zuo6xYovBin4t8gAEjOEZaBtDA=
+github.com/platform-mesh/golang-commons v0.7.7/go.mod h1:pVLpllf8vFegcFoCY9cUvhnvYyoBTZWnB9C5OawwiOA=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
@@ -251,8 +251,8 @@ go.opentelemetry.io/otel/sdk/metric v1.38.0 h1:aSH66iL0aZqo//xXzQLYozmWrXxyFkBJ6
 go.opentelemetry.io/otel/sdk/metric v1.38.0/go.mod h1:dg9PBnW9XdQ1Hd6ZnRz689CbtrUp0wMMs9iPcgT9EZA=
 go.opentelemetry.io/otel/trace v1.38.0 h1:Fxk5bKrDZJUH+AMyyIXGcFAPah0oRcT+LuNtJrmcNLE=
 go.opentelemetry.io/otel/trace v1.38.0/go.mod h1:j1P9ivuFsTceSWe1oY+EeW3sc+Pp42sO++GHkg4wwhs=
-go.opentelemetry.io/proto/otlp v1.8.0 h1:fRAZQDcAFHySxpJ1TwlA1cJ4tvcrw7nXl9xWWC8N5CE=
-go.opentelemetry.io/proto/otlp v1.8.0/go.mod h1:tIeYOeNBU4cvmPqpaji1P+KbB4Oloai8wN4rWzRrFF0=
+go.opentelemetry.io/proto/otlp v1.9.0 h1:l706jCMITVouPOqEnii2fIAuO3IVGBRPV5ICjceRb/A=
+go.opentelemetry.io/proto/otlp v1.9.0/go.mod h1:xE+Cx5E/eEHw+ISFkwPLwCZefwVjY+pqKg1qcK03+/4=
 go.uber.org/goleak v1.3.1-0.20241121203838-4ff5fa6529ee h1:uOMbcH1Dmxv45VkkpZQYoerZFeDncWpjbN7ATiQOO7c=
 go.uber.org/goleak v1.3.1-0.20241121203838-4ff5fa6529ee/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE=
 go.uber.org/multierr v1.11.0 h1:blXXJkSxSSfBVBlC76pxqeO+LN3aDfLQo+309xJstO0=
