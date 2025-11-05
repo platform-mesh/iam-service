@@ -10,7 +10,7 @@ require (
 	github.com/kcp-dev/logicalcluster/v3 v3.0.5
 	github.com/kcp-dev/multicluster-provider v0.2.1
 	github.com/oapi-codegen/runtime v1.1.2
-	github.com/openfga/api/proto v0.0.0-20250909173124-0ac19aac54f2
+	github.com/openfga/api/proto v0.0.0-20251105142303-feed3db3d69d
 	github.com/platform-mesh/account-operator v0.5.14
 	github.com/platform-mesh/golang-commons v0.7.8
 	github.com/rs/zerolog v1.34.0
