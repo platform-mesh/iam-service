@@ -3,7 +3,7 @@ module github.com/platform-mesh/iam-service
 go 1.25.1
 
 require (
-	github.com/99designs/gqlgen v0.17.81
+	github.com/99designs/gqlgen v0.17.82
 	github.com/coreos/go-oidc v2.4.0+incompatible
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/kcp-dev/kcp/sdk v0.28.3
@@ -80,7 +80,6 @@ require (
 	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/term v0.36.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
-	golang.org/x/tools v0.38.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
