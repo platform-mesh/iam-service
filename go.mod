@@ -11,7 +11,7 @@ require (
 	github.com/kcp-dev/multicluster-provider v0.2.1
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/openfga/api/proto v0.0.0-20251105142303-feed3db3d69d
-	github.com/platform-mesh/account-operator v0.5.18
+	github.com/platform-mesh/account-operator v0.5.19
 	github.com/platform-mesh/golang-commons v0.7.13
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.21.0
@@ -116,7 +116,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250929231259-57b25ae835d4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250929231259-57b25ae835d4 // indirect
