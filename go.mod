@@ -12,7 +12,7 @@ require (
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/openfga/api/proto v0.0.0-20251105142303-feed3db3d69d
 	github.com/platform-mesh/account-operator v0.5.18
-	github.com/platform-mesh/golang-commons v0.7.12
+	github.com/platform-mesh/golang-commons v0.7.13
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
@@ -20,7 +20,7 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.63.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0
 	go.opentelemetry.io/otel v1.38.0
-	golang.org/x/oauth2 v0.32.0
+	golang.org/x/oauth2 v0.33.0
 	golang.org/x/sync v0.17.0
 	google.golang.org/grpc v1.76.0
 	k8s.io/client-go v0.34.1
