@@ -332,31 +332,32 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 				Object:   targetObject,
 			}
 
-			// Write the roleTuple to FGA
-			writeReq := &openfgav1.WriteRequest{
-				StoreId: storeID,
-				Writes: &openfgav1.WriteRequestWrites{
-					TupleKeys: []*openfgav1.TupleKey{roleTuple, assignRoleTuple},
-				},
+			for _, write := range []*openfgav1.TupleKey{roleTuple, assignRoleTuple} {
+				// Write the roleTuple to FGA
+				writeReq := &openfgav1.WriteRequest{
+					StoreId: storeID,
+					Writes: &openfgav1.WriteRequestWrites{
+						TupleKeys: []*openfgav1.TupleKey{write},
+					},
+				}
+
+				_, err := s.client.Write(ctx, writeReq)
+				if err != nil {
+					// Check if this is a duplicate write error (roleTuple already exists)
+					if isDuplicateWriteError(err) {
+						log.Info().Str("role", role).Str("userId", sanitizeUserID(change.UserID)).Msg("Role already assigned to user - skipping duplicate")
+					} else {
+						// This is a real error
+						errMsg := fmt.Sprintf("failed to assign role '%s' to user '%s': %v", role, sanitizeUserID(change.UserID), err)
+						allErrors = append(allErrors, errMsg)
+						log.Error().Err(err).Str("role", role).Str("userId", sanitizeUserID(change.UserID)).Msg("Failed to write roleTuple to FGA")
+					}
+				} else {
+					totalAssigned++
+					log.Info().Str("role", role).Str("userId", sanitizeUserID(change.UserID)).Msg("Successfully assigned role to user")
+				}
 			}
 
-			_, err := s.client.Write(ctx, writeReq)
-			if err != nil {
-				// Check if this is a duplicate write error (roleTuple already exists)
-				if isDuplicateWriteError(err) {
-					// Treat duplicate writes as successful - the role is already assigned
-					totalAssigned++
-					log.Info().Str("role", role).Str("userId", sanitizeUserID(change.UserID)).Msg("Role already assigned to user - skipping duplicate")
-				} else {
-					// This is a real error
-					errMsg := fmt.Sprintf("failed to assign role '%s' to user '%s': %v", role, sanitizeUserID(change.UserID), err)
-					allErrors = append(allErrors, errMsg)
-					log.Error().Err(err).Str("role", role).Str("userId", sanitizeUserID(change.UserID)).Msg("Failed to write roleTuple to FGA")
-				}
-			} else {
-				totalAssigned++
-				log.Info().Str("role", role).Str("userId", sanitizeUserID(change.UserID)).Msg("Successfully assigned role to user")
-			}
 		}
 	}
 

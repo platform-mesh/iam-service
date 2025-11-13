@@ -14,6 +14,7 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/pager"
 	"github.com/platform-mesh/iam-service/pkg/resolver/api"
 	serrors "github.com/platform-mesh/iam-service/pkg/resolver/errors"
+	"github.com/platform-mesh/iam-service/pkg/resolver/transformer"
 	"github.com/platform-mesh/iam-service/pkg/sorter"
 )
 
@@ -25,6 +26,7 @@ type Service struct {
 	userSorter      sorter.UserSorter
 	pager           pager.Pager
 	mgr             mcmanager.Manager
+	transformer     *transformer.UserTransformer
 }
 
 func (s *Service) Me(ctx context.Context) (*graph.User, error) {
@@ -33,16 +35,23 @@ func (s *Service) Me(ctx context.Context) (*graph.User, error) {
 		return nil, serrors.ErrInternal
 	}
 
-	return &graph.User{
+	u := &graph.User{
 		UserID:    webToken.Subject,
 		Email:     webToken.Mail,
 		FirstName: &webToken.FirstName,
 		LastName:  &webToken.LastName,
-	}, nil
+	}
+
+	return s.transformer.Transform(u), nil
 }
 
 func (s *Service) User(ctx context.Context, userID string) (*graph.User, error) {
-	return s.keycloakService.UserByMail(ctx, userID)
+	user, err := s.keycloakService.UserByMail(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.transformer.Transform(user), nil
 }
 
 func (s *Service) Users(ctx context.Context, rctx graph.ResourceContext, roleFilters []string, sortBy *graph.SortByInput, page *graph.PageInput) (*graph.UserConnection, error) {
@@ -57,6 +66,10 @@ func (s *Service) Users(ctx context.Context, rctx graph.ResourceContext, roleFil
 	}
 
 	s.userSorter.SortUserRoles(allUserRoles, sortBy)
+
+	for _, ur := range allUserRoles {
+		ur.User = s.transformer.Transform(ur.User)
+	}
 
 	totalCount := len(allUserRoles)
 	paginatedUserRoles, pageInfo := s.pager.PaginateUserRoles(allUserRoles, page, totalCount)
@@ -83,7 +96,7 @@ func (s *Service) KnownUsers(ctx context.Context, sortBy *graph.SortByInput, pag
 	userRoles := make([]*graph.UserRoles, len(paginatedUsers))
 	for i, user := range paginatedUsers {
 		userRoles[i] = &graph.UserRoles{
-			User:  user,
+			User:  s.transformer.Transform(user),
 			Roles: []*graph.Role{}, // Empty roles for known users query
 		}
 	}
@@ -115,5 +128,6 @@ func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycl
 		userSorter:      sorter.NewUserSorterWithConfig(cfg),
 		pager:           pager.NewPager(cfg),
 		mgr:             mgr,
+		transformer:     transformer.NewUserTransformer(&cfg.JWT),
 	}, nil
 }

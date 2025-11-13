@@ -53,8 +53,6 @@ tasks:
     cmds:
       - go run ./main.go serve
   unittest:
-    env:
-      GO111MODULE: on
     deps:
       - task: mockery
     cmds:
