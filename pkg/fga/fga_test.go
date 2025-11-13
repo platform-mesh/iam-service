@@ -337,13 +337,12 @@ func TestService_AssignRolesToUsers_Success(t *testing.T) {
 	}
 	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
 
-	// Mock Write calls for each role assignment (now writes 2 tuples per role)
+	// Mock Write calls for each role assignment (now writes 2 separate calls per role)
+	// For 2 roles (owner, member), we expect 4 Write calls total (2 per role)
 	client.EXPECT().Write(mock.Anything, mock.MatchedBy(func(req *openfgav1.WriteRequest) bool {
 		return req.StoreId == storeID &&
-			len(req.Writes.TupleKeys) == 2 &&
-			req.Writes.TupleKeys[0].Relation == "assignee"
-		// Second tuple relation varies by role (owner, member, etc.)
-	})).Return(&openfgav1.WriteResponse{}, nil).Times(2)
+			len(req.Writes.TupleKeys) == 1
+	})).Return(&openfgav1.WriteResponse{}, nil).Times(4)
 
 	// Set cluster ID in context since it's now retrieved from context instead of accountinfo
 	ctx = appcontext.SetClusterId(ctx, ai.Spec.Account.GeneratedClusterId)
@@ -353,7 +352,7 @@ func TestService_AssignRolesToUsers_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.True(t, result.Success)
-	assert.Equal(t, 2, result.AssignedCount)
+	assert.Equal(t, 4, result.AssignedCount)
 	assert.Empty(t, result.Errors)
 }
 
@@ -407,14 +406,20 @@ func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
 	}
 	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
 
-	// Mock Write call for owner role only (admin should be rejected) - now writes 2 tuples per role
+	// Mock Write calls for owner role only (admin should be rejected) - now writes 2 separate calls per role
+	// First call: assignee tuple
 	client.EXPECT().Write(mock.Anything, mock.MatchedBy(func(req *openfgav1.WriteRequest) bool {
 		return req.StoreId == storeID &&
-			len(req.Writes.TupleKeys) == 2 &&
+			len(req.Writes.TupleKeys) == 1 &&
 			req.Writes.TupleKeys[0].User == "user:user1@example.com" &&
 			req.Writes.TupleKeys[0].Object == "role:core_platform-mesh_io_account/cluster-123/test-account/owner" &&
-			req.Writes.TupleKeys[0].Relation == "assignee" &&
-			req.Writes.TupleKeys[1].Relation == "owner"
+			req.Writes.TupleKeys[0].Relation == "assignee"
+	})).Return(&openfgav1.WriteResponse{}, nil).Once()
+	// Second call: role tuple
+	client.EXPECT().Write(mock.Anything, mock.MatchedBy(func(req *openfgav1.WriteRequest) bool {
+		return req.StoreId == storeID &&
+			len(req.Writes.TupleKeys) == 1 &&
+			req.Writes.TupleKeys[0].Relation == "owner"
 	})).Return(&openfgav1.WriteResponse{}, nil).Once()
 
 	// Set cluster ID in context since it's now retrieved from context instead of accountinfo
@@ -425,7 +430,7 @@ func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.False(t, result.Success)
-	assert.Equal(t, 1, result.AssignedCount)
+	assert.Equal(t, 2, result.AssignedCount)
 	assert.Len(t, result.Errors, 1)
 	assert.Contains(t, result.Errors[0], "role 'admin' is not allowed")
 }
