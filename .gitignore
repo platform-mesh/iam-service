@@ -10,4 +10,4 @@ __debug_bin*
 *.out*
 .secret
 .claude
-CLAUDE.local.md
+claude.local.md

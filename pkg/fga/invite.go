@@ -2,8 +2,10 @@ package fga
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
-	"strings"
+	"net/mail"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	"github.com/platform-mesh/golang-commons/errors"
@@ -12,19 +14,32 @@ import (
 	securityv1alpha1 "github.com/platform-mesh/security-operator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/roles"
 )
 
+// emailToLabelValue converts an email address to a valid Kubernetes label value
+// by creating a SHA-256 hash. This ensures the value meets Kubernetes label requirements:
+// - 63 characters or less
+// - alphanumeric characters only
+func emailToLabelValue(email string) string {
+	hash := sha256.Sum256([]byte(email))
+	// Use first 32 bytes (64 hex chars) but truncate to 63 for label limit
+	return hex.EncodeToString(hash[:])[:63]
+}
+
 // checkAndInviteUser checks if a user exists in the IDM system and creates an Invite if not
-func (s *Service) checkAndInviteUser(ctx context.Context, userEmail, accountPath string) error {
+func (s *Service) checkAndInviteUser(ctx context.Context, userEmail string, rctx graph.ResourceContext) error {
 	log := logger.LoadLoggerFromContext(ctx).MustChildLoggerWithAttributes("email", sanitizeUserID(userEmail))
 
 	// Check if user exists in IDM system
-	_, err := s.idmChecker.UserByMail(ctx, userEmail)
-	if err == nil {
+	usr, err := s.idmChecker.UserByMail(ctx, userEmail)
+	if err != nil {
+		return errors.Wrap(err, "failed to check if user %s exists in IDM system", sanitizeUserID(userEmail))
+	}
+
+	if usr != nil {
 		// User exists, no invite needed
 		return nil
 	}
@@ -33,9 +48,13 @@ func (s *Service) checkAndInviteUser(ctx context.Context, userEmail, accountPath
 
 	// User doesn't exist, need to create an Invite in the account workspace
 	// Get workspace client for the account path
-	wsClient, err := s.wsClientFactory.New(ctx, accountPath)
+	path := rctx.AccountPath
+	if rctx.Group == "core.platform-mesh.io" && rctx.Kind == "Account" {
+		path = fmt.Sprintf("%s:%s", path, rctx.Resource.Name)
+	}
+	wsClient, err := s.wsClientFactory.New(ctx, path)
 	if err != nil {
-		return errors.Wrap(err, "failed to create workspace client for path %s", accountPath)
+		return errors.Wrap(err, "failed to create workspace client for path %s", path)
 	}
 
 	if err := s.createInviteIfNotExists(ctx, wsClient, userEmail); err != nil {
@@ -47,32 +66,48 @@ func (s *Service) checkAndInviteUser(ctx context.Context, userEmail, accountPath
 
 // createInviteIfNotExists creates or updates an Invite resource for the user
 func (s *Service) createInviteIfNotExists(ctx context.Context, wsClient client.Client, userEmail string) error {
-	// Generate invite name from email (replace @ and . with -)
-	inviteName := strings.ReplaceAll(strings.ReplaceAll(userEmail, "@", "-"), ".", "-")
-	log := logger.LoadLoggerFromContext(ctx).MustChildLoggerWithAttributes("email", sanitizeUserID(userEmail), "inviteName", inviteName)
+	// Validate email format
+	if _, err := mail.ParseAddress(userEmail); err != nil {
+		return errors.Wrap(err, "invalid email format for %s", sanitizeUserID(userEmail))
+	}
 
+	log := logger.LoadLoggerFromContext(ctx).MustChildLoggerWithAttributes("email", sanitizeUserID(userEmail))
+
+	// Check if an Invite already exists for this email using label selector
+	// Use hash of email as label value since email contains invalid characters (@, .)
+	emailHash := emailToLabelValue(userEmail)
+	inviteList := &securityv1alpha1.InviteList{}
+	labelSelector := client.MatchingLabels{
+		"platform-mesh.io/invite-email-hash": emailHash,
+	}
+	if err := wsClient.List(ctx, inviteList, labelSelector); err != nil { // coverage-ignore
+		return errors.Wrap(err, "failed to list existing Invites for %s", sanitizeUserID(userEmail))
+	}
+
+	// If invite already exists, return early
+	if len(inviteList.Items) > 0 {
+		log.Debug().Str("inviteName", inviteList.Items[0].Name).Msg("Invite already exists")
+		return nil
+	}
+
+	// Create new Invite with label
 	invite := &securityv1alpha1.Invite{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: inviteName,
+			GenerateName: "invite-",
+			Labels: map[string]string{
+				"platform-mesh.io/invite-email-hash": emailHash,
+			},
+		},
+		Spec: securityv1alpha1.InviteSpec{
+			Email: userEmail,
 		},
 	}
 
-	result, err := controllerutil.CreateOrUpdate(ctx, wsClient, invite, func() error {
-		// Set the email in the spec
-		invite.Spec.Email = userEmail
-		return nil
-	})
-
-	if err != nil {
-		return errors.Wrap(err, "failed to create or update Invite resource for %s", sanitizeUserID(userEmail))
+	if err := wsClient.Create(ctx, invite); err != nil { // coverage-ignore
+		return errors.Wrap(err, "failed to create Invite resource for %s", sanitizeUserID(userEmail))
 	}
 
-	if result == controllerutil.OperationResultCreated {
-		log.Info().Msg("Successfully created Invite resource")
-	} else {
-		log.Debug().Msg("Invite already exists")
-	}
-
+	log.Info().Str("inviteName", invite.Name).Msg("Successfully created Invite resource")
 	return nil
 }
 
@@ -85,8 +120,8 @@ func (s *Service) processInvites(ctx context.Context, rctx graph.ResourceContext
 		inviteLog := log.MustChildLoggerWithAttributes("email", sanitizeUserID(invite.Email))
 		inviteLog.Debug().Interface("roles", invite.Roles).Msg("Processing invite")
 
-		// Check if user exists in Keycloak and create Invite if not
-		if err := s.checkAndInviteUser(ctx, invite.Email, rctx.AccountPath); err != nil {
+		// Check if user exists in IDM system and create Invite if not
+		if err := s.checkAndInviteUser(ctx, invite.Email, rctx); err != nil {
 			errMsg := fmt.Sprintf("failed to create invite for user '%s': %v", sanitizeUserID(invite.Email), err)
 			inviteErrors = append(inviteErrors, errMsg)
 			inviteLog.Warn().Err(err).Msg("Failed to create Invite for user, continuing with role assignment")
@@ -166,7 +201,7 @@ func (s *Service) assignRoleToUser(ctx context.Context, userEmail, role string, 
 		_, err := s.client.Write(ctx, writeReq)
 		if err != nil {
 			if isDuplicateWriteError(err) {
-				log.Info().Msg("Role already assigned to user - skipping duplicate")
+				log.Info().Str("relation", write.Relation).Str("object", write.Object).Msg("Tuple already exists, skipping duplicate")
 			} else { // coverage-ignore
 				errMsg := fmt.Sprintf("failed to assign role '%s' to user '%s': %v", role, sanitizeUserID(userEmail), err)
 				errors = append(errors, errMsg)
