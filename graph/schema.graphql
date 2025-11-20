@@ -92,6 +92,12 @@ input UserRoleChange {
     roles: [String!]!
 }
 
+""" Input for inviting a new user and assigning roles """
+input InviteInput {
+    email: String!
+    roles: [String!]!
+}
+
 """ Input for removing a role from a user """
 input RemoveRoleInput {
     userId: String!
@@ -124,7 +130,7 @@ type Query {
 
 
 type Mutation {
-    assignRolesToUsers(context: ResourceContext!, changes: [UserRoleChange!]!): RoleAssignmentResult! @authorized(permission: "manage_iam_roles")
+    assignRolesToUsers(context: ResourceContext!, changes: [UserRoleChange!], invites: [InviteInput!]): RoleAssignmentResult! @authorized(permission: "manage_iam_roles")
     removeRole(context: ResourceContext!, input: RemoveRoleInput!): RoleRemovalResult! @authorized(permission: "manage_iam_roles")
 }
 schema{

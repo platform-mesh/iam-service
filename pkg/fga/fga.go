@@ -17,6 +17,7 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/fga/store"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	"github.com/platform-mesh/iam-service/pkg/roles"
+	"github.com/platform-mesh/iam-service/pkg/workspace"
 )
 
 var (
@@ -34,13 +35,20 @@ func sanitizeUserID(userID string) string {
 
 type UserIDToRoles map[string][]string
 
-type Service struct {
-	client         openfgav1.OpenFGAServiceClient
-	helper         store.StoreHelper
-	rolesRetriever roles.RolesRetriever
+// KeycloakUserChecker checks if a user exists in Keycloak
+type KeycloakUserChecker interface {
+	UserByMail(ctx context.Context, userID string) (*graph.User, error)
 }
 
-func New(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) (*Service, error) {
+type Service struct {
+	client          openfgav1.OpenFGAServiceClient
+	helper          store.StoreHelper
+	rolesRetriever  roles.RolesRetriever
+	wsClientFactory workspace.ClientFactory
+	kcChecker       KeycloakUserChecker
+}
+
+func New(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig, wsClientFactory workspace.ClientFactory, kcChecker KeycloakUserChecker) (*Service, error) {
 	// Use configurable roles retriever from YAML file
 	rolesRetriever, err := roles.NewFileBasedRolesRetriever(cfg.Roles.FilePath)
 	if err != nil {
@@ -48,9 +56,11 @@ func New(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig) (*Ser
 	}
 
 	return &Service{
-		client:         client,
-		helper:         store.NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL),
-		rolesRetriever: rolesRetriever,
+		client:          client,
+		helper:          store.NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL),
+		rolesRetriever:  rolesRetriever,
+		wsClientFactory: wsClientFactory,
+		kcChecker:       kcChecker,
 	}, nil
 }
 
@@ -258,8 +268,8 @@ func (s *Service) applyRoleFilter(rctx graph.ResourceContext, roleFilters []stri
 	return appliedRoles, nil
 }
 
-// AssignRolesToUsers creates tuples in FGA for the given users and roles
-func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
+// AssignRolesToUsers creates tuples in FGA for the given users and roles, and processes invites
+func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceContext, changes []*graph.UserRoleChange, invites []*graph.InviteInput) (*graph.RoleAssignmentResult, error) {
 	log := logger.LoadLoggerFromContext(ctx)
 	log = log.MustChildLoggerWithAttributes("group", rctx.Group, "kind", rctx.Kind)
 	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "fga.AssignRolesToUsers")
@@ -284,9 +294,18 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 	var allErrors []string
 	var totalAssigned int
 
-	// Process each user role change
+	// Process invites first - create Invite resources for users that don't exist
+	// and then assign their roles
+	if len(invites) > 0 {
+		invitedCount, inviteErrors := s.processInvites(ctx, rctx, invites, storeID, fgaTypeName, clusterId, log)
+		totalAssigned += invitedCount
+		allErrors = append(allErrors, inviteErrors...)
+	}
+
+	// Process regular user role changes (for existing users)
 	for _, change := range changes {
-		log.Debug().Str("userId", sanitizeUserID(change.UserID)).Interface("roles", change.Roles).Msg("Processing role assignment")
+		changeLog := log.MustChildLoggerWithAttributes("userId", sanitizeUserID(change.UserID))
+		changeLog.Debug().Interface("roles", change.Roles).Msg("Processing role assignment")
 
 		// Validate that only available roles are being assigned
 		roleDefinitions, err := s.rolesRetriever.GetRoleDefinitions(rctx)
@@ -299,65 +318,18 @@ func (s *Service) AssignRolesToUsers(ctx context.Context, rctx graph.ResourceCon
 		availableRoles := roles.GetAvailableRoleIDs(roleDefinitions)
 
 		for _, role := range change.Roles {
+			roleLog := changeLog.MustChildLoggerWithAttributes("role", role)
 			if !containsString(availableRoles, role) {
 				errMsg := fmt.Sprintf("role '%s' is not allowed for user '%s'. Only roles %v are permitted", role, sanitizeUserID(change.UserID), availableRoles)
 				allErrors = append(allErrors, errMsg)
-				log.Warn().Str("role", role).Str("userId", sanitizeUserID(change.UserID)).Interface("availableRoles", availableRoles).Msg("Invalid role assignment attempted")
+				roleLog.Warn().Interface("availableRoles", availableRoles).Msg("Invalid role assignment attempted")
 				continue
 			}
 
-			// Create the roleTuple for this user-role combination
-			roleTuple := &openfgav1.TupleKey{
-				User:     fmt.Sprintf("user:%s", change.UserID),
-				Relation: "assignee",
-				Object: fmt.Sprintf("role:%s/%s/%s/%s",
-					fgaTypeName,
-					clusterId,
-					rctx.Resource.Name,
-					role),
-			}
-
-			targetFGATypeName := util.ConvertToTypeName(rctx.Group, rctx.Kind)
-			targetObject := fmt.Sprintf("%s:%s/%s", targetFGATypeName, clusterId, rctx.Resource.Name)
-			if rctx.Resource.Namespace != nil {
-				targetObject = fmt.Sprintf("%s:%s/%s/%s", targetFGATypeName, clusterId, *rctx.Resource.Namespace, rctx.Resource.Name)
-			}
-			assignRoleTuple := &openfgav1.TupleKey{
-				User: fmt.Sprintf("role:%s/%s/%s/%s#assignee",
-					fgaTypeName,
-					clusterId,
-					rctx.Resource.Name,
-					role),
-				Relation: role,
-				Object:   targetObject,
-			}
-
-			for _, write := range []*openfgav1.TupleKey{roleTuple, assignRoleTuple} {
-				// Write the roleTuple to FGA
-				writeReq := &openfgav1.WriteRequest{
-					StoreId: storeID,
-					Writes: &openfgav1.WriteRequestWrites{
-						TupleKeys: []*openfgav1.TupleKey{write},
-					},
-				}
-
-				_, err := s.client.Write(ctx, writeReq)
-				if err != nil {
-					// Check if this is a duplicate write error (roleTuple already exists)
-					if isDuplicateWriteError(err) {
-						log.Info().Str("role", role).Str("userId", sanitizeUserID(change.UserID)).Msg("Role already assigned to user - skipping duplicate")
-					} else {
-						// This is a real error
-						errMsg := fmt.Sprintf("failed to assign role '%s' to user '%s': %v", role, sanitizeUserID(change.UserID), err)
-						allErrors = append(allErrors, errMsg)
-						log.Error().Err(err).Str("role", role).Str("userId", sanitizeUserID(change.UserID)).Msg("Failed to write roleTuple to FGA")
-					}
-				} else {
-					totalAssigned++
-					log.Info().Str("role", role).Str("userId", sanitizeUserID(change.UserID)).Msg("Successfully assigned role to user")
-				}
-			}
-
+			// Assign the role to the user
+			count, errs := s.assignRoleToUser(ctx, change.UserID, role, rctx, storeID, fgaTypeName, clusterId, roleLog)
+			totalAssigned += count
+			allErrors = append(allErrors, errs...)
 		}
 	}
 

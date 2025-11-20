@@ -1,0 +1,1 @@
+- Run task cover to ensure the coverage rules are reached

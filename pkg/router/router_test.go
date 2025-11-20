@@ -42,7 +42,7 @@ func (s *testResolverService) Roles(ctx context.Context, resourceContext graph.R
 	return []*graph.Role{}, nil
 }
 
-func (s *testResolverService) AssignRolesToUsers(ctx context.Context, resourceContext graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
+func (s *testResolverService) AssignRolesToUsers(ctx context.Context, resourceContext graph.ResourceContext, changes []*graph.UserRoleChange, invites []*graph.InviteInput) (*graph.RoleAssignmentResult, error) {
 	return &graph.RoleAssignmentResult{Success: true, AssignedCount: 0}, nil
 }
 

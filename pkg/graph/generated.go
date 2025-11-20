@@ -47,7 +47,7 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		AssignRolesToUsers func(childComplexity int, context ResourceContext, changes []*UserRoleChange) int
+		AssignRolesToUsers func(childComplexity int, context ResourceContext, changes []*UserRoleChange, invites []*InviteInput) int
 		RemoveRole         func(childComplexity int, context ResourceContext, input RemoveRoleInput) int
 	}
 
@@ -103,7 +103,7 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	AssignRolesToUsers(ctx context.Context, context ResourceContext, changes []*UserRoleChange) (*RoleAssignmentResult, error)
+	AssignRolesToUsers(ctx context.Context, context ResourceContext, changes []*UserRoleChange, invites []*InviteInput) (*RoleAssignmentResult, error)
 	RemoveRole(ctx context.Context, context ResourceContext, input RemoveRoleInput) (*RoleRemovalResult, error)
 }
 type QueryResolver interface {
@@ -143,7 +143,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AssignRolesToUsers(childComplexity, args["context"].(ResourceContext), args["changes"].([]*UserRoleChange)), true
+		return e.complexity.Mutation.AssignRolesToUsers(childComplexity, args["context"].(ResourceContext), args["changes"].([]*UserRoleChange), args["invites"].([]*InviteInput)), true
 	case "Mutation.removeRole":
 		if e.complexity.Mutation.RemoveRole == nil {
 			break
@@ -348,6 +348,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputInviteInput,
 		ec.unmarshalInputPageInput,
 		ec.unmarshalInputRemoveRoleInput,
 		ec.unmarshalInputResource,
@@ -545,6 +546,12 @@ input UserRoleChange {
     roles: [String!]!
 }
 
+""" Input for inviting a new user and assigning roles """
+input InviteInput {
+    email: String!
+    roles: [String!]!
+}
+
 """ Input for removing a role from a user """
 input RemoveRoleInput {
     userId: String!
@@ -577,7 +584,7 @@ type Query {
 
 
 type Mutation {
-    assignRolesToUsers(context: ResourceContext!, changes: [UserRoleChange!]!): RoleAssignmentResult! @authorized(permission: "manage_iam_roles")
+    assignRolesToUsers(context: ResourceContext!, changes: [UserRoleChange!], invites: [InviteInput!]): RoleAssignmentResult! @authorized(permission: "manage_iam_roles")
     removeRole(context: ResourceContext!, input: RemoveRoleInput!): RoleRemovalResult! @authorized(permission: "manage_iam_roles")
 }
 schema{
@@ -612,11 +619,16 @@ func (ec *executionContext) field_Mutation_assignRolesToUsers_args(ctx context.C
 		return nil, err
 	}
 	args["context"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "changes", ec.unmarshalNUserRoleChange2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserRoleChangeᚄ)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "changes", ec.unmarshalOUserRoleChange2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserRoleChangeᚄ)
 	if err != nil {
 		return nil, err
 	}
 	args["changes"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "invites", ec.unmarshalOInviteInput2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐInviteInputᚄ)
+	if err != nil {
+		return nil, err
+	}
+	args["invites"] = arg2
 	return args, nil
 }
 
@@ -771,7 +783,7 @@ func (ec *executionContext) _Mutation_assignRolesToUsers(ctx context.Context, fi
 		ec.fieldContext_Mutation_assignRolesToUsers,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().AssignRolesToUsers(ctx, fc.Args["context"].(ResourceContext), fc.Args["changes"].([]*UserRoleChange))
+			return ec.resolvers.Mutation().AssignRolesToUsers(ctx, fc.Args["context"].(ResourceContext), fc.Args["changes"].([]*UserRoleChange), fc.Args["invites"].([]*InviteInput))
 		},
 		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
 			directive0 := next
@@ -3363,6 +3375,40 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputInviteInput(ctx context.Context, obj any) (InviteInput, error) {
+	var it InviteInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"email", "roles"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "email":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Email = data
+		case "roles":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
+			data, err := ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Roles = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputPageInput(ctx context.Context, obj any) (PageInput, error) {
 	var it PageInput
 	asMap := map[string]any{}
@@ -4504,6 +4550,11 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
+func (ec *executionContext) unmarshalNInviteInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐInviteInput(ctx context.Context, v any) (*InviteInput, error) {
+	res, err := ec.unmarshalInputInviteInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *PageInfo) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -4727,21 +4778,6 @@ func (ec *executionContext) marshalNUserConnection2ᚖgithubᚗcomᚋplatformᚑ
 		return graphql.Null
 	}
 	return ec._UserConnection(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNUserRoleChange2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserRoleChangeᚄ(ctx context.Context, v any) ([]*UserRoleChange, error) {
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
-	var err error
-	res := make([]*UserRoleChange, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNUserRoleChange2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserRoleChange(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
 }
 
 func (ec *executionContext) unmarshalNUserRoleChange2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserRoleChange(ctx context.Context, v any) (*UserRoleChange, error) {
@@ -5114,6 +5150,24 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return res
 }
 
+func (ec *executionContext) unmarshalOInviteInput2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐInviteInputᚄ(ctx context.Context, v any) ([]*InviteInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*InviteInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNInviteInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐInviteInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
 func (ec *executionContext) unmarshalOPageInput2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐPageInput(ctx context.Context, v any) (*PageInput, error) {
 	if v == nil {
 		return nil, nil
@@ -5196,6 +5250,24 @@ func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋplatformᚑmeshᚋiam
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOUserRoleChange2ᚕᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserRoleChangeᚄ(ctx context.Context, v any) ([]*UserRoleChange, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*UserRoleChange, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNUserRoleChange2ᚖgithubᚗcomᚋplatformᚑmeshᚋiamᚑserviceᚋpkgᚋgraphᚐUserRoleChange(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

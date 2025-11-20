@@ -64,7 +64,7 @@ func TestNew(t *testing.T) {
 
 	// Create config with testdata roles file
 	cfg := createTestConfig()
-	service, err := New(client, cfg)
+	service, err := New(client, cfg, nil, nil)
 
 	// Should succeed with test config
 	assert.NoError(t, err)
@@ -347,7 +347,7 @@ func TestService_AssignRolesToUsers_Success(t *testing.T) {
 	// Set cluster ID in context since it's now retrieved from context instead of accountinfo
 	ctx = appcontext.SetClusterId(ctx, ai.Spec.Account.GeneratedClusterId)
 
-	result, err := service.AssignRolesToUsers(ctx, rCtx, changes)
+	result, err := service.AssignRolesToUsers(ctx, rCtx, changes, nil)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -425,7 +425,7 @@ func TestService_AssignRolesToUsers_InvalidRole(t *testing.T) {
 	// Set cluster ID in context since it's now retrieved from context instead of accountinfo
 	ctx = appcontext.SetClusterId(ctx, ai.Spec.Account.GeneratedClusterId)
 
-	result, err := service.AssignRolesToUsers(ctx, rCtx, changes)
+	result, err := service.AssignRolesToUsers(ctx, rCtx, changes, nil)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)

@@ -24,17 +24,18 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/fga/store"
 	"github.com/platform-mesh/iam-service/pkg/fga/tuples"
 	"github.com/platform-mesh/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/workspace"
 )
 
 type AuthorizedDirective struct {
 	fga      openfgav1.OpenFGAServiceClient
 	helper   store.StoreHelper
 	air      accountinfo.Retriever
-	wcClient WorkspaceClient
+	wcClient workspace.ClientFactory
 	log      *logger.Logger
 }
 
-func NewAuthorizedDirective(oc openfgav1.OpenFGAServiceClient, air accountinfo.Retriever, storeTTL time.Duration, cf WorkspaceClient, log *logger.Logger) *AuthorizedDirective {
+func NewAuthorizedDirective(oc openfgav1.OpenFGAServiceClient, air accountinfo.Retriever, storeTTL time.Duration, cf workspace.ClientFactory, log *logger.Logger) *AuthorizedDirective {
 	return &AuthorizedDirective{
 		fga:      oc,
 		helper:   store.NewFGAStoreHelper(storeTTL),
@@ -44,9 +45,9 @@ func NewAuthorizedDirective(oc openfgav1.OpenFGAServiceClient, air accountinfo.R
 	}
 }
 
-// NewAuthorizedDirectiveWithFactory creates a new AuthorizedDirective with a custom WorkspaceClient.
+// NewAuthorizedDirectiveWithFactory creates a new AuthorizedDirective with a custom ClientFactory.
 // This constructor is primarily intended for testing with mock implementations.
-func NewAuthorizedDirectiveWithFactory(oc openfgav1.OpenFGAServiceClient, air accountinfo.Retriever, storeTTL time.Duration, clientFactory WorkspaceClient) *AuthorizedDirective {
+func NewAuthorizedDirectiveWithFactory(oc openfgav1.OpenFGAServiceClient, air accountinfo.Retriever, storeTTL time.Duration, clientFactory workspace.ClientFactory) *AuthorizedDirective {
 	return &AuthorizedDirective{
 		fga:      oc,
 		helper:   store.NewFGAStoreHelper(storeTTL),

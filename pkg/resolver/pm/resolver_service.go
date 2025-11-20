@@ -5,6 +5,7 @@ import (
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	pmcontext "github.com/platform-mesh/golang-commons/context"
+	"github.com/platform-mesh/golang-commons/logger"
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
@@ -16,6 +17,7 @@ import (
 	serrors "github.com/platform-mesh/iam-service/pkg/resolver/errors"
 	"github.com/platform-mesh/iam-service/pkg/resolver/transformer"
 	"github.com/platform-mesh/iam-service/pkg/sorter"
+	"github.com/platform-mesh/iam-service/pkg/workspace"
 )
 
 var _ api.ResolverService = (*Service)(nil)
@@ -104,8 +106,8 @@ func (s *Service) KnownUsers(ctx context.Context, sortBy *graph.SortByInput, pag
 	return &graph.UserConnection{Users: userRoles, PageInfo: pageInfo}, nil
 }
 
-func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
-	return s.fgaService.AssignRolesToUsers(ctx, rCtx, changes)
+func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceContext, changes []*graph.UserRoleChange, invites []*graph.InviteInput) (*graph.RoleAssignmentResult, error) {
+	return s.fgaService.AssignRolesToUsers(ctx, rCtx, changes, invites)
 }
 
 func (s *Service) RemoveRole(ctx context.Context, rCtx graph.ResourceContext, input graph.RemoveRoleInput) (*graph.RoleRemovalResult, error) {
@@ -117,7 +119,19 @@ func (s *Service) Roles(ctx context.Context, context graph.ResourceContext) ([]*
 }
 
 func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycloak.Service, cfg *config.ServiceConfig, mgr mcmanager.Manager) (*Service, error) {
-	fgaService, err := fga.New(fgaClient, cfg)
+	// Create workspace client factory
+	// We'll create a basic logger for the workspace client factory
+	logCfg := logger.Config{
+		Level: "info",
+	}
+	log, err := logger.New(logCfg)
+	if err != nil {
+		return nil, err
+	}
+	wsClientFactory := workspace.NewClientFactory(mgr, log)
+
+	// Create FGA service with workspace client factory and keycloak checker
+	fgaService, err := fga.New(fgaClient, cfg, wsClientFactory, service)
 	if err != nil {
 		return nil, err
 	}

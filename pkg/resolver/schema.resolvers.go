@@ -11,8 +11,8 @@ import (
 )
 
 // AssignRolesToUsers is the resolver for the assignRolesToUsers field.
-func (r *mutationResolver) AssignRolesToUsers(ctx context.Context, context graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error) {
-	return r.svc.AssignRolesToUsers(ctx, context, changes)
+func (r *mutationResolver) AssignRolesToUsers(ctx context.Context, context graph.ResourceContext, changes []*graph.UserRoleChange, invites []*graph.InviteInput) (*graph.RoleAssignmentResult, error) {
+	return r.svc.AssignRolesToUsers(ctx, context, changes, invites)
 }
 
 // RemoveRole is the resolver for the removeRole field.
