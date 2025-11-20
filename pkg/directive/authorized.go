@@ -101,7 +101,7 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 	ctx = appcontext.SetClusterId(ctx, clusterId)
 
 	// Test if resource exists
-	wsClient, err := a.wcClient.New(rctx.AccountPath)
+	wsClient, err := a.wcClient.New(ctx, rctx.AccountPath)
 	if err != nil { // coverage-ignore
 		return nil, errors.Wrap(err, "failed to get workspace client")
 	}
