@@ -24,13 +24,13 @@ import (
 func TestService_AssignRolesToUsers_WithInvites_UserExists(t *testing.T) {
 	service, client := createTestService(t)
 
-	// Create mocks for workspace client factory and keycloak checker
+	// Create mocks for workspace client factory and IDM user checker
 	mockWsFactory := fgamocks.NewClientFactory(t)
-	mockKcChecker := fgamocks.NewKeycloakUserChecker(t)
+	mockIDMChecker := fgamocks.NewIDMUserChecker(t)
 
 	// Set the mocks on the service
 	service.wsClientFactory = mockWsFactory
-	service.kcChecker = mockKcChecker
+	service.idmChecker = mockIDMChecker
 
 	ctx := context.Background()
 	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
@@ -79,8 +79,8 @@ func TestService_AssignRolesToUsers_WithInvites_UserExists(t *testing.T) {
 	}
 	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
 
-	// Mock Keycloak check - user exists, so no invite should be created
-	mockKcChecker.EXPECT().UserByMail(mock.Anything, "newuser@example.com").Return(&graph.User{
+	// Mock IDM check - user exists, so no invite should be created
+	mockIDMChecker.EXPECT().UserByMail(mock.Anything, "newuser@example.com").Return(&graph.User{
 		UserID: "newuser@example.com",
 		Email:  "newuser@example.com",
 	}, nil).Once()
@@ -106,9 +106,9 @@ func TestService_AssignRolesToUsers_WithInvites_UserExists(t *testing.T) {
 func TestService_AssignRolesToUsers_WithInvites_UserDoesNotExist(t *testing.T) {
 	service, client := createTestService(t)
 
-	// Create mocks for workspace client factory and keycloak checker
+	// Create mocks for workspace client factory and IDM user checker
 	mockWsFactory := fgamocks.NewClientFactory(t)
-	mockKcChecker := fgamocks.NewKeycloakUserChecker(t)
+	mockIDMChecker := fgamocks.NewIDMUserChecker(t)
 
 	// Create scheme with security operator API
 	scheme := runtime.NewScheme()
@@ -121,7 +121,7 @@ func TestService_AssignRolesToUsers_WithInvites_UserDoesNotExist(t *testing.T) {
 
 	// Set the mocks on the service
 	service.wsClientFactory = mockWsFactory
-	service.kcChecker = mockKcChecker
+	service.idmChecker = mockIDMChecker
 
 	ctx := context.Background()
 	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
@@ -170,12 +170,12 @@ func TestService_AssignRolesToUsers_WithInvites_UserDoesNotExist(t *testing.T) {
 	}
 	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
 
-	// Mock Keycloak check - user doesn't exist
-	mockKcChecker.EXPECT().UserByMail(mock.Anything, "newuser@example.com").Return(
+	// Mock IDM check - user doesn't exist
+	mockIDMChecker.EXPECT().UserByMail(mock.Anything, "newuser@example.com").Return(
 		nil, assert.AnError).Once()
 
 	// Mock workspace client creation
-	mockWsFactory.EXPECT().New("root:org:test-account").Return(mockWsClient, nil).Once()
+	mockWsFactory.EXPECT().New(mock.Anything, "root:org:test-account").Return(mockWsClient, nil).Once()
 
 	// Mock Write calls for role assignment (2 writes per role: assignee + role tuple)
 	client.EXPECT().Write(mock.Anything, mock.MatchedBy(func(req *openfgav1.WriteRequest) bool {
@@ -198,13 +198,13 @@ func TestService_AssignRolesToUsers_WithInvites_UserDoesNotExist(t *testing.T) {
 func TestService_AssignRolesToUsers_WithInvites_InvalidRole(t *testing.T) {
 	service, client := createTestService(t)
 
-	// Create mocks for workspace client factory and keycloak checker
+	// Create mocks for workspace client factory and IDM user checker
 	mockWsFactory := fgamocks.NewClientFactory(t)
-	mockKcChecker := fgamocks.NewKeycloakUserChecker(t)
+	mockIDMChecker := fgamocks.NewIDMUserChecker(t)
 
 	// Set the mocks on the service
 	service.wsClientFactory = mockWsFactory
-	service.kcChecker = mockKcChecker
+	service.idmChecker = mockIDMChecker
 
 	ctx := context.Background()
 	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
@@ -253,8 +253,8 @@ func TestService_AssignRolesToUsers_WithInvites_InvalidRole(t *testing.T) {
 	}
 	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
 
-	// Mock Keycloak check - user exists
-	mockKcChecker.EXPECT().UserByMail(mock.Anything, "newuser@example.com").Return(&graph.User{
+	// Mock IDM check - user exists
+	mockIDMChecker.EXPECT().UserByMail(mock.Anything, "newuser@example.com").Return(&graph.User{
 		UserID: "newuser@example.com",
 		Email:  "newuser@example.com",
 	}, nil).Once()
@@ -276,13 +276,13 @@ func TestService_AssignRolesToUsers_WithInvites_InvalidRole(t *testing.T) {
 func TestService_AssignRolesToUsers_WithBothChangesAndInvites(t *testing.T) {
 	service, client := createTestService(t)
 
-	// Create mocks for workspace client factory and keycloak checker
+	// Create mocks for workspace client factory and IDM user checker
 	mockWsFactory := fgamocks.NewClientFactory(t)
-	mockKcChecker := fgamocks.NewKeycloakUserChecker(t)
+	mockIDMChecker := fgamocks.NewIDMUserChecker(t)
 
 	// Set the mocks on the service
 	service.wsClientFactory = mockWsFactory
-	service.kcChecker = mockKcChecker
+	service.idmChecker = mockIDMChecker
 
 	ctx := context.Background()
 	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
@@ -338,8 +338,8 @@ func TestService_AssignRolesToUsers_WithBothChangesAndInvites(t *testing.T) {
 	}
 	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(listStoresResponse, nil)
 
-	// Mock Keycloak check for invite
-	mockKcChecker.EXPECT().UserByMail(mock.Anything, "newuser@example.com").Return(&graph.User{
+	// Mock IDM check for invite
+	mockIDMChecker.EXPECT().UserByMail(mock.Anything, "newuser@example.com").Return(&graph.User{
 		UserID: "newuser@example.com",
 		Email:  "newuser@example.com",
 	}, nil).Once()

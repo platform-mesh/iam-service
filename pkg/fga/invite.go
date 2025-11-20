@@ -18,22 +18,22 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/roles"
 )
 
-// checkAndInviteUser checks if a user exists in Keycloak and creates an Invite if not
+// checkAndInviteUser checks if a user exists in the IDM system and creates an Invite if not
 func (s *Service) checkAndInviteUser(ctx context.Context, userEmail, accountPath string) error {
 	log := logger.LoadLoggerFromContext(ctx).MustChildLoggerWithAttributes("email", sanitizeUserID(userEmail))
 
-	// Check if user exists in Keycloak
-	_, err := s.kcChecker.UserByMail(ctx, userEmail)
+	// Check if user exists in IDM system
+	_, err := s.idmChecker.UserByMail(ctx, userEmail)
 	if err == nil {
 		// User exists, no invite needed
 		return nil
 	}
 
-	log.Debug().Msg("User not found in Keycloak, will create Invite")
+	log.Debug().Msg("User not found in IDM system, will create Invite")
 
 	// User doesn't exist, need to create an Invite in the account workspace
 	// Get workspace client for the account path
-	wsClient, err := s.wsClientFactory.New(accountPath)
+	wsClient, err := s.wsClientFactory.New(ctx, accountPath)
 	if err != nil {
 		return errors.Wrap(err, "failed to create workspace client for path %s", accountPath)
 	}

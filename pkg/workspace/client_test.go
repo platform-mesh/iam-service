@@ -40,14 +40,10 @@ func TestNewClientFactory(t *testing.T) {
 	mgr, err := mcmanager.New(emptyConfig, testProvider, mcmanager.Options{})
 	require.NoError(t, err)
 
-	log, err := logger.New(logger.Config{Level: "info"})
-	require.NoError(t, err)
-
-	factory := NewClientFactory(mgr, log)
+	factory := NewClientFactory(mgr)
 
 	assert.NotNil(t, factory)
 	assert.Equal(t, mgr, factory.mgr)
-	assert.Equal(t, log, factory.log)
 }
 
 func TestKCPClient_New(t *testing.T) {
@@ -83,10 +79,11 @@ func TestKCPClient_New(t *testing.T) {
 
 			log, err := logger.New(logger.Config{Level: "info"})
 			require.NoError(t, err)
+			ctx := logger.SetLoggerInContext(context.Background(), log)
 
-			factory := NewClientFactory(mgr, log)
+			factory := NewClientFactory(mgr)
 
-			client, err := factory.New(tt.accountPath)
+			client, err := factory.New(ctx, tt.accountPath)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -115,17 +112,18 @@ func TestKCPClient_New_ConfigCopy(t *testing.T) {
 
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
+	ctx := logger.SetLoggerInContext(context.Background(), log)
 
-	factory := NewClientFactory(mgr, log)
+	factory := NewClientFactory(mgr)
 
 	accountPath1 := "root:org1:account1"
 	accountPath2 := "root:org2:account2"
 
-	client1, err := factory.New(accountPath1)
+	client1, err := factory.New(ctx, accountPath1)
 	require.NoError(t, err)
 	require.NotNil(t, client1)
 
-	client2, err := factory.New(accountPath2)
+	client2, err := factory.New(ctx, accountPath2)
 	require.NoError(t, err)
 	require.NotNil(t, client2)
 

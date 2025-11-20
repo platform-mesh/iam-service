@@ -35,8 +35,8 @@ func sanitizeUserID(userID string) string {
 
 type UserIDToRoles map[string][]string
 
-// KeycloakUserChecker checks if a user exists in Keycloak
-type KeycloakUserChecker interface {
+// IDMUserChecker checks if a user exists in the Identity Management system
+type IDMUserChecker interface {
 	UserByMail(ctx context.Context, userID string) (*graph.User, error)
 }
 
@@ -45,10 +45,10 @@ type Service struct {
 	helper          store.StoreHelper
 	rolesRetriever  roles.RolesRetriever
 	wsClientFactory workspace.ClientFactory
-	kcChecker       KeycloakUserChecker
+	idmChecker      IDMUserChecker
 }
 
-func New(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig, wsClientFactory workspace.ClientFactory, kcChecker KeycloakUserChecker) (*Service, error) {
+func New(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig, wsClientFactory workspace.ClientFactory, idmChecker IDMUserChecker) (*Service, error) {
 	// Use configurable roles retriever from YAML file
 	rolesRetriever, err := roles.NewFileBasedRolesRetriever(cfg.Roles.FilePath)
 	if err != nil {
@@ -60,7 +60,7 @@ func New(client openfgav1.OpenFGAServiceClient, cfg *config.ServiceConfig, wsCli
 		helper:          store.NewFGAStoreHelper(cfg.OpenFGA.StoreCacheTTL),
 		rolesRetriever:  rolesRetriever,
 		wsClientFactory: wsClientFactory,
-		kcChecker:       kcChecker,
+		idmChecker:      idmChecker,
 	}, nil
 }
 

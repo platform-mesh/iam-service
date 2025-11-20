@@ -90,7 +90,7 @@ func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1
 	}
 
 	// Prepare Directives
-	wsClientFactory := workspace.NewClientFactory(mgr, log)
+	wsClientFactory := workspace.NewClientFactory(mgr)
 	ad := directive.NewAuthorizedDirective(
 		fgaClient,
 		accountInfoRetriever,

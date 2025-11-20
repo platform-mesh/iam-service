@@ -85,15 +85,15 @@ packages:
         config:
           mockname: ClientFactory
 
-  # KeycloakUserChecker - External Keycloak service dependency
+  # IDMUserChecker - External IDM service dependency (could be Keycloak or other IDM systems)
   github.com/platform-mesh/iam-service/pkg/fga:
     config:
       dir: pkg/fga/mocks
       outpkg: mocks
     interfaces:
-      KeycloakUserChecker:
+      IDMUserChecker:
         config:
-          mockname: KeycloakUserChecker
+          mockname: IDMUserChecker
 
 
 

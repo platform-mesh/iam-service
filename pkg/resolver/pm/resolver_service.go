@@ -5,7 +5,6 @@ import (
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	pmcontext "github.com/platform-mesh/golang-commons/context"
-	"github.com/platform-mesh/golang-commons/logger"
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 
 	"github.com/platform-mesh/iam-service/pkg/config"
@@ -120,15 +119,7 @@ func (s *Service) Roles(ctx context.Context, context graph.ResourceContext) ([]*
 
 func NewResolverService(fgaClient openfgav1.OpenFGAServiceClient, service *keycloak.Service, cfg *config.ServiceConfig, mgr mcmanager.Manager) (*Service, error) {
 	// Create workspace client factory
-	// We'll create a basic logger for the workspace client factory
-	logCfg := logger.Config{
-		Level: "info",
-	}
-	log, err := logger.New(logCfg)
-	if err != nil {
-		return nil, err
-	}
-	wsClientFactory := workspace.NewClientFactory(mgr, log)
+	wsClientFactory := workspace.NewClientFactory(mgr)
 
 	// Create FGA service with workspace client factory and keycloak checker
 	fgaService, err := fga.New(fgaClient, cfg, wsClientFactory, service)
