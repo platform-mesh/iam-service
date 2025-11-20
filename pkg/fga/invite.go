@@ -2,7 +2,7 @@ package fga
 
 import (
 	"context"
-	"crypto/sha256"
+	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
 	"net/mail"
@@ -20,13 +20,12 @@ import (
 )
 
 // emailToLabelValue converts an email address to a valid Kubernetes label value
-// by creating a SHA-256 hash. This ensures the value meets Kubernetes label requirements:
+// by creating a SHA-1 hash. This ensures the value meets Kubernetes label requirements:
 // - 63 characters or less
 // - alphanumeric characters only
 func emailToLabelValue(email string) string {
-	hash := sha256.Sum256([]byte(email))
-	// Use first 32 bytes (64 hex chars) but truncate to 63 for label limit
-	return hex.EncodeToString(hash[:])[:63]
+	hash := sha1.Sum([]byte(email))
+	return hex.EncodeToString(hash[:])
 }
 
 // checkAndInviteUser checks if a user exists in the IDM system and creates an Invite if not
