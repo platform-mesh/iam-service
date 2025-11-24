@@ -3,7 +3,7 @@ module github.com/platform-mesh/iam-service
 go 1.25.1
 
 require (
-	github.com/99designs/gqlgen v0.17.83
+	github.com/99designs/gqlgen v0.17.84
 	github.com/coreos/go-oidc v2.4.0+incompatible
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/kcp-dev/kcp/sdk v0.28.3
