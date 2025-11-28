@@ -81,7 +81,6 @@ require (
 	golang.org/x/crypto v0.44.0 // indirect
 	golang.org/x/term v0.37.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
-	golang.org/x/tools v0.39.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
