@@ -39,6 +39,7 @@ import (
 	keycloakmw "github.com/platform-mesh/iam-service/pkg/middleware/keycloak"
 	"github.com/platform-mesh/iam-service/pkg/resolver"
 	"github.com/platform-mesh/iam-service/pkg/resolver/pm"
+	"github.com/platform-mesh/iam-service/pkg/workspace"
 
 	pmcontext "github.com/platform-mesh/golang-commons/context"
 
@@ -89,7 +90,7 @@ func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1
 	}
 
 	// Prepare Directives
-	wsClientFactory := directive.NewDefaultWSClientFactory(mgr, log)
+	wsClientFactory := workspace.NewClientFactory(mgr)
 	ad := directive.NewAuthorizedDirective(
 		fgaClient,
 		accountInfoRetriever,

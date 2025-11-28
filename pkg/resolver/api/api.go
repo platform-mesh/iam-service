@@ -11,7 +11,7 @@ type ResolverService interface {
 	User(ctx context.Context, userID string) (*graph.User, error)
 	Users(ctx context.Context, context graph.ResourceContext, roleFilters []string, sortBy *graph.SortByInput, page *graph.PageInput) (*graph.UserConnection, error)
 	Roles(ctx context.Context, context graph.ResourceContext) ([]*graph.Role, error)
-	AssignRolesToUsers(ctx context.Context, context graph.ResourceContext, changes []*graph.UserRoleChange) (*graph.RoleAssignmentResult, error)
+	AssignRolesToUsers(ctx context.Context, context graph.ResourceContext, changes []*graph.UserRoleChange, invites []*graph.InviteInput) (*graph.RoleAssignmentResult, error)
 	RemoveRole(ctx context.Context, context graph.ResourceContext, input graph.RemoveRoleInput) (*graph.RoleRemovalResult, error)
 	KnownUsers(ctx context.Context, sortBy *graph.SortByInput, page *graph.PageInput) (*graph.UserConnection, error)
 }

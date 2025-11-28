@@ -6,6 +6,7 @@ import (
 	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
 	platformmeshcontext "github.com/platform-mesh/golang-commons/config"
 	"github.com/platform-mesh/golang-commons/logger"
+	securityv1alpha1 "github.com/platform-mesh/security-operator/api/v1alpha1"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,6 +32,7 @@ func init() {
 	utilruntime.Must(accountsv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(tenancyv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(apisv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(securityv1alpha1.AddToScheme(scheme))
 	rootCmd.AddCommand(serverCmd)
 
 	var err error

@@ -9,6 +9,12 @@ import (
 	"strconv"
 )
 
+// Input for inviting a new user and assigning roles
+type InviteInput struct {
+	Email string   `json:"email"`
+	Roles []string `json:"roles"`
+}
+
 type Mutation struct {
 }
 

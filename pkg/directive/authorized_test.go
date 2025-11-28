@@ -33,7 +33,7 @@ type mockWSClient struct {
 	client client.Client
 }
 
-func (m *mockWSClient) New(_ string) (client.Client, error) {
+func (m *mockWSClient) New(_ context.Context, _ string) (client.Client, error) {
 	return m.client, nil
 }
 
