@@ -126,7 +126,7 @@ You are welcome to contribute with your pull requests. These steps explain the c
 ## Testing Strategy
 
 - Unit tests for all packages (`*_test.go`)
-- High coverage requirements (80% total, file, and package)
+- High coverage requirements (see [config](.testcoverage.yml))
 - Mock interfaces for external dependencies
 - Integration testing with OpenFGA and Keycloak
 
