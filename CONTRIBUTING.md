@@ -8,7 +8,6 @@ This is the Platform Mesh IAM (Identity and Access Management) service, a Go-bas
 
 ## Development Setup
 
-
 ### Prerequisites
 1. Go 1.25.1+ (check [go.mod](go.mod) for exact version)
 2. Platform Mesh installation (OpenFGA and KCP)
@@ -25,10 +24,6 @@ This is the Platform Mesh IAM (Identity and Access Management) service, a Go-bas
    - Kubernetes context (KUBECONFIG)
 
 ## Development Commands
-
-**Important**: The service now requires Keycloak client credentials for authentication. Ensure you configure:
-- `KEYCLOAK_CLIENT_ID`: Your Keycloak client ID (default: `iam`)
-- `KEYCLOAK_CLIENT_SECRET`: Your Keycloak client secret (required, no default)
 
 ### Building and Running
 ```bash
@@ -56,7 +51,7 @@ go test ./...
 # Run specific package tests (e.g., middleware/kcp)
 go test -v ./pkg/middleware/kcp
 
-# Check test coverage (requires 80% total, file, and package)
+# Check test coverage
 task cover
 
 # Generate detailed coverage reports
@@ -89,7 +84,7 @@ task validate
 - **Transport Layer**: GraphQL API via gqlgen
 - **Service Layer**: Business logic in `pkg/service/` and `pkg/resolver/`
 - **Integration Layer**: OpenFGA (gRPC client), Keycloak for identity management, KCP for multi-cluster management
-- **Data Backend**: OpenFGA for authorization data, KCP for resource management (no traditional database)
+- **Data Backend**: OpenFGA for authorization data, KCP for resource management (no traditional database), IDP for User Data
 
 ## Development Patterns
 
@@ -150,11 +145,3 @@ You are welcome to contribute with your pull requests. These steps explain the c
 ## Issues
 We use GitHub issues to track bugs. Please ensure your description is
 clear and includes sufficient instructions to reproduce the issue.
-
-## Code of Conduct
-
-Please refer to the [CODE_OF_CONDUCT.md](https://github.com/platform-mesh/.github/blob/main/CODE_OF_CONDUCT.md) for information on the expected Code of Conduct for contributing to Platform Mesh.
-
-## License
-By contributing to Platform Mesh, you agree that your contributions will be licensed
-under its [Apache-2.0 license](LICENSE).
