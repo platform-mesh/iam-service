@@ -51,7 +51,7 @@ go test ./...
 # Run specific package tests (e.g., middleware/kcp)
 go test -v ./pkg/middleware/kcp
 
-# Check test coverage (requires 95% total, 80% file/package)
+# Check test coverage
 task cover
 
 # Generate detailed coverage reports
@@ -84,32 +84,7 @@ task validate
 - **Transport Layer**: GraphQL API via gqlgen
 - **Service Layer**: Business logic in `pkg/service/` and `pkg/resolver/`
 - **Integration Layer**: OpenFGA (gRPC client), Keycloak for identity management, KCP for multi-cluster management
-- **Data Backend**: OpenFGA for authorization data, KCP for resource management (no traditional database)
-
-### Key Components
-
-#### GraphQL API (`graph/schema.graphql`, `pkg/resolver/`)
-- User management queries and mutations
-- Role-based access control operations
-- Schema-first approach using gqlgen
-- Resolvers in `pkg/resolver/schema.resolvers.go`
-
-#### OpenFGA Integration (`pkg/fga/`)
-- Fine-grained authorization service
-- gRPC client for OpenFGA server
-- Authorization middleware and store helpers
-
-#### Identity Management (`pkg/keycloak/`)
-- Keycloak integration using client credentials authentication
-- Automatic token refresh for long-running services
-- User identity and synchronization
-- Multi-tenant support
-
-#### KCP Integration (`pkg/middleware/kcp/`)
-- Kubernetes Control Plane integration
-- Multi-cluster resource management
-- API export provider setup
-- JWT token validation and tenant-based authorization
+- **Data Backend**: OpenFGA for authorization data, KCP for resource management (no traditional database), IDP for User Data
 
 ## Development Patterns
 
@@ -138,12 +113,6 @@ task validate
 4. Add service layer logic if needed
 5. Write tests and update mocks
 
-### Working with OpenFGA Integration
-1. Update FGA service layer in `pkg/service/fga/`
-2. Modify store helpers in `internal/pkg/fga/`
-3. Add new authorization middleware if needed
-4. Generate/update mocks with `task mockery`
-
 ## Pull Requests
 
 You are welcome to contribute with your pull requests. These steps explain the contribution process:
@@ -157,7 +126,7 @@ You are welcome to contribute with your pull requests. These steps explain the c
 ## Testing Strategy
 
 - Unit tests for all packages (`*_test.go`)
-- High coverage requirements (95% total, 80% per file/package)
+- High coverage requirements (see [config](.testcoverage.yml))
 - Mock interfaces for external dependencies
 - Integration testing with OpenFGA and Keycloak
 
@@ -173,32 +142,6 @@ You are welcome to contribute with your pull requests. These steps explain the c
 - **Testing**: Standard Go testing with testify
 - **Logging**: zerolog for structured logging
 
-## Current Architecture Status
-
-This repository is currently on the `feat/service-redesign` branch undergoing a major refactoring:
-
-**What was removed:**
-- PostgreSQL database and GORM models
-- gRPC API endpoints
-- Contract tests and database packages
-- Traditional database-driven user/role management
-
-**What remains:**
-- GraphQL API only (no gRPC)
-- OpenFGA integration for authorization backend
-- KCP integration for multi-cluster resource management
-- Keycloak integration for identity management
-
-**Development Context:**
-- The service now uses OpenFGA as the primary data store for authorization relationships
-- KCP handles multi-cluster resource coordination instead of database operations
-- All data persistence is handled through external services (OpenFGA, KCP, Keycloak)
-- Focus is on IAM operations through GraphQL resolvers that coordinate between these services
-
 ## Issues
 We use GitHub issues to track bugs. Please ensure your description is
 clear and includes sufficient instructions to reproduce the issue.
-
-## License
-By contributing to Platform Mesh, you agree that your contributions will be licensed
-under its [Apache-2.0 license](LICENSE).
