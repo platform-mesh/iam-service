@@ -20,7 +20,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.31
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.63.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0
-	go.opentelemetry.io/otel v1.38.0
+	go.opentelemetry.io/otel v1.39.0
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/sync v0.18.0
 	google.golang.org/grpc v1.77.0
@@ -114,8 +114,8 @@ require (
 	github.com/sosodev/duration v1.3.1 // indirect
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/objx v0.5.2 // indirect
-	go.opentelemetry.io/otel/metric v1.38.0 // indirect
-	go.opentelemetry.io/otel/trace v1.38.0 // indirect
+	go.opentelemetry.io/otel/metric v1.39.0 // indirect
+	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
