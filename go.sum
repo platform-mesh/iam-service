@@ -173,8 +173,8 @@ github.com/platform-mesh/account-operator v0.5.40 h1:f8gds3UdaLQ9wZz0JlatNdH/Xrk
 github.com/platform-mesh/account-operator v0.5.40/go.mod h1:YC6QXf2cWO++5qG2IV5zoMgG4OpSmB8wQtm1GBYvHPE=
 github.com/platform-mesh/golang-commons v0.9.5 h1:Sw42ZQgsKE8aQqoTrYYHGjdWPmDytCjuIzeYxM0cviQ=
 github.com/platform-mesh/golang-commons v0.9.5/go.mod h1:C5EzvNplPbxHt7G/ry8RGkLUfE5isWQE+x4H6vpN17U=
-github.com/platform-mesh/security-operator v0.10.17 h1:iwkjH3fkYdI9g6Ya3l0ZUkLQmh1dYK/CMg556BsgVps=
-github.com/platform-mesh/security-operator v0.10.17/go.mod h1:F3HXqkFBi8p4yMGxw+Zic73U45N6NhjcRgofQWXJ8MI=
+github.com/platform-mesh/security-operator v0.10.18 h1:GwDSYnKUGIzvExJNt+1lFDqyDrEoTPbMz4ip4cs0qKg=
+github.com/platform-mesh/security-operator v0.10.18/go.mod h1:hkVJ64jnMruoyHKPf5gwcAPVe+GloGW5DF1k7ajzSQE=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
