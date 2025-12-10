@@ -11,8 +11,8 @@ require (
 	github.com/kcp-dev/multicluster-provider v0.2.1
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/openfga/api/proto v0.0.0-20251105142303-feed3db3d69d
-	github.com/platform-mesh/account-operator v0.5.41
-	github.com/platform-mesh/golang-commons v0.9.6
+	github.com/platform-mesh/account-operator v0.5.44
+	github.com/platform-mesh/golang-commons v0.9.7
 	github.com/platform-mesh/security-operator v0.10.18
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.21.0
@@ -84,7 +84,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
-	k8s.io/apiextensions-apiserver v0.34.2 // indirect
+	k8s.io/apiextensions-apiserver v0.34.3 // indirect
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
