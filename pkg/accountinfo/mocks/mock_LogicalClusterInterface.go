@@ -5,14 +5,14 @@ package mocks
 import (
 	context "context"
 
-	corev1alpha1 "github.com/kcp-dev/kcp/sdk/apis/core/v1alpha1"
+	corev1alpha1 "github.com/kcp-dev/sdk/apis/core/v1alpha1"
 	mock "github.com/stretchr/testify/mock"
 
 	types "k8s.io/apimachinery/pkg/types"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v1alpha1 "github.com/kcp-dev/kcp/sdk/client/applyconfiguration/core/v1alpha1"
+	v1alpha1 "github.com/kcp-dev/sdk/client/applyconfiguration/core/v1alpha1"
 
 	watch "k8s.io/apimachinery/pkg/watch"
 )

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kcp-dev/kcp/sdk/apis/core/v1alpha1"
-	kcpclientset "github.com/kcp-dev/kcp/sdk/client/clientset/versioned/cluster"
 	"github.com/kcp-dev/logicalcluster/v3"
+	"github.com/kcp-dev/sdk/apis/core/v1alpha1"
+	kcpclientset "github.com/kcp-dev/sdk/client/clientset/versioned/cluster"
 	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
 	"github.com/platform-mesh/account-operator/pkg/subroutines/accountinfo"
 	"github.com/platform-mesh/golang-commons/logger"
@@ -41,11 +41,17 @@ func (a *accountInfoRetriever) Get(ctx context.Context, accountPath string) (*ac
 		log.Error().Err(err).Msg("failed to get logical cluster from kcp")
 		return nil, err
 	}
+	log = log.MustChildLoggerWithAttributes("cluster", logicalcluster.From(lc).String())
 
 	cluster, err := a.mgr.GetCluster(ctx, logicalcluster.From(lc).String())
 	if err != nil { // coverage-ignore
 		log.Error().Err(err).Msg("failed to get cluster from manager")
 		return nil, err
+	}
+	ready := cluster.GetCache().WaitForCacheSync(ctx)
+	if !ready {
+		log.Error().Msg("cache not synced")
+		return nil, fmt.Errorf("cache not synced for cluster: %s", logicalcluster.From(lc).String())
 	}
 	cl := cluster.GetClient()
 
