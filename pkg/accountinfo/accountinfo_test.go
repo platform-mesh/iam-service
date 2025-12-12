@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	corev1alpha1 "github.com/kcp-dev/kcp/sdk/apis/core/v1alpha1"
 	"github.com/kcp-dev/logicalcluster/v3"
+	corev1alpha1 "github.com/kcp-dev/sdk/apis/core/v1alpha1"
 	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
 	accountmocks "github.com/platform-mesh/account-operator/pkg/subroutines/mocks"
 	"github.com/platform-mesh/golang-commons/logger"
@@ -16,7 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
@@ -39,6 +41,41 @@ func (p *Provider) Get(ctx context.Context, clusterName string) (cluster.Cluster
 
 // IndexField implements multicluster.Provider.
 func (p *Provider) IndexField(ctx context.Context, obj client.Object, field string, extractValue client.IndexerFunc) error {
+	return nil
+}
+
+// mockCache is a simple mock implementation of cache.Cache interface
+type mockCache struct{}
+
+func (m *mockCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	return nil
+}
+
+func (m *mockCache) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	return nil
+}
+
+func (m *mockCache) GetInformer(ctx context.Context, obj client.Object, opts ...cache.InformerGetOption) (cache.Informer, error) {
+	return nil, nil
+}
+
+func (m *mockCache) GetInformerForKind(ctx context.Context, gvk schema.GroupVersionKind, opts ...cache.InformerGetOption) (cache.Informer, error) {
+	return nil, nil
+}
+
+func (m *mockCache) RemoveInformer(ctx context.Context, obj client.Object) error {
+	return nil
+}
+
+func (m *mockCache) Start(ctx context.Context) error {
+	return nil
+}
+
+func (m *mockCache) WaitForCacheSync(ctx context.Context) bool {
+	return true
+}
+
+func (m *mockCache) IndexField(ctx context.Context, obj client.Object, field string, extractValue client.IndexerFunc) error {
 	return nil
 }
 
@@ -226,6 +263,11 @@ func TestAccountInfoRetriever_Get_Success(t *testing.T) {
 		"test-cluster": func() cluster.Cluster {
 			c := accountmocks.NewCluster(t)
 			cl := accountmocks.NewClient(t)
+
+			// Mock GetCache to return a mock cache
+			mockCache := &mockCache{}
+			c.EXPECT().GetCache().Return(mockCache)
+
 			cl.EXPECT().
 				Get(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 				RunAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
@@ -238,6 +280,7 @@ func TestAccountInfoRetriever_Get_Success(t *testing.T) {
 					}
 					return nil
 				}).Once()
+
 			c.EXPECT().GetClient().Return(cl)
 			return c
 		}(),

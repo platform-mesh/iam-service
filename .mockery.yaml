@@ -42,7 +42,7 @@ packages:
         config:
           mockname: Retriever
 
-  github.com/kcp-dev/kcp/sdk/client/clientset/versioned/cluster:
+  github.com/kcp-dev/sdk/client/clientset/versioned/cluster:
     config:
       dir: pkg/accountinfo/mocks
       outpkg: mocks
@@ -51,7 +51,7 @@ packages:
         config:
           mockname: ClusterInterface
 
-  github.com/kcp-dev/kcp/sdk/client/clientset/versioned:
+  github.com/kcp-dev/sdk/client/clientset/versioned:
     config:
       dir: pkg/accountinfo/mocks
       outpkg: mocks
@@ -63,7 +63,7 @@ packages:
         config:
           mockname: Interface
 
-  github.com/kcp-dev/kcp/sdk/client/clientset/versioned/typed/core/v1alpha1:
+  github.com/kcp-dev/sdk/client/clientset/versioned/typed/core/v1alpha1:
     config:
       dir: pkg/accountinfo/mocks
       outpkg: mocks

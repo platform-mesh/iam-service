@@ -28,7 +28,7 @@ import (
 
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	kcpclientset "github.com/kcp-dev/kcp/sdk/client/clientset/versioned/cluster"
+	kcpclientset "github.com/kcp-dev/sdk/client/clientset/versioned/cluster"
 
 	"github.com/platform-mesh/iam-service/pkg/accountinfo"
 	"github.com/platform-mesh/iam-service/pkg/config"
@@ -147,7 +147,7 @@ func setupManager(ctx context.Context, log *logger.Logger) mcmanager.Manager {
 		return otelhttp.NewTransport(rt)
 	})
 
-	provider, err := apiexport.New(restCfg, apiexport.Options{Scheme: scheme})
+	provider, err := apiexport.New(restCfg, "core.platform-mesh.io", apiexport.Options{Scheme: scheme})
 	if err != nil {
 		log.Fatal().Err(err).Msg("unable to construct APIExport provider")
 	}
@@ -176,13 +176,6 @@ func setupManager(ctx context.Context, log *logger.Logger) mcmanager.Manager {
 	if err != nil {
 		log.Fatal().Err(err).Msg("unable to start manager")
 	}
-
-	log.Info().Msg("starting APIExport provider")
-	go func() {
-		if err := provider.Run(ctx, mgr); err != nil {
-			log.Fatal().Err(err).Msg("problem running APIExport provider")
-		}
-	}()
 
 	log.Info().Msg("starting manager")
 	go func() {
