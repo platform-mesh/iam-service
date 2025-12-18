@@ -25,7 +25,7 @@ require (
 	golang.org/x/sync v0.19.0
 	google.golang.org/grpc v1.77.0
 	k8s.io/client-go v0.35.0
-	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
+	k8s.io/utils v0.0.0-20251218160917-61b37f7a4624
 	sigs.k8s.io/controller-runtime v0.22.4
 	sigs.k8s.io/multicluster-runtime v0.22.4-beta.1
 )
