@@ -24,7 +24,7 @@ require (
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/sync v0.19.0
 	google.golang.org/grpc v1.77.0
-	k8s.io/client-go v0.34.3
+	k8s.io/client-go v0.35.0
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/controller-runtime v0.22.4
 	sigs.k8s.io/multicluster-runtime v0.22.4-beta.1
@@ -65,7 +65,7 @@ require (
 	github.com/kcp-dev/apimachinery/v2 v2.29.1-0.20251209121225-cf3c0b624983 // indirect
 	github.com/kcp-dev/kcp/sdk v0.28.1-0.20250926104223-cec2e15f24c6 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/onsi/gomega v1.36.2 // indirect
+	github.com/onsi/gomega v1.38.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pquerna/cachecontrol v0.2.0 // indirect
@@ -134,8 +134,8 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.34.3 // indirect
-	k8s.io/apimachinery v0.34.3
+	k8s.io/api v0.35.0 // indirect
+	k8s.io/apimachinery v0.35.0
 	k8s.io/klog/v2 v2.130.1 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 )
