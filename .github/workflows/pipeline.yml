@@ -19,4 +19,3 @@ jobs:
       imageTagName: ghcr.io/platform-mesh/iam-service
       useLocalCoverageConfig: true
       useTask: true
-      repoVersionUpdate: 'platform-mesh/helm-charts-priv'
