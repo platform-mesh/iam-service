@@ -61,5 +61,6 @@ func (a *accountInfoRetriever) Get(ctx context.Context, accountPath string) (*ac
 		log.Error().Err(err).Msg("failed to get orgs workspace from kcp")
 		return nil, err
 	}
+	log.Debug().Msg("retrieved account info successfully")
 	return ai, nil
 }
