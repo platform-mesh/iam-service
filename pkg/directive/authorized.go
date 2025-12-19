@@ -75,7 +75,14 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 	if err != nil { // coverage-ignore
 		return nil, err
 	}
-	a.log.Debug().Str("context", fmt.Sprintf("%+v", rctx)).Msg("Retrieved resource context")
+	if rctx == nil {
+		return nil, gqlerror.Errorf("resource context is nil")
+	}
+	a.log.Debug().
+		Str("group", rctx.Group).
+		Str("kind", rctx.Kind).
+		Str("Resource", fmt.Sprintf("%+v", rctx.Resource)).
+		Msg("Retrieved resource context")
 
 	// Retrieve account info from kcp workspace
 	path := rctx.AccountPath
