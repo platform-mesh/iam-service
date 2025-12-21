@@ -11,7 +11,7 @@ require (
 	github.com/kcp-dev/sdk v0.29.0
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/openfga/api/proto v0.0.0-20251105142303-feed3db3d69d
-	github.com/platform-mesh/account-operator v0.5.45
+	github.com/platform-mesh/account-operator v0.5.47
 	github.com/platform-mesh/golang-commons v0.9.11
 	github.com/platform-mesh/security-operator v0.11.6
 	github.com/rs/zerolog v1.34.0
@@ -25,7 +25,7 @@ require (
 	golang.org/x/sync v0.19.0
 	google.golang.org/grpc v1.77.0
 	k8s.io/client-go v0.35.0
-	k8s.io/utils v0.0.0-20251219084037-98d557b7f1e7
+	k8s.io/utils v0.0.0-20251220205832-9d40a56c1308
 	sigs.k8s.io/controller-runtime v0.22.4
 	sigs.k8s.io/multicluster-runtime v0.22.4-beta.1
 )
