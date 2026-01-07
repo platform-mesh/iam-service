@@ -1,5 +1,5 @@
-FROM golang:1.25.5-trixie AS builder
-
+FROM --platform=$BUILDPLATFORM golang:1.25.5-trixie AS builder
+ARG TARGETARCH
 WORKDIR /workspace
 
 COPY go.mod go.sum ./
@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY ./ ./
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags '-w -s' -o service main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -ldflags '-w -s' -o service main.go
 
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
