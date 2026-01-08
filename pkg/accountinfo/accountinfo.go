@@ -3,6 +3,7 @@ package accountinfo
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/kcp-dev/logicalcluster/v3"
 	"github.com/kcp-dev/sdk/apis/core/v1alpha1"
@@ -12,6 +13,7 @@ import (
 	"github.com/platform-mesh/golang-commons/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 )
 
@@ -22,6 +24,7 @@ type Retriever interface {
 type accountInfoRetriever struct {
 	mgr           mcmanager.Manager
 	clusterClient kcpclientset.ClusterInterface
+	clusterLocks  sync.Map
 }
 
 func New(mgr mcmanager.Manager, clusterClient kcpclientset.ClusterInterface) (Retriever, error) {
@@ -34,6 +37,11 @@ func New(mgr mcmanager.Manager, clusterClient kcpclientset.ClusterInterface) (Re
 	}, nil
 }
 
+func (a *accountInfoRetriever) getClusterLock(clusterName string) *sync.Mutex {
+	lock, _ := a.clusterLocks.LoadOrStore(clusterName, &sync.Mutex{})
+	return lock.(*sync.Mutex)
+}
+
 func (a *accountInfoRetriever) Get(ctx context.Context, accountPath string) (*accountsv1alpha1.AccountInfo, error) {
 	log := logger.LoadLoggerFromContext(ctx)
 	lc, err := a.clusterClient.Cluster(logicalcluster.NewPath(accountPath)).CoreV1alpha1().LogicalClusters().Get(ctx, v1alpha1.LogicalClusterName, metav1.GetOptions{})
@@ -41,20 +49,20 @@ func (a *accountInfoRetriever) Get(ctx context.Context, accountPath string) (*ac
 		log.Error().Err(err).Msg("failed to get logical cluster from kcp")
 		return nil, err
 	}
-	log = log.MustChildLoggerWithAttributes("cluster", logicalcluster.From(lc).String())
+	clusterName := logicalcluster.From(lc).String()
+	log = log.MustChildLoggerWithAttributes("cluster", clusterName)
 
-	cluster, err := a.mgr.GetCluster(ctx, logicalcluster.From(lc).String())
+	mu := a.getClusterLock(clusterName)
+	mu.Lock()
+	defer mu.Unlock()
+
+	cc, err := a.mgr.GetCluster(ctx, clusterName)
 	if err != nil { // coverage-ignore
 		log.Error().Err(err).Msg("failed to get cluster from manager")
 		return nil, err
 	}
-	ready := cluster.GetCache().WaitForCacheSync(ctx)
-	if !ready {
-		log.Error().Msg("cache not synced")
-		return nil, fmt.Errorf("cache not synced for cluster: %s", logicalcluster.From(lc).String())
-	}
-	cl := cluster.GetClient()
 
+	cl := cc.GetClient()
 	ai := &accountsv1alpha1.AccountInfo{}
 	err = cl.Get(ctx, client.ObjectKey{Name: accountinfo.DefaultAccountInfoName}, ai)
 	if err != nil {
@@ -63,4 +71,12 @@ func (a *accountInfoRetriever) Get(ctx context.Context, accountPath string) (*ac
 	}
 	log.Debug().Msg("retrieved account info successfully")
 	return ai, nil
+}
+
+func (a *accountInfoRetriever) GetCluster(ctx context.Context, clusterName string) (cluster.Cluster, error) {
+	mu := a.getClusterLock(clusterName)
+	mu.Lock()
+	defer mu.Unlock()
+
+	return a.mgr.GetCluster(ctx, clusterName)
 }
