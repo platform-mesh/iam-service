@@ -13,7 +13,6 @@ import (
 	"github.com/platform-mesh/golang-commons/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 )
 
@@ -35,11 +34,6 @@ func New(mgr mcmanager.Manager, clusterClient kcpclientset.ClusterInterface) (Re
 		mgr:           mgr,
 		clusterClient: clusterClient,
 	}, nil
-}
-
-func (a *accountInfoRetriever) getClusterLock(clusterName string) *sync.Mutex {
-	lock, _ := a.clusterLocks.LoadOrStore(clusterName, &sync.Mutex{})
-	return lock.(*sync.Mutex)
 }
 
 func (a *accountInfoRetriever) Get(ctx context.Context, accountPath string) (*accountsv1alpha1.AccountInfo, error) {
@@ -76,10 +70,7 @@ func (a *accountInfoRetriever) Get(ctx context.Context, accountPath string) (*ac
 	return ai, nil
 }
 
-func (a *accountInfoRetriever) GetCluster(ctx context.Context, clusterName string) (cluster.Cluster, error) {
-	mu := a.getClusterLock(clusterName)
-	mu.Lock()
-	defer mu.Unlock()
-
-	return a.mgr.GetCluster(ctx, clusterName)
+func (a *accountInfoRetriever) getClusterLock(clusterName string) *sync.Mutex {
+	lock, _ := a.clusterLocks.LoadOrStore(clusterName, &sync.Mutex{})
+	return lock.(*sync.Mutex)
 }
