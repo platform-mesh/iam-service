@@ -11,7 +11,7 @@ require (
 	github.com/kcp-dev/sdk v0.29.0
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/openfga/api/proto v0.0.0-20251105142303-feed3db3d69d
-	github.com/platform-mesh/account-operator v0.6.0
+	github.com/platform-mesh/account-operator v0.6.1
 	github.com/platform-mesh/golang-commons v0.9.17
 	github.com/platform-mesh/security-operator v0.13.4
 	github.com/rs/zerolog v1.34.0
@@ -126,7 +126,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.39.0 // indirect
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	golang.org/x/net v0.48.0 // indirect
-	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
