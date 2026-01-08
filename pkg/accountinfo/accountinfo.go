@@ -3,6 +3,7 @@ package accountinfo
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/kcp-dev/logicalcluster/v3"
 	"github.com/kcp-dev/sdk/apis/core/v1alpha1"
@@ -22,6 +23,7 @@ type Retriever interface {
 type accountInfoRetriever struct {
 	mgr           mcmanager.Manager
 	clusterClient kcpclientset.ClusterInterface
+	clusterLocks  sync.Map
 }
 
 func New(mgr mcmanager.Manager, clusterClient kcpclientset.ClusterInterface) (Retriever, error) {
@@ -41,20 +43,23 @@ func (a *accountInfoRetriever) Get(ctx context.Context, accountPath string) (*ac
 		log.Error().Err(err).Msg("failed to get logical cluster from kcp")
 		return nil, err
 	}
-	log = log.MustChildLoggerWithAttributes("cluster", logicalcluster.From(lc).String())
+	clusterName := logicalcluster.From(lc).String()
+	log = log.MustChildLoggerWithAttributes("cluster", clusterName)
 
-	cluster, err := a.mgr.GetCluster(ctx, logicalcluster.From(lc).String())
+	//FIXME: This lock was necessary as we saw race conditions when processing multiple requests in parallel
+	// The issue occurs when a cluster is requested for the first time and multiple requests are processed simultaneously
+	// We will work with the KCP team to identify the root cause and remove this lock in future
+	mu := a.getClusterLock(clusterName)
+	mu.Lock()
+	defer mu.Unlock()
+
+	cc, err := a.mgr.GetCluster(ctx, clusterName)
 	if err != nil { // coverage-ignore
 		log.Error().Err(err).Msg("failed to get cluster from manager")
 		return nil, err
 	}
-	ready := cluster.GetCache().WaitForCacheSync(ctx)
-	if !ready {
-		log.Error().Msg("cache not synced")
-		return nil, fmt.Errorf("cache not synced for cluster: %s", logicalcluster.From(lc).String())
-	}
-	cl := cluster.GetClient()
 
+	cl := cc.GetClient()
 	ai := &accountsv1alpha1.AccountInfo{}
 	err = cl.Get(ctx, client.ObjectKey{Name: accountinfo.DefaultAccountInfoName}, ai)
 	if err != nil {
@@ -63,4 +68,9 @@ func (a *accountInfoRetriever) Get(ctx context.Context, accountPath string) (*ac
 	}
 	log.Debug().Msg("retrieved account info successfully")
 	return ai, nil
+}
+
+func (a *accountInfoRetriever) getClusterLock(clusterName string) *sync.Mutex {
+	lock, _ := a.clusterLocks.LoadOrStore(clusterName, &sync.Mutex{})
+	return lock.(*sync.Mutex)
 }
