@@ -11,7 +11,7 @@ require (
 	github.com/kcp-dev/sdk v0.29.0
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/openfga/api/proto v0.0.0-20251105142303-feed3db3d69d
-	github.com/platform-mesh/account-operator v0.6.2
+	github.com/platform-mesh/account-operator v0.7.1
 	github.com/platform-mesh/golang-commons v0.9.18
 	github.com/platform-mesh/security-operator v0.13.8
 	github.com/rs/zerolog v1.34.0
@@ -63,7 +63,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kcp-dev/apimachinery/v2 v2.29.1-0.20251209121225-cf3c0b624983 // indirect
-	github.com/kcp-dev/kcp/sdk v0.28.1-0.20250926104223-cec2e15f24c6 // indirect
+	github.com/kcp-dev/kcp/sdk v0.28.3 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/onsi/gomega v1.38.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect

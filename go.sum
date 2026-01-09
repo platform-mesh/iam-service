@@ -148,8 +148,8 @@ github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHm
 github.com/juju/gnuflag v0.0.0-20171113085948-2ce1bb71843d/go.mod h1:2PavIy+JPciBPrBUjwbNvtwB6RQlve+hkpll6QSNmOE=
 github.com/kcp-dev/apimachinery/v2 v2.29.1-0.20251209121225-cf3c0b624983 h1:4hCauFTFMwvIhwL9fqZ5omjeZ+vsOUNO1tLsrCeprxM=
 github.com/kcp-dev/apimachinery/v2 v2.29.1-0.20251209121225-cf3c0b624983/go.mod h1:DOv0iw5tcgzFBhudwLFe2WHCLqtlgNkuO4AcqbZ4zVo=
-github.com/kcp-dev/kcp/sdk v0.28.1-0.20250926104223-cec2e15f24c6 h1:bOR4mdLD24VCJRrHxmtTh21AdbbzkBBKkEh0ngL+XTc=
-github.com/kcp-dev/kcp/sdk v0.28.1-0.20250926104223-cec2e15f24c6/go.mod h1:aC2BPGPvy8QtkI2gQNH9NfW6xpfGIKZkR93gy9O02BE=
+github.com/kcp-dev/kcp/sdk v0.28.3 h1:TS2nJOVBjenBd3fz1+y3aNrqZWqmakalNAIcQM9SukQ=
+github.com/kcp-dev/kcp/sdk v0.28.3/go.mod h1:8oZpWxkoMu2TDpx5DgdIGDigByKHKkeqVMA4GiWneoI=
 github.com/kcp-dev/logicalcluster/v3 v3.0.5 h1:JbYakokb+5Uinz09oTXomSUJVQsqfxEvU4RyHUYxHOU=
 github.com/kcp-dev/logicalcluster/v3 v3.0.5/go.mod h1:EWBUBxdr49fUB1cLMO4nOdBWmYifLbP1LfoL20KkXYY=
 github.com/kcp-dev/multicluster-provider v0.3.3 h1:wTu1Zbk6+kVlB/d/K9TM7KPjUEe/Dg8SYzKQsVDiDFY=
@@ -193,8 +193,8 @@ github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4
 github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
-github.com/platform-mesh/account-operator v0.6.2 h1:brlfZF4jpVcPGVaVCGFgZLohlHhU+oRyAnRm1MqbFz8=
-github.com/platform-mesh/account-operator v0.6.2/go.mod h1:FuOtR5UugnaRlY4aZqYAs4At5lFaGEDBEKC/HJJ2OhU=
+github.com/platform-mesh/account-operator v0.7.1 h1:GeVkVI6qsQIJCCavO/i9xqsf1ljv7WuuWVL+9UM0ynE=
+github.com/platform-mesh/account-operator v0.7.1/go.mod h1:6WYSoqM2kXVmi4BV4cJt0RpyMBZIuznxrwTzCgPpEWs=
 github.com/platform-mesh/golang-commons v0.9.18 h1:tZdvzyqFHOpxqrHwPkE9l6IiByoGojtx/y/sCrvXsHY=
 github.com/platform-mesh/golang-commons v0.9.18/go.mod h1:SMIc7R2TSONbCzLia9LOlzqFw4hkv8T06X8t1VnmhUs=
 github.com/platform-mesh/security-operator v0.13.8 h1:D4V+xGQ/iyi80wJYEI1rzIl9q1gaV/+9cc9unpPPtFY=
