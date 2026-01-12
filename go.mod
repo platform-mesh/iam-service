@@ -3,7 +3,7 @@ module github.com/platform-mesh/iam-service
 go 1.25.1
 
 require (
-	github.com/99designs/gqlgen v0.17.85
+	github.com/99designs/gqlgen v0.17.86
 	github.com/coreos/go-oidc v2.4.0+incompatible
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/kcp-dev/logicalcluster/v3 v3.0.5
@@ -12,7 +12,7 @@ require (
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/openfga/api/proto v0.0.0-20251105142303-feed3db3d69d
 	github.com/platform-mesh/account-operator v0.7.1
-	github.com/platform-mesh/golang-commons v0.9.18
+	github.com/platform-mesh/golang-commons v0.9.19
 	github.com/platform-mesh/security-operator v0.13.8
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.21.0
@@ -127,7 +127,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/text v0.32.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
