@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	github.com/99designs/gqlgen v0.17.86
-	github.com/coreos/go-oidc v2.4.0+incompatible
+	github.com/coreos/go-oidc v2.5.0+incompatible
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/kcp-dev/logicalcluster/v3 v3.0.5
 	github.com/kcp-dev/multicluster-provider v0.3.3
