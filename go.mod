@@ -12,7 +12,7 @@ require (
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/openfga/api/proto v0.0.0-20251105142303-feed3db3d69d
 	github.com/platform-mesh/account-operator v0.7.1
-	github.com/platform-mesh/golang-commons v0.9.20
+	github.com/platform-mesh/golang-commons v0.9.21
 	github.com/platform-mesh/security-operator v0.13.12
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.21.0
@@ -105,7 +105,7 @@ require (
 	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
-	github.com/getsentry/sentry-go v0.40.0 // indirect
+	github.com/getsentry/sentry-go v0.41.0 // indirect
 	github.com/go-chi/chi/v5 v5.2.4
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
