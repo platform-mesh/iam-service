@@ -7,13 +7,13 @@ require (
 	github.com/coreos/go-oidc v2.5.0+incompatible
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/kcp-dev/logicalcluster/v3 v3.0.5
-	github.com/kcp-dev/multicluster-provider v0.3.3
+	github.com/kcp-dev/multicluster-provider v0.3.4-0.20260119181033-84d29e18ca0d
 	github.com/kcp-dev/sdk v0.29.0
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/openfga/api/proto v0.0.0-20260122181957-618e7e0a4878
 	github.com/platform-mesh/account-operator v0.8.2
 	github.com/platform-mesh/golang-commons v0.9.23
-	github.com/platform-mesh/security-operator v0.16.1
+	github.com/platform-mesh/security-operator v0.16.2
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
