@@ -148,8 +148,6 @@ github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHm
 github.com/juju/gnuflag v0.0.0-20171113085948-2ce1bb71843d/go.mod h1:2PavIy+JPciBPrBUjwbNvtwB6RQlve+hkpll6QSNmOE=
 github.com/kcp-dev/apimachinery/v2 v2.29.1-0.20251209121225-cf3c0b624983 h1:4hCauFTFMwvIhwL9fqZ5omjeZ+vsOUNO1tLsrCeprxM=
 github.com/kcp-dev/apimachinery/v2 v2.29.1-0.20251209121225-cf3c0b624983/go.mod h1:DOv0iw5tcgzFBhudwLFe2WHCLqtlgNkuO4AcqbZ4zVo=
-github.com/kcp-dev/kcp/sdk v0.28.3 h1:TS2nJOVBjenBd3fz1+y3aNrqZWqmakalNAIcQM9SukQ=
-github.com/kcp-dev/kcp/sdk v0.28.3/go.mod h1:8oZpWxkoMu2TDpx5DgdIGDigByKHKkeqVMA4GiWneoI=
 github.com/kcp-dev/logicalcluster/v3 v3.0.5 h1:JbYakokb+5Uinz09oTXomSUJVQsqfxEvU4RyHUYxHOU=
 github.com/kcp-dev/logicalcluster/v3 v3.0.5/go.mod h1:EWBUBxdr49fUB1cLMO4nOdBWmYifLbP1LfoL20KkXYY=
 github.com/kcp-dev/multicluster-provider v0.4.0 h1:Segd0b2bTkBaSfodq3IFUbaUAA28S8KIl71W9Bftn3Y=
@@ -193,8 +191,8 @@ github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4
 github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
-github.com/platform-mesh/account-operator v0.8.2 h1:WSwzYaZHciOFZCVIWPEdVdk/CrqN6yx4nT321TxfNaw=
-github.com/platform-mesh/account-operator v0.8.2/go.mod h1:eVI41HkXup17y56ZKnbm30lfDlzQdvI7ltK51U48BSQ=
+github.com/platform-mesh/account-operator v0.8.3 h1:07t49kIrNMr7lnos3V1sVwdbrUjKFPNz2tGvrT2SeMc=
+github.com/platform-mesh/account-operator v0.8.3/go.mod h1:XSIEjxN7ztlU6jSlip3lXDJvzqa6kmDcEtOiC7hLJ68=
 github.com/platform-mesh/golang-commons v0.9.23 h1:+JO3om6WbzxCMqX+HA+I1jgiDqnjlqL15H6qf4C4rtc=
 github.com/platform-mesh/golang-commons v0.9.23/go.mod h1:/HkTA2f8E6vUlBxi4PlPnMbjAWyEt9sWKeorZAkANYc=
 github.com/platform-mesh/security-operator v0.16.5 h1:SvYmLS8woK7mto1S5MiylAA1BkTV9fKw8CynAo95PFw=
