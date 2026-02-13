@@ -23,7 +23,7 @@ require (
 	go.opentelemetry.io/otel v1.40.0
 	golang.org/x/oauth2 v0.35.0
 	golang.org/x/sync v0.19.0
-	google.golang.org/grpc v1.79.0
+	google.golang.org/grpc v1.79.1
 	k8s.io/client-go v0.35.1
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	sigs.k8s.io/controller-runtime v0.22.4
