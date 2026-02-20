@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.25.5-trixie AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26.0-trixie AS builder
 ARG TARGETARCH
 WORKDIR /workspace
 
