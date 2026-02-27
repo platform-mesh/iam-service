@@ -7,7 +7,7 @@ require (
 	github.com/coreos/go-oidc v2.5.0+incompatible
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/kcp-dev/logicalcluster/v3 v3.0.5
-	github.com/kcp-dev/multicluster-provider v0.4.0
+	github.com/kcp-dev/multicluster-provider v0.5.0
 	github.com/kcp-dev/sdk v0.30.0
 	github.com/oapi-codegen/runtime v1.2.0
 	github.com/openfga/api/proto v0.0.0-20260217232149-f917ddb000ce
@@ -26,8 +26,8 @@ require (
 	google.golang.org/grpc v1.79.1
 	k8s.io/client-go v0.35.2
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
-	sigs.k8s.io/controller-runtime v0.22.4
-	sigs.k8s.io/multicluster-runtime v0.22.4-beta.1
+	sigs.k8s.io/controller-runtime v0.23.1
+	sigs.k8s.io/multicluster-runtime v0.23.1
 )
 
 require (
@@ -96,7 +96,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.35.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20251125145642-4e65d59e963e // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v6 v6.3.1 // indirect
+	sigs.k8s.io/structured-merge-diff/v6 v6.3.2-0.20260122202528-d9cc6641c482 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
