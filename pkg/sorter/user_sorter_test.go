@@ -373,10 +373,7 @@ func TestDefaultUserSorter_StabilityTest(t *testing.T) {
 
 func TestNewUserSorterWithConfig(t *testing.T) {
 	cfg := &config.ServiceConfig{
-		Sorting: struct {
-			DefaultField     string `mapstructure:"sorting-default-field" default:"LastName"`
-			DefaultDirection string `mapstructure:"sorting-default-direction" default:"ASC"`
-		}{
+		Sorting: config.SortingConfig{
 			DefaultField:     "FirstName",
 			DefaultDirection: "DESC",
 		},
@@ -394,10 +391,7 @@ func TestNewUserSorterWithConfig(t *testing.T) {
 
 func TestNewUserSorterWithConfig_InvalidValues(t *testing.T) {
 	cfg := &config.ServiceConfig{
-		Sorting: struct {
-			DefaultField     string `mapstructure:"sorting-default-field" default:"LastName"`
-			DefaultDirection string `mapstructure:"sorting-default-direction" default:"ASC"`
-		}{
+		Sorting: config.SortingConfig{
 			DefaultField:     "InvalidField",
 			DefaultDirection: "InvalidDirection",
 		},

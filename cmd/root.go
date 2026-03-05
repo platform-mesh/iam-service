@@ -8,7 +8,6 @@ import (
 	"github.com/platform-mesh/golang-commons/logger"
 	securityv1alpha1 "github.com/platform-mesh/security-operator/api/v1alpha1"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
@@ -17,9 +16,8 @@ import (
 
 var (
 	scheme     = runtime.NewScheme()
-	serviceCfg = &config.ServiceConfig{}
+	serviceCfg = config.NewServiceConfig()
 	defaultCfg *platformmeshcontext.CommonServiceConfig
-	v          *viper.Viper
 	log        *logger.Logger
 )
 
@@ -35,16 +33,9 @@ func init() {
 	utilruntime.Must(securityv1alpha1.AddToScheme(scheme))
 	rootCmd.AddCommand(serverCmd)
 
-	var err error
-	v, defaultCfg, err = platformmeshcontext.NewDefaultConfig(rootCmd)
-	if err != nil {
-		panic(err)
-	}
-
-	err = platformmeshcontext.BindConfigToFlags(v, serverCmd, serviceCfg)
-	if err != nil {
-		panic(err)
-	}
+	defaultCfg = platformmeshcontext.NewDefaultConfig()
+	defaultCfg.AddFlags(rootCmd.PersistentFlags())
+	serviceCfg.AddFlags(serverCmd.Flags())
 
 	cobra.OnInitialize(initLog)
 }
