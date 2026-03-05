@@ -1,0 +1,77 @@
+package config
+
+import (
+	"testing"
+	"time"
+
+	"github.com/spf13/pflag"
+	"github.com/stretchr/testify/require"
+)
+
+func TestNewServiceConfigDefaults(t *testing.T) {
+	t.Parallel()
+
+	cfg := NewServiceConfig()
+
+	require.Equal(t, 8080, cfg.Port)
+	require.Equal(t, "openfga:8081", cfg.OpenFGA.GRPCAddr)
+	require.Equal(t, 5*time.Minute, cfg.OpenFGA.StoreCacheTTL)
+	require.Equal(t, "sub", cfg.JWT.UserIDClaim)
+	require.Equal(t, []string{"welcome"}, cfg.IDM.ExcludedTenants)
+	require.Equal(t, "https://portal.dev.local:8443/keycloak", cfg.Keycloak.BaseURL)
+	require.Equal(t, "iam", cfg.Keycloak.ClientID)
+	require.Equal(t, "", cfg.Keycloak.ClientSecret)
+	require.Equal(t, 100, cfg.Keycloak.PageSize)
+	require.True(t, cfg.Keycloak.Cache.Enabled)
+	require.Equal(t, time.Hour, cfg.Keycloak.Cache.TTL)
+	require.Equal(t, 10, cfg.Pagination.DefaultLimit)
+	require.Equal(t, 1, cfg.Pagination.DefaultPage)
+	require.Equal(t, "LastName", cfg.Sorting.DefaultField)
+	require.Equal(t, "ASC", cfg.Sorting.DefaultDirection)
+	require.Equal(t, "input/roles.yaml", cfg.Roles.FilePath)
+}
+
+func TestAddFlagsParsesIntoServiceConfig(t *testing.T) {
+	t.Parallel()
+
+	cfg := NewServiceConfig()
+	fs := pflag.NewFlagSet("test", pflag.ContinueOnError)
+	cfg.AddFlags(fs)
+
+	err := fs.Parse([]string{
+		"--port=9090",
+		"--openfga-grpc-addr=fga.example:9443",
+		"--openfga-store-cache-ttl=30s",
+		"--jwt-user-id-claim=user_id",
+		"--excluded-tenants=welcome,tenant-a",
+		"--keycloak-base-url=https://keycloak.example.local",
+		"--keycloak-client-id=test-client",
+		"--keycloak-client-secret=top-secret",
+		"--keycloak-page-size=200",
+		"--keycloak-cache-enabled=false",
+		"--keycloak-user-cache-ttl=90m",
+		"--pagination-default-limit=50",
+		"--pagination-default-page=3",
+		"--sorting-default-field=FirstName",
+		"--sorting-default-direction=DESC",
+		"--roles-file-path=/tmp/roles.yaml",
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, 9090, cfg.Port)
+	require.Equal(t, "fga.example:9443", cfg.OpenFGA.GRPCAddr)
+	require.Equal(t, 30*time.Second, cfg.OpenFGA.StoreCacheTTL)
+	require.Equal(t, "user_id", cfg.JWT.UserIDClaim)
+	require.Equal(t, []string{"welcome", "tenant-a"}, cfg.IDM.ExcludedTenants)
+	require.Equal(t, "https://keycloak.example.local", cfg.Keycloak.BaseURL)
+	require.Equal(t, "test-client", cfg.Keycloak.ClientID)
+	require.Equal(t, "top-secret", cfg.Keycloak.ClientSecret)
+	require.Equal(t, 200, cfg.Keycloak.PageSize)
+	require.False(t, cfg.Keycloak.Cache.Enabled)
+	require.Equal(t, 90*time.Minute, cfg.Keycloak.Cache.TTL)
+	require.Equal(t, 50, cfg.Pagination.DefaultLimit)
+	require.Equal(t, 3, cfg.Pagination.DefaultPage)
+	require.Equal(t, "FirstName", cfg.Sorting.DefaultField)
+	require.Equal(t, "DESC", cfg.Sorting.DefaultDirection)
+	require.Equal(t, "/tmp/roles.yaml", cfg.Roles.FilePath)
+}
