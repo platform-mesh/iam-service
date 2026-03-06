@@ -9,7 +9,7 @@ import (
 	"github.com/kcp-dev/sdk/apis/core/v1alpha1"
 	kcpclientset "github.com/kcp-dev/sdk/client/clientset/versioned/cluster"
 	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
-	"github.com/platform-mesh/account-operator/pkg/subroutines/accountinfo"
+	"github.com/platform-mesh/account-operator/pkg/subroutines/manageaccountinfo"
 	"github.com/platform-mesh/golang-commons/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -61,7 +61,7 @@ func (a *accountInfoRetriever) Get(ctx context.Context, accountPath string) (*ac
 
 	cl := cc.GetClient()
 	ai := &accountsv1alpha1.AccountInfo{}
-	err = cl.Get(ctx, client.ObjectKey{Name: accountinfo.DefaultAccountInfoName}, ai)
+	err = cl.Get(ctx, client.ObjectKey{Name: manageaccountinfo.DefaultAccountInfoName}, ai)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get orgs workspace from kcp")
 		return nil, err
