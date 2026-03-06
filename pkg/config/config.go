@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -71,9 +72,10 @@ func NewServiceConfig() *ServiceConfig {
 			ExcludedTenants: []string{"welcome"},
 		},
 		Keycloak: KeycloakConfig{
-			BaseURL:  "https://portal.dev.local:8443/keycloak",
-			ClientID: "iam",
-			PageSize: 100,
+			BaseURL:      "https://portal.dev.local:8443/keycloak",
+			ClientID:     "iam",
+			ClientSecret: os.Getenv("KEYCLOAK_CLIENT_SECRET"),
+			PageSize:     100,
 			Cache: KeycloakCacheConfig{
 				Enabled: true,
 				TTL:     time.Hour,
@@ -104,7 +106,6 @@ func (c *ServiceConfig) AddFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&c.Keycloak.BaseURL, "keycloak-base-url", c.Keycloak.BaseURL, "Set Keycloak base URL")
 	fs.StringVar(&c.Keycloak.ClientID, "keycloak-client-id", c.Keycloak.ClientID, "Set Keycloak client ID")
-	fs.StringVar(&c.Keycloak.ClientSecret, "keycloak-client-secret", c.Keycloak.ClientSecret, "Set Keycloak client secret")
 	fs.IntVar(&c.Keycloak.PageSize, "keycloak-page-size", c.Keycloak.PageSize, "Set Keycloak page size")
 	fs.BoolVar(&c.Keycloak.Cache.Enabled, "keycloak-cache-enabled", c.Keycloak.Cache.Enabled, "Enable keycloak user cache")
 	fs.DurationVar(&c.Keycloak.Cache.TTL, "keycloak-user-cache-ttl", c.Keycloak.Cache.TTL, "Set keycloak user cache TTL")
