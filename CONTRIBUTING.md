@@ -14,20 +14,17 @@ This is the Platform Mesh IAM (Identity and Access Management) service, a Go-bas
 3. Task runner (optional but recommended)
 
 ### Environment Setup
-1. Copy `.env.sample` to `.env`
-2. Configure required services:
-   - OpenFGA server (OPENFGA_GRPC_ADDR)
-   - **Keycloak client credentials** (required for identity management):
-     - `KEYCLOAK_CLIENT_SECRET`: Your Keycloak client secret (mandatory)
-     - `KEYCLOAK_CLIENT_ID`: Client ID (default: `iam`)
-     - `KEYCLOAK_BASE_URL`: Keycloak server URL
-   - Kubernetes context (KUBECONFIG)
+1. Copy `.env.sample` to `.env` and configure your IDE to load it
+2. Configure required environment variables:
+   - `KUBECONFIG`: Path to your kubeconfig file
+   - `KEYCLOAK_CLIENT_SECRET`: Your Keycloak client secret (mandatory, read from environment only — never passed as a CLI arg)
+3. Other settings (Keycloak base URL, client ID, OpenFGA address, etc.) are configured via CLI flags — see `go run ./main.go serve --help`
 
 ## Development Commands
 
 ### Building and Running
 ```bash
-# Run locally (requires .env file from .env.sample)
+# Run locally (configure env vars via your IDE)
 task run
 # OR
 go run ./main.go serve
