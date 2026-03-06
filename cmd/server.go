@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	_ "github.com/joho/godotenv/autoload"
 	"github.com/kcp-dev/logicalcluster/v3"
 	"github.com/kcp-dev/multicluster-provider/apiexport"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"

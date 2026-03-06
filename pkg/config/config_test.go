@@ -46,7 +46,6 @@ func TestAddFlagsParsesIntoServiceConfig(t *testing.T) {
 		"--excluded-tenants=welcome,tenant-a",
 		"--keycloak-base-url=https://keycloak.example.local",
 		"--keycloak-client-id=test-client",
-		"--keycloak-client-secret=top-secret",
 		"--keycloak-page-size=200",
 		"--keycloak-cache-enabled=false",
 		"--keycloak-user-cache-ttl=90m",
@@ -65,7 +64,7 @@ func TestAddFlagsParsesIntoServiceConfig(t *testing.T) {
 	require.Equal(t, []string{"welcome", "tenant-a"}, cfg.IDM.ExcludedTenants)
 	require.Equal(t, "https://keycloak.example.local", cfg.Keycloak.BaseURL)
 	require.Equal(t, "test-client", cfg.Keycloak.ClientID)
-	require.Equal(t, "top-secret", cfg.Keycloak.ClientSecret)
+	require.Equal(t, "", cfg.Keycloak.ClientSecret)
 	require.Equal(t, 200, cfg.Keycloak.PageSize)
 	require.False(t, cfg.Keycloak.Cache.Enabled)
 	require.Equal(t, 90*time.Minute, cfg.Keycloak.Cache.TTL)
@@ -74,4 +73,12 @@ func TestAddFlagsParsesIntoServiceConfig(t *testing.T) {
 	require.Equal(t, "FirstName", cfg.Sorting.DefaultField)
 	require.Equal(t, "DESC", cfg.Sorting.DefaultDirection)
 	require.Equal(t, "/tmp/roles.yaml", cfg.Roles.FilePath)
+}
+
+func TestNewServiceConfigReadsKeycloakClientSecretFromEnv(t *testing.T) {
+	t.Setenv("KEYCLOAK_CLIENT_SECRET", "test-secret")
+
+	cfg := NewServiceConfig()
+
+	require.Equal(t, "test-secret", cfg.Keycloak.ClientSecret)
 }
