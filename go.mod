@@ -11,7 +11,7 @@ require (
 	github.com/kcp-dev/sdk v0.30.0
 	github.com/oapi-codegen/runtime v1.2.0
 	github.com/openfga/api/proto v0.0.0-20260217232149-f917ddb000ce
-	github.com/platform-mesh/account-operator v0.12.8
+	github.com/platform-mesh/account-operator v0.12.9
 	github.com/platform-mesh/golang-commons v0.13.8
 	github.com/platform-mesh/security-operator v0.23.13
 	github.com/rs/zerolog v1.34.0
@@ -19,7 +19,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/vektah/gqlparser/v2 v2.5.32
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.66.0
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.66.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0
 	go.opentelemetry.io/otel v1.42.0
 	golang.org/x/oauth2 v0.35.0
 	golang.org/x/sync v0.19.0

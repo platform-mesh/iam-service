@@ -183,8 +183,8 @@ github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4
 github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
-github.com/platform-mesh/account-operator v0.12.8 h1:p9CimmkuVNmRYnVjD9Hd89O0IPj9HuGmsRVo6Dr/7+o=
-github.com/platform-mesh/account-operator v0.12.8/go.mod h1:5/cfO4nuf3NzUhZUJZN+LEqc6FDD0oxIjI6tZxjUiS8=
+github.com/platform-mesh/account-operator v0.12.9 h1:i951D9ieRk2DHl8JtetMzulBVtcyM3itXNX+vDXNI44=
+github.com/platform-mesh/account-operator v0.12.9/go.mod h1:oYnebb8m81a17fTbXhzxykmK7pe+gKgxz7jq3q65li0=
 github.com/platform-mesh/golang-commons v0.13.8 h1:RyVwlMaxLh9D50fnAGduxBHMlqr1VPmc4wVOLeEuQp8=
 github.com/platform-mesh/golang-commons v0.13.8/go.mod h1:yOsXBLKbHr9Y2o/e/aktvj6jhDYrgfMnvmDQcop6ZJs=
 github.com/platform-mesh/security-operator v0.23.13 h1:tTdfQPwZDlua1ftm/kEHBu4ymBfxgnLsGWjLiVRSZSE=
@@ -233,8 +233,8 @@ go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ
 go.opentelemetry.io/auto/sdk v1.2.1/go.mod h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y=
 go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.66.0 h1:w/o339tDd6Qtu3+ytwt+/jon2yjAs3Ot8Xq8pelfhSo=
 go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.66.0/go.mod h1:pdhNtM9C4H5fRdrnwO7NjxzQWhKSSxCHk/KluVqDVC0=
-go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.66.0 h1:PnV4kVnw0zOmwwFkAzCN5O07fw1YOIQor120zrh0AVo=
-go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.66.0/go.mod h1:ofAwF4uinaf8SXdVzzbL4OsxJ3VfeEg3f/F6CeF49/Y=
+go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0 h1:OyrsyzuttWTSur2qN/Lm0m2a8yqyIjUVBZcxFPuXq2o=
+go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0/go.mod h1:C2NGBr+kAB4bk3xtMXfZ94gqFDtg/GkI7e9zqGh5Beg=
 go.opentelemetry.io/otel v1.42.0 h1:lSQGzTgVR3+sgJDAU/7/ZMjN9Z+vUip7leaqBKy4sho=
 go.opentelemetry.io/otel v1.42.0/go.mod h1:lJNsdRMxCUIWuMlVJWzecSMuNjE7dOYyWlqOXWkdqCc=
 go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.42.0 h1:THuZiwpQZuHPul65w4WcwEnkX2QIuMT+UFoOrygtoJw=
