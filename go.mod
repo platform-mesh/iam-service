@@ -12,7 +12,7 @@ require (
 	github.com/oapi-codegen/runtime v1.2.0
 	github.com/openfga/api/proto v0.0.0-20260217232149-f917ddb000ce
 	github.com/platform-mesh/account-operator v0.12.13
-	github.com/platform-mesh/golang-commons v0.13.11
+	github.com/platform-mesh/golang-commons v0.13.12
 	github.com/platform-mesh/security-operator v0.23.20
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/pflag v1.0.10
@@ -76,7 +76,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.42.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.42.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.42.0 // indirect
-	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
+	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
