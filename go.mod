@@ -3,7 +3,7 @@ module github.com/platform-mesh/iam-service
 go 1.25.7
 
 require (
-	github.com/99designs/gqlgen v0.17.87
+	github.com/99designs/gqlgen v0.17.88
 	github.com/coreos/go-oidc v2.5.0+incompatible
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/kcp-dev/logicalcluster/v3 v3.0.5
@@ -11,8 +11,8 @@ require (
 	github.com/kcp-dev/sdk v0.30.0
 	github.com/oapi-codegen/runtime v1.2.0
 	github.com/openfga/api/proto v0.0.0-20260217232149-f917ddb000ce
-	github.com/platform-mesh/account-operator v0.12.12
-	github.com/platform-mesh/golang-commons v0.13.10
+	github.com/platform-mesh/account-operator v0.12.13
+	github.com/platform-mesh/golang-commons v0.13.11
 	github.com/platform-mesh/security-operator v0.23.19
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/pflag v1.0.10
