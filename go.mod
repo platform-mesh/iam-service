@@ -13,7 +13,7 @@ require (
 	github.com/openfga/api/proto v0.0.0-20260217232149-f917ddb000ce
 	github.com/platform-mesh/account-operator v0.12.14
 	github.com/platform-mesh/golang-commons v0.13.12
-	github.com/platform-mesh/security-operator v0.23.24
+	github.com/platform-mesh/security-operator v0.23.25
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
