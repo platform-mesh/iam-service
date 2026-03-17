@@ -6,7 +6,6 @@ import (
 	context "context"
 
 	graph "github.com/platform-mesh/iam-service/pkg/graph"
-
 	mock "github.com/stretchr/testify/mock"
 )
 

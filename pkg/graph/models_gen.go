@@ -95,6 +95,8 @@ type UserConnection struct {
 	Users []*UserRoles `json:"users"`
 	//  number of granted users in the list
 	PageInfo *PageInfo `json:"pageInfo"`
+	//  number of users in the result set that have the owner role
+	OwnersCount int `json:"ownersCount"`
 }
 
 // Holds information about a specific user and a list of roles that should be assigned to the user

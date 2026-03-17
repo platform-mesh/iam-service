@@ -233,6 +233,61 @@ func TestService_ListUsers_NoKCPContext(t *testing.T) {
 	assert.Contains(t, err.Error(), "kcp user context")
 }
 
+func TestService_CountUsersForRole(t *testing.T) {
+	service, client := createTestService(t)
+
+	ctx := context.Background()
+	ctx = appcontext.SetKCPContext(ctx, appcontext.KCPContext{
+		IDMTenant:        "test-tenant",
+		OrganizationName: "test-org",
+	})
+	ctx = appcontext.SetClusterId(ctx, "cluster-123")
+
+	rCtx := graph.ResourceContext{
+		Group: "core.platform-mesh.io",
+		Kind:  "Account",
+		Resource: &graph.Resource{
+			Name:      "test-account",
+			Namespace: ptr.To("default"),
+		},
+		AccountPath: "test-account",
+	}
+
+	client.EXPECT().ListStores(mock.Anything, mock.Anything).Return(&openfgav1.ListStoresResponse{
+		Stores: []*openfgav1.Store{
+			{
+				Id:   "store-123",
+				Name: "test-org",
+			},
+		},
+	}, nil)
+
+	client.EXPECT().ListUsers(mock.Anything, mock.MatchedBy(func(req *openfgav1.ListUsersRequest) bool {
+		return req.StoreId == "store-123" &&
+			req.Object.Type == "role" &&
+			req.Object.Id == "core_platform-mesh_io_account/cluster-123/test-account/owner" &&
+			req.Relation == "assignee"
+	})).Return(&openfgav1.ListUsersResponse{
+		Users: []*openfgav1.User{
+			{
+				User: &openfgav1.User_Object{
+					Object: &openfgav1.Object{Type: "user", Id: "user1"},
+				},
+			},
+			{
+				User: &openfgav1.User_Object{
+					Object: &openfgav1.Object{Type: "user", Id: "user2"},
+				},
+			},
+		},
+	}, nil)
+
+	count, err := service.CountUsersForRole(ctx, rCtx, "owner")
+
+	assert.NoError(t, err)
+	assert.Equal(t, 2, count)
+}
+
 func TestApplyRoleFilter_WithFilters(t *testing.T) {
 	// Create a logger for testing
 	log, _ := logger.New(logger.DefaultConfig())

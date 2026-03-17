@@ -92,8 +92,9 @@ type ComplexityRoot struct {
 	}
 
 	UserConnection struct {
-		PageInfo func(childComplexity int) int
-		Users    func(childComplexity int) int
+		OwnersCount func(childComplexity int) int
+		PageInfo    func(childComplexity int) int
+		Users       func(childComplexity int) int
 	}
 
 	UserRoles struct {
@@ -314,6 +315,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.User.UserID(childComplexity), true
 
+	case "UserConnection.ownersCount":
+		if e.complexity.UserConnection.OwnersCount == nil {
+			break
+		}
+
+		return e.complexity.UserConnection.OwnersCount(childComplexity), true
 	case "UserConnection.pageInfo":
 		if e.complexity.UserConnection.PageInfo == nil {
 			break
@@ -510,6 +517,8 @@ type UserConnection {
     users: [UserRoles!]!
     """ number of granted users in the list """
     pageInfo: PageInfo!
+    """ number of users in the result set that have the owner role """
+    ownersCount: Int!
 }
 
 """ Result of role assignment operation """
@@ -1139,6 +1148,8 @@ func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field 
 				return ec.fieldContext_UserConnection_users(ctx, field)
 			case "pageInfo":
 				return ec.fieldContext_UserConnection_pageInfo(ctx, field)
+			case "ownersCount":
+				return ec.fieldContext_UserConnection_ownersCount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type UserConnection", field.Name)
 		},
@@ -1186,6 +1197,8 @@ func (ec *executionContext) fieldContext_Query_knownUsers(ctx context.Context, f
 				return ec.fieldContext_UserConnection_users(ctx, field)
 			case "pageInfo":
 				return ec.fieldContext_UserConnection_pageInfo(ctx, field)
+			case "ownersCount":
+				return ec.fieldContext_UserConnection_ownersCount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type UserConnection", field.Name)
 		},
@@ -1848,6 +1861,35 @@ func (ec *executionContext) fieldContext_UserConnection_pageInfo(_ context.Conte
 				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserConnection_ownersCount(ctx context.Context, field graphql.CollectedField, obj *UserConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UserConnection_ownersCount,
+		func(ctx context.Context) (any, error) {
+			return obj.OwnersCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UserConnection_ownersCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4113,6 +4155,11 @@ func (ec *executionContext) _UserConnection(ctx context.Context, sel ast.Selecti
 			}
 		case "pageInfo":
 			out.Values[i] = ec._UserConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ownersCount":
+			out.Values[i] = ec._UserConnection_ownersCount(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
