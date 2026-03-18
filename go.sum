@@ -177,8 +177,8 @@ github.com/onsi/ginkgo/v2 v2.28.0 h1:Rrf+lVLmtlBIKv6KrIGJCjyY8N36vDVcutbGJkyqjJc
 github.com/onsi/ginkgo/v2 v2.28.0/go.mod h1:ArE1D/XhNXBXCBkKOLkbsb2c81dQHCRcF5zwn/ykDRo=
 github.com/onsi/gomega v1.39.1 h1:1IJLAad4zjPn2PsnhH70V4DKRFlrCzGBNrNaru+Vf28=
 github.com/onsi/gomega v1.39.1/go.mod h1:hL6yVALoTOxeWudERyfppUcZXjMwIMLnuSfruD2lcfg=
-github.com/openfga/api/proto v0.0.0-20260217232149-f917ddb000ce h1:c9wvVBWpq+y4j9TUaCBsbX2Im3XSEm7YotAQZO5UT4k=
-github.com/openfga/api/proto v0.0.0-20260217232149-f917ddb000ce/go.mod h1:XDX4qYNBUM2Rsa2AbKPh+oocZc2zgme+EF2fFC6amVU=
+github.com/openfga/api/proto v0.0.0-20260317093832-8c6ab4372be3 h1:WqvnFm2y6tOKhLe82LPcJ7+ggMdI3QJ14c+5qI1Wi1Y=
+github.com/openfga/api/proto v0.0.0-20260317093832-8c6ab4372be3/go.mod h1:XDX4qYNBUM2Rsa2AbKPh+oocZc2zgme+EF2fFC6amVU=
 github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4=
 github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
@@ -187,8 +187,8 @@ github.com/platform-mesh/account-operator v0.12.15 h1:ZC6SxG9Xn6OxBhGs07kNCZnRw3
 github.com/platform-mesh/account-operator v0.12.15/go.mod h1:hw3/UoY+/uQa8q33r3345H0NNdXBiGvDQzviHD8axEM=
 github.com/platform-mesh/golang-commons v0.13.13 h1:rHeUnmRnZjnKRObDFOY/f/ob1Je1Nc68HNCg2PZLlcU=
 github.com/platform-mesh/golang-commons v0.13.13/go.mod h1:3j9cBpJ/sqeukWq3+3ALI7qjlFFCoufRgdf3tA3JmF8=
-github.com/platform-mesh/security-operator v0.23.27 h1:UAuQyC6pFc6N2fmUa+5hWke2FrWUkHFUmr8VKOtXFNM=
-github.com/platform-mesh/security-operator v0.23.27/go.mod h1:+H4uOLDAYjkeE+sn7nXEwjqqQ9Y/mAN4CG2wN8p2m2w=
+github.com/platform-mesh/security-operator v0.24.2 h1:7+xcRUZDAzKMU/fy9hGNn4qE0ANybcqE2ptmDXqvqg8=
+github.com/platform-mesh/security-operator v0.24.2/go.mod h1:weHUcoCC4fy2ExorIcmKNWslgakQCZGsz+W1aqCuFXo=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
@@ -296,8 +296,8 @@ google.golang.org/genproto/googleapis/api v0.0.0-20260223185530-2f722ef697dc h1:
 google.golang.org/genproto/googleapis/api v0.0.0-20260223185530-2f722ef697dc/go.mod h1:M5krXqk4GhBKvB596udGL3UyjL4I1+cTbK0orROM9ng=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171 h1:ggcbiqK8WWh6l1dnltU4BgWGIGo+EVYxCaAPih/zQXQ=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171/go.mod h1:4Hqkh8ycfw05ld/3BWL7rJOSfebL2Q+DVDeRgYgxUU8=
-google.golang.org/grpc v1.79.2 h1:fRMD94s2tITpyJGtBBn7MkMseNpOZU8ZxgC3MMBaXRU=
-google.golang.org/grpc v1.79.2/go.mod h1:KmT0Kjez+0dde/v2j9vzwoAScgEPx/Bw1CYChhHLrHQ=
+google.golang.org/grpc v1.79.3 h1:sybAEdRIEtvcD68Gx7dmnwjZKlyfuc61Dyo9pGXXkKE=
+google.golang.org/grpc v1.79.3/go.mod h1:KmT0Kjez+0dde/v2j9vzwoAScgEPx/Bw1CYChhHLrHQ=
 google.golang.org/protobuf v1.36.11 h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=
 google.golang.org/protobuf v1.36.11/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
