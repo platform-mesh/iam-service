@@ -1,6 +1,6 @@
 module github.com/platform-mesh/iam-service
 
-go 1.26.0
+go 1.26
 
 require (
 	github.com/99designs/gqlgen v0.17.88
@@ -10,10 +10,10 @@ require (
 	github.com/kcp-dev/multicluster-provider v0.5.1
 	github.com/kcp-dev/sdk v0.30.0
 	github.com/oapi-codegen/runtime v1.2.0
-	github.com/openfga/api/proto v0.0.0-20260217232149-f917ddb000ce
+	github.com/openfga/api/proto v0.0.0-20260317093832-8c6ab4372be3
 	github.com/platform-mesh/account-operator v0.12.15
 	github.com/platform-mesh/golang-commons v0.13.13
-	github.com/platform-mesh/security-operator v0.23.27
+	github.com/platform-mesh/security-operator v0.24.2
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
@@ -23,7 +23,7 @@ require (
 	go.opentelemetry.io/otel v1.42.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.20.0
-	google.golang.org/grpc v1.79.2
+	google.golang.org/grpc v1.79.3
 	k8s.io/client-go v0.35.2
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	sigs.k8s.io/controller-runtime v0.23.3
