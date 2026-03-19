@@ -9,11 +9,11 @@ require (
 	github.com/kcp-dev/logicalcluster/v3 v3.0.5
 	github.com/kcp-dev/multicluster-provider v0.5.1
 	github.com/kcp-dev/sdk v0.30.0
-	github.com/oapi-codegen/runtime v1.2.0
+	github.com/oapi-codegen/runtime v1.3.0
 	github.com/openfga/api/proto v0.0.0-20260317093832-8c6ab4372be3
 	github.com/platform-mesh/account-operator v0.12.15
 	github.com/platform-mesh/golang-commons v0.13.13
-	github.com/platform-mesh/security-operator v0.24.2
+	github.com/platform-mesh/security-operator v0.24.3
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
