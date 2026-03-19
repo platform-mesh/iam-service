@@ -9,7 +9,7 @@ This is the Platform Mesh IAM (Identity and Access Management) service, a Go-bas
 ## Development Setup
 
 ### Prerequisites
-1. Go 1.25.1+ (check [go.mod](go.mod) for exact version)
+1. Go 1.26.0+ (check [go.mod](go.mod) for exact version)
 2. Platform Mesh installation (OpenFGA and KCP)
 3. Task runner (optional but recommended)
 
@@ -130,7 +130,7 @@ You are welcome to contribute with your pull requests. These steps explain the c
 > **NOTE:** You should always add tests when adding code to our repository.
 
 ## Technology Stack
-- **Language**: Go 1.25.1
+- **Language**: Go 1.26.0
 - **GraphQL**: gqlgen for schema-first GraphQL API
 - **Authorization**: OpenFGA for fine-grained access control (gRPC client)
 - **Identity**: Keycloak integration for user management

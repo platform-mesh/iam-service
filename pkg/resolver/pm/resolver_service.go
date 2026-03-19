@@ -21,6 +21,8 @@ import (
 
 var _ api.ResolverService = (*Service)(nil)
 
+const ownerRoleID = "owner"
+
 type Service struct {
 	fgaService      *fga.Service
 	keycloakService *keycloak.Service
@@ -56,6 +58,11 @@ func (s *Service) User(ctx context.Context, userID string) (*graph.User, error) 
 }
 
 func (s *Service) Users(ctx context.Context, rctx graph.ResourceContext, roleFilters []string, sortBy *graph.SortByInput, page *graph.PageInput) (*graph.UserConnection, error) {
+	ownersCount, err := s.fgaService.CountUsersForRole(ctx, rctx, ownerRoleID)
+	if err != nil {
+		return nil, err
+	}
+
 	allUserRoles, err := s.fgaService.ListUsers(ctx, rctx, roleFilters)
 	if err != nil {
 		return nil, err
@@ -75,7 +82,11 @@ func (s *Service) Users(ctx context.Context, rctx graph.ResourceContext, roleFil
 	totalCount := len(allUserRoles)
 	paginatedUserRoles, pageInfo := s.pager.PaginateUserRoles(allUserRoles, page, totalCount)
 
-	return &graph.UserConnection{Users: paginatedUserRoles, PageInfo: pageInfo}, nil
+	return &graph.UserConnection{
+		Users:       paginatedUserRoles,
+		PageInfo:    pageInfo,
+		OwnersCount: ownersCount,
+	}, nil
 }
 
 func (s *Service) KnownUsers(ctx context.Context, sortBy *graph.SortByInput, page *graph.PageInput) (*graph.UserConnection, error) {
@@ -102,7 +113,11 @@ func (s *Service) KnownUsers(ctx context.Context, sortBy *graph.SortByInput, pag
 		}
 	}
 
-	return &graph.UserConnection{Users: userRoles, PageInfo: pageInfo}, nil
+	return &graph.UserConnection{
+		Users:       userRoles,
+		PageInfo:    pageInfo,
+		OwnersCount: 0,
+	}, nil
 }
 
 func (s *Service) AssignRolesToUsers(ctx context.Context, rCtx graph.ResourceContext, changes []*graph.UserRoleChange, invites []*graph.InviteInput) (*graph.RoleAssignmentResult, error) {

@@ -103,6 +103,15 @@ func (s *Service) ListUsers(ctx context.Context, rctx graph.ResourceContext, rol
 	return s.listUsersParallel(ctx, rctx, storeID, appliedRoles)
 }
 
+func (s *Service) CountUsersForRole(ctx context.Context, rctx graph.ResourceContext, roleID string) (int, error) {
+	users, err := s.ListUsers(ctx, rctx, []string{roleID})
+	if err != nil {
+		return 0, err
+	}
+
+	return len(users), nil
+}
+
 // listUsersParallel performs parallel ListUsers calls for multiple roles
 func (s *Service) listUsersParallel(ctx context.Context, rctx graph.ResourceContext, storeID string, roles []string) ([]*graph.UserRoles, error) {
 
