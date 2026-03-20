@@ -11,7 +11,7 @@ require (
 	github.com/kcp-dev/sdk v0.30.0
 	github.com/oapi-codegen/runtime v1.3.0
 	github.com/openfga/api/proto v0.0.0-20260317093832-8c6ab4372be3
-	github.com/platform-mesh/account-operator v0.12.20
+	github.com/platform-mesh/account-operator v0.12.21
 	github.com/platform-mesh/golang-commons v0.13.13
 	github.com/platform-mesh/security-operator v0.24.4
 	github.com/rs/zerolog v1.34.0
