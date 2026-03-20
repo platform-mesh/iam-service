@@ -10,7 +10,7 @@ require (
 	github.com/kcp-dev/multicluster-provider v0.5.1
 	github.com/kcp-dev/sdk v0.30.0
 	github.com/oapi-codegen/runtime v1.3.0
-	github.com/openfga/api/proto v0.0.0-20260317093832-8c6ab4372be3
+	github.com/openfga/api/proto v0.0.0-20260319214821-f153694bfc20
 	github.com/platform-mesh/account-operator v0.12.21
 	github.com/platform-mesh/golang-commons v0.13.13
 	github.com/platform-mesh/security-operator v0.24.6
