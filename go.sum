@@ -177,8 +177,8 @@ github.com/onsi/ginkgo/v2 v2.28.0 h1:Rrf+lVLmtlBIKv6KrIGJCjyY8N36vDVcutbGJkyqjJc
 github.com/onsi/ginkgo/v2 v2.28.0/go.mod h1:ArE1D/XhNXBXCBkKOLkbsb2c81dQHCRcF5zwn/ykDRo=
 github.com/onsi/gomega v1.39.1 h1:1IJLAad4zjPn2PsnhH70V4DKRFlrCzGBNrNaru+Vf28=
 github.com/onsi/gomega v1.39.1/go.mod h1:hL6yVALoTOxeWudERyfppUcZXjMwIMLnuSfruD2lcfg=
-github.com/openfga/api/proto v0.0.0-20260317093832-8c6ab4372be3 h1:WqvnFm2y6tOKhLe82LPcJ7+ggMdI3QJ14c+5qI1Wi1Y=
-github.com/openfga/api/proto v0.0.0-20260317093832-8c6ab4372be3/go.mod h1:XDX4qYNBUM2Rsa2AbKPh+oocZc2zgme+EF2fFC6amVU=
+github.com/openfga/api/proto v0.0.0-20260319214821-f153694bfc20 h1:xdVG0EDz9Z9Uhd7YZ5OMN1F8tkAz/Dpgdjxd0cuTBJo=
+github.com/openfga/api/proto v0.0.0-20260319214821-f153694bfc20/go.mod h1:XDX4qYNBUM2Rsa2AbKPh+oocZc2zgme+EF2fFC6amVU=
 github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4=
 github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
