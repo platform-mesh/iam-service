@@ -13,7 +13,7 @@ require (
 	github.com/openfga/api/proto v0.0.0-20260319214821-f153694bfc20
 	github.com/platform-mesh/account-operator v0.12.24
 	github.com/platform-mesh/golang-commons v0.13.17
-	github.com/platform-mesh/security-operator v0.25.4
+	github.com/platform-mesh/security-operator v0.26.0
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
@@ -65,6 +65,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/onsi/gomega v1.39.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/platform-mesh/subroutines v0.2.1 // indirect
 	github.com/pquerna/cachecontrol v0.2.0 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
