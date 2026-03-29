@@ -13,7 +13,7 @@ jobs:
     concurrency:
       group: ${{ github.ref }}
       cancel-in-progress: true
-    uses: platform-mesh/.github/.github/workflows/pipeline-golang-app.yml@07550bab80de7691f4947214ee342351896e209b # main
+    uses: platform-mesh/.github/.github/workflows/pipeline-golang-app.yml@8ff91e4f07f9cbf1491f15f1c8a94797c16e100f # main
     secrets: inherit
     with:
       imageTagName: ghcr.io/platform-mesh/iam-service
