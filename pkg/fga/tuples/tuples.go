@@ -6,53 +6,49 @@ import (
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
-	"github.com/platform-mesh/golang-commons/fga/util"
+	fgamodel "github.com/platform-mesh/golang-commons/fga/model"
 
 	"github.com/platform-mesh/iam-service/pkg/graph"
 )
 
 func GenerateContextualTuples(rctx *graph.ResourceContext, ai *accountsv1alpha1.AccountInfo) *openfgav1.ContextualTupleKeys {
-	tuples := &openfgav1.ContextualTupleKeys{}
+	accountObject := fmt.Sprintf("%s:%s/%s",
+		fgamodel.BuildObjectType("core.platform-mesh.io", "account"),
+		ai.Spec.Account.OriginClusterId,
+		ai.Spec.Account.Name,
+	)
 
-	accFGATypeName := util.ConvertToTypeName("core.platform-mesh.io", "Account")
-	accObject := fmt.Sprintf("%s:%s/%s", accFGATypeName, ai.Spec.Account.OriginClusterId, ai.Spec.Account.Name)
-
-	var nsObject string
+	var namespace string
 	if rctx.Resource.Namespace != nil {
-		nsFGATypeName := util.ConvertToTypeName("", "Namespace")
-		nsObject = fmt.Sprintf("%s:%s/%s", nsFGATypeName, ai.Spec.Account.GeneratedClusterId, *rctx.Resource.Namespace)
-
-		// Add namespace contextual tuple
-		namespaceTuple := &openfgav1.TupleKey{
-			Object:   nsObject,
-			Relation: "parent",
-			User:     accObject,
-		}
-		tuples.TupleKeys = append(tuples.TupleKeys, namespaceTuple)
+		namespace = *rctx.Resource.Namespace
 	}
 
-	if !managedTuple(rctx.Group, rctx.Kind) {
-		resFGATypeName := util.ConvertToTypeName(rctx.Group, rctx.Kind)
-		var resObject string
-		if rctx.Resource.Namespace != nil {
-			resObject = fmt.Sprintf("%s:%s/%s/%s", resFGATypeName, ai.Spec.Account.GeneratedClusterId, *rctx.Resource.Namespace, rctx.Resource.Name)
-		} else {
-			resObject = fmt.Sprintf("%s:%s/%s", resFGATypeName, ai.Spec.Account.GeneratedClusterId, rctx.Resource.Name)
+	// Skip the resource tuple for managed types (e.g. core.platform-mesh.io/Account);
+	// they are their own FGA identity and only need the namespace tuple (if namespaced).
+	if managedTuple(rctx.Group, rctx.Kind) {
+		if namespace == "" {
+			return &openfgav1.ContextualTupleKeys{}
 		}
-
-		resTuple := &openfgav1.TupleKey{
-			Object:   resObject,
-			Relation: "parent",
+		nsObj := fgamodel.BuildObjectName("", "namespace", ai.Spec.Account.GeneratedClusterId, namespace, nil)
+		return &openfgav1.ContextualTupleKeys{
+			TupleKeys: []*openfgav1.TupleKey{
+				{Object: nsObj, Relation: "parent", User: accountObject},
+			},
 		}
-		if rctx.Resource.Namespace != nil {
-			resTuple.User = nsObject
-		} else {
-			resTuple.User = accObject
-		}
-		tuples.TupleKeys = append(tuples.TupleKeys, resTuple)
 	}
 
-	return tuples
+	tupleKeys, err := fgamodel.BuildContextualTuples(accountObject, fgamodel.ResourceContext{
+		Group:     rctx.Group,
+		Kind:      strings.ToLower(rctx.Kind),
+		ClusterID: ai.Spec.Account.GeneratedClusterId,
+		Name:      rctx.Resource.Name,
+		Namespace: namespace,
+	})
+	if err != nil {
+		return &openfgav1.ContextualTupleKeys{}
+	}
+
+	return &openfgav1.ContextualTupleKeys{TupleKeys: tupleKeys}
 }
 
 func managedTuple(group, kind string) bool {
