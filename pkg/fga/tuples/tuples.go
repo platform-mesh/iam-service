@@ -1,7 +1,6 @@
 package tuples
 
 import (
-	"fmt"
 	"strings"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
@@ -12,16 +11,18 @@ import (
 )
 
 func GenerateContextualTuples(rctx *graph.ResourceContext, ai *accountsv1alpha1.AccountInfo) *openfgav1.ContextualTupleKeys {
-	accountObject := fmt.Sprintf("%s:%s/%s",
-		fgamodel.BuildObjectType("core.platform-mesh.io", "account"),
-		ai.Spec.Account.OriginClusterId,
-		ai.Spec.Account.Name,
-	)
-
 	var namespace string
 	if rctx.Resource.Namespace != nil {
 		namespace = *rctx.Resource.Namespace
 	}
+
+	accountObject := fgamodel.BuildObjectName(
+		"core.platform-mesh.io",
+		"account",
+		ai.Spec.Account.GeneratedClusterId,
+		ai.Spec.Account.Name,
+		&namespace,
+	)
 
 	// Skip the resource tuple for managed types (e.g. core.platform-mesh.io/Account);
 	// they are their own FGA identity and only need the namespace tuple (if namespaced).
