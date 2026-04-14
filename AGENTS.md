@@ -21,6 +21,28 @@
 - `pkg/config`, `pkg/cache`, `pkg/context`: runtime configuration and request context helpers.
 - `input/roles.yaml`: role definitions consumed by the service.
 
+## Architecture
+This is a GraphQL service with thin transport wiring and most domain behavior split between resolver services, OpenFGA integration, Keycloak integration, and KCP-aware middleware.
+
+### Runtime model
+- `cmd/server.go` starts an `mcmanager.Manager` backed by an APIExport provider for `core.platform-mesh.io`; leader election is intentionally disabled.
+- The HTTP router is chi-based and serves `/graphql`, `/healthz`, and `/readyz`; the GraphQL playground is exposed only in local mode.
+- The manager's local config is also reused to derive a root-cluster KCP client and account/workspace helpers.
+
+### Request flow
+- Middleware built in `setupRouter` injects KCP user context before GraphQL execution.
+- GraphQL directives are part of the authorization path: the `Authorized` directive uses OpenFGA plus `AccountInfo` and workspace lookups.
+- `pkg/resolver/pm.Service` is the main service layer behind resolvers; it composes FGA, Keycloak, pagination, sorting, and user transformation.
+
+### Domain model
+- User and role mutations are backed by OpenFGA tuples and role definitions from `input/roles.yaml`, not a relational database.
+- Keycloak is the identity source for user lookup/enrichment; OpenFGA is the authorization source.
+- KCP workspace and `AccountInfo` lookups provide tenant and workspace context needed to resolve resource-scoped permissions.
+
+### Configuration and tests
+- `cmd/server.go` derives the root KCP host by stripping the multicluster path from the manager config; changing that logic affects all cluster lookups.
+- GraphQL schema, mocks, and Keycloak client code are generated and must stay in sync with source definitions.
+
 ## Commands
 - `task fmt` — format Go code.
 - `task lint` — run formatting plus golangci-lint.
