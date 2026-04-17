@@ -67,6 +67,14 @@ tasks:
   test:
     deps:
       - task: unittest
+  fuzz:
+    desc: "Run fuzz tests with a configurable duration (default 30s per target)"
+    vars:
+      FUZZTIME: '{{.FUZZTIME | default "30s"}}'
+    cmds:
+      - go test ./pkg/directive/ -run=^$ -fuzz=FuzzExtractResourceContext -fuzztime={{.FUZZTIME}} -count=1
+      - go test ./pkg/sorter/ -run=^$ -fuzz=FuzzParseUserSortField -fuzztime={{.FUZZTIME}} -count=1
+      - go test ./pkg/sorter/ -run=^$ -fuzz=FuzzParseSortDirection -fuzztime={{.FUZZTIME}} -count=1
   validate:
     cmds:
       - task: fmt
