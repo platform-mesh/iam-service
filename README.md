@@ -2,6 +2,7 @@
 > This Repository is under development and not ready for productive use. It is in an alpha stage. That means APIs and concepts may change on short notice including breaking changes or complete removal of apis.
 
 # Platform Mesh - iam-service
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/platform-mesh/iam-service/badge)](https://scorecard.dev/viewer/?uri=github.com/platform-mesh/iam-service)
 ![Build Status](https://github.com/platform-mesh/iam-service/actions/workflows/pipeline.yml/badge.svg)
 
 ## Description
