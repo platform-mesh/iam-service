@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/kcp-dev/logicalcluster/v3"
 	"github.com/kcp-dev/multicluster-provider/apiexport"
+	pathaware "github.com/kcp-dev/multicluster-provider/path-aware"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	"github.com/platform-mesh/golang-commons/errors"
 	"github.com/platform-mesh/golang-commons/logger"
@@ -21,7 +21,6 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 
@@ -72,14 +71,8 @@ func setupRouter(ctx context.Context, mgr mcmanager.Manager, fgaClient openfgav1
 		log.Fatal().Err(err).Msg("Failed to create cluster client")
 	}
 
-	path := logicalcluster.NewPath("root:orgs")
-	lc, err := clusterClient.CoreV1alpha1().LogicalClusters().Cluster(path).Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to get logical cluster")
-	}
-
 	mws := pmmws.CreateMiddleware(log, true)
-	kcpmw := kcpmiddleware.New(mgr.GetLocalManager().GetConfig(), serviceCfg.IDM.ExcludedTenants, keycloakmw.New(), logicalcluster.From(lc).String(), log)
+	kcpmw := kcpmiddleware.New(mgr.GetLocalManager().GetConfig(), serviceCfg.IDM.ExcludedTenants, keycloakmw.New(), log)
 	mws = append(mws, kcpmw.SetKCPUserContext())
 
 	// Prepare AccountInfo Retriever
@@ -146,7 +139,7 @@ func setupManager(ctx context.Context, log *logger.Logger) mcmanager.Manager {
 		return otelhttp.NewTransport(rt)
 	})
 
-	provider, err := apiexport.New(restCfg, "core.platform-mesh.io", apiexport.Options{Scheme: scheme})
+	provider, err := pathaware.New(restCfg, "core.platform-mesh.io", apiexport.Options{Scheme: scheme})
 	if err != nil {
 		log.Fatal().Err(err).Msg("unable to construct APIExport provider")
 	}
