@@ -20,11 +20,10 @@ type Middleware struct {
 	log                      *logger.Logger
 	tenantRetriever          idm.IDMTenantRetriever
 	excludedIDMTenants       []string
-	orgsWorkspaceClusterName string
 	restcfg                  *rest.Config
 }
 
-func New(restcfg *rest.Config, excludedIDMTenants []string, tenantRetriever idm.IDMTenantRetriever, orgsClustedrName string, log *logger.Logger) *Middleware {
+func New(restcfg *rest.Config, excludedIDMTenants []string, tenantRetriever idm.IDMTenantRetriever, log *logger.Logger) *Middleware {
 	restcfg = rest.CopyConfig(restcfg)
 	restcfg.KeyData = nil
 	restcfg.CertData = nil
@@ -35,7 +34,6 @@ func New(restcfg *rest.Config, excludedIDMTenants []string, tenantRetriever idm.
 		log:                      log,
 		tenantRetriever:          tenantRetriever,
 		excludedIDMTenants:       excludedIDMTenants,
-		orgsWorkspaceClusterName: orgsClustedrName,
 		restcfg:                  restcfg,
 	}
 }

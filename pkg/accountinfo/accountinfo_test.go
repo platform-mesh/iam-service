@@ -5,15 +5,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kcp-dev/logicalcluster/v3"
-	corev1alpha1 "github.com/kcp-dev/sdk/apis/core/v1alpha1"
 	accountsv1alpha1 "github.com/platform-mesh/account-operator/api/v1alpha1"
 	accountmocks "github.com/platform-mesh/account-operator/pkg/subroutines/mocks"
 	"github.com/platform-mesh/golang-commons/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -255,21 +252,6 @@ func TestAccountInfoRetriever_Get_Success(t *testing.T) {
 	ctx = logger.SetLoggerInContext(ctx, log)
 
 	ci := mocks.NewClusterInterface(t)
-	c := mocks.NewInterface(t)
-	alpha1Interface := mocks.NewCoreV1alpha1Interface(t)
-	lc := mocks.NewLogicalClusterInterface(t)
-
-	alpha1Interface.EXPECT().LogicalClusters().Return(lc)
-	c.EXPECT().CoreV1alpha1().Return(alpha1Interface)
-	ci.EXPECT().Cluster(logicalcluster.NewPath("test-cluster")).Return(c).Once()
-	lc.EXPECT().Get(mock.Anything, mock.Anything, mock.Anything).Return(&corev1alpha1.LogicalCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "cluster",
-			Annotations: map[string]string{
-				"kcp.io/cluster": "test-cluster",
-			},
-		},
-	}, nil)
 
 	retriever, err := New(mgr, ci)
 	assert.NotNil(t, retriever)
@@ -281,7 +263,7 @@ func TestAccountInfoRetriever_Get_Success(t *testing.T) {
 }
 
 func TestAccountInfoRetriever_NoCluster(t *testing.T) {
-	// Test the not found case with fake client
+	// Test the case where the manager cannot find the cluster
 	scheme := runtime.NewScheme()
 	err := accountsv1alpha1.AddToScheme(scheme)
 	require.NoError(t, err)
@@ -298,14 +280,6 @@ func TestAccountInfoRetriever_NoCluster(t *testing.T) {
 	ctx = logger.SetLoggerInContext(ctx, log)
 
 	ci := mocks.NewClusterInterface(t)
-	c := mocks.NewInterface(t)
-	alpha1Interface := mocks.NewCoreV1alpha1Interface(t)
-	lc := mocks.NewLogicalClusterInterface(t)
-
-	c.EXPECT().CoreV1alpha1().Return(alpha1Interface)
-	ci.EXPECT().Cluster(logicalcluster.NewPath("test-cluster")).Return(c).Once()
-	alpha1Interface.EXPECT().LogicalClusters().Return(lc)
-	lc.EXPECT().Get(mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.NewNotFound(corev1alpha1.Resource("logicalclusters"), "cluster"))
 
 	retriever, err := New(mgr, ci)
 	assert.NotNil(t, retriever)

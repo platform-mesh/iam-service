@@ -3,10 +3,8 @@ package workspace
 import (
 	"context"
 	"fmt"
-	"net/url"
 
 	"github.com/platform-mesh/golang-commons/logger"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 )
@@ -31,21 +29,11 @@ func NewClientFactory(mgr mcmanager.Manager) *KCPClient {
 // New creates a new client for the specified workspace path
 func (f *KCPClient) New(ctx context.Context, accountPath string) (client.Client, error) {
 	log := logger.LoadLoggerFromContext(ctx)
-	cfg := rest.CopyConfig(f.mgr.GetLocalManager().GetConfig())
-
-	parsed, err := url.Parse(cfg.Host)
-	if err != nil { // coverage-ignore
-		log.Error().Err(err).Msg("unable to parse host")
+	cluster, err := f.mgr.GetCluster(ctx, accountPath)
+	if err != nil {
+		log.Err(err).Msg(fmt.Sprintf("failed to get cluster: %s", accountPath))
 		return nil, err
 	}
 
-	parsed.Path = fmt.Sprintf("/clusters/%s", accountPath)
-	cfg.Host = parsed.String()
-
-	cl, err := client.New(cfg, client.Options{Scheme: f.mgr.GetLocalManager().GetScheme()})
-	if err != nil { // coverage-ignore
-		log.Error().Err(err).Msg("unable to construct root client")
-		return nil, err
-	}
-	return cl, nil
+	return cluster.GetClient(), nil
 }
