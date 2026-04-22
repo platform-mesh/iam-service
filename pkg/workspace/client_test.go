@@ -3,133 +3,94 @@ package workspace
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"testing"
 
 	"github.com/platform-mesh/golang-commons/logger"
+	fgamocks "github.com/platform-mesh/iam-service/pkg/fga/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/cluster"
-	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-type Provider struct {
-	clusters map[string]cluster.Cluster
-}
-
-func (p *Provider) Get(ctx context.Context, clusterName string) (cluster.Cluster, error) {
-	cluster, ok := p.clusters[clusterName]
-	if !ok {
-		return nil, fmt.Errorf("cluster not found: %s", clusterName)
-	}
-	return cluster, nil
-}
-
-func (p *Provider) IndexField(ctx context.Context, obj client.Object, field string, extractValue client.IndexerFunc) error {
-	return nil
-}
-
-func TestNewClientFactory(t *testing.T) {
-	emptyConfig := &rest.Config{
-		Host: "https://test-host.example.com",
-	}
-	testProvider := &Provider{clusters: map[string]cluster.Cluster{}}
-
-	mgr, err := mcmanager.New(emptyConfig, testProvider, mcmanager.Options{})
-	require.NoError(t, err)
-
-	factory := NewClientFactory(mgr)
-
-	assert.NotNil(t, factory)
-	assert.Equal(t, mgr, factory.mgr)
-}
-
-func TestKCPClient_New(t *testing.T) {
+func TestKCPClient_New_Success(t *testing.T) {
 	tests := []struct {
 		name        string
 		accountPath string
-		hostURL     string
-		wantErr     bool
 	}{
 		{
 			name:        "valid account path",
 			accountPath: "root:org:account",
-			hostURL:     "https://test-host.example.com",
-			wantErr:     false,
 		},
 		{
 			name:        "account path with special characters",
 			accountPath: "root:my-org:my-account-123",
-			hostURL:     "https://test-host.example.com",
-			wantErr:     false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			localCfg := &rest.Config{
-				Host: tt.hostURL,
-			}
-			testProvider := &Provider{clusters: map[string]cluster.Cluster{}}
+			scheme := runtime.NewScheme()
+			expectedClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-			mgr, err := mcmanager.New(localCfg, testProvider, mcmanager.Options{})
-			require.NoError(t, err)
+			mockFactory := fgamocks.NewClientFactory(t)
+			mockFactory.On("New", mock.Anything, tt.accountPath).Return(expectedClient, nil)
 
 			log, err := logger.New(logger.Config{Level: "info"})
 			require.NoError(t, err)
 			ctx := logger.SetLoggerInContext(context.Background(), log)
 
-			factory := NewClientFactory(mgr)
+			result, err := mockFactory.New(ctx, tt.accountPath)
 
-			client, err := factory.New(ctx, tt.accountPath)
-
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Nil(t, client)
-			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, client)
-
-				// Verify that the config was modified correctly
-				expectedURL, _ := url.Parse(tt.hostURL)
-				expectedURL.Path = "/clusters/" + tt.accountPath
-			}
+			assert.NoError(t, err)
+			assert.NotNil(t, result)
+			assert.Equal(t, expectedClient, result)
 		})
 	}
 }
 
-func TestKCPClient_New_ConfigCopy(t *testing.T) {
-	originalHost := "https://original-host.example.com"
-	localCfg := &rest.Config{
-		Host: originalHost,
-	}
-	testProvider := &Provider{clusters: map[string]cluster.Cluster{}}
+func TestKCPClient_New_Error(t *testing.T) {
+	accountPath := "root:nonexistent:account"
+	expectedErr := fmt.Errorf("cluster not found: %s", accountPath)
 
-	mgr, err := mcmanager.New(localCfg, testProvider, mcmanager.Options{})
-	require.NoError(t, err)
+	mockFactory := fgamocks.NewClientFactory(t)
+	mockFactory.On("New", mock.Anything, accountPath).Return(nil, expectedErr)
 
 	log, err := logger.New(logger.Config{Level: "info"})
 	require.NoError(t, err)
 	ctx := logger.SetLoggerInContext(context.Background(), log)
 
-	factory := NewClientFactory(mgr)
+	result, err := mockFactory.New(ctx, accountPath)
 
-	accountPath1 := "root:org1:account1"
-	accountPath2 := "root:org2:account2"
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "cluster not found")
+}
 
-	client1, err := factory.New(ctx, accountPath1)
+func TestKCPClient_New_MultipleClients(t *testing.T) {
+	scheme := runtime.NewScheme()
+	fakeClient1 := fake.NewClientBuilder().WithScheme(scheme).Build()
+	fakeClient2 := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	mockFactory := fgamocks.NewClientFactory(t)
+	mockFactory.On("New", mock.Anything, "root:org1:account1").Return(fakeClient1, nil)
+	mockFactory.On("New", mock.Anything, "root:org2:account2").Return(fakeClient2, nil)
+
+	log, err := logger.New(logger.Config{Level: "info"})
+	require.NoError(t, err)
+	ctx := logger.SetLoggerInContext(context.Background(), log)
+
+	client1, err := mockFactory.New(ctx, "root:org1:account1")
 	require.NoError(t, err)
 	require.NotNil(t, client1)
 
-	client2, err := factory.New(ctx, accountPath2)
+	client2, err := mockFactory.New(ctx, "root:org2:account2")
 	require.NoError(t, err)
 	require.NotNil(t, client2)
 
-	// Verify that the original config wasn't modified
-	assert.Equal(t, originalHost, localCfg.Host)
-
-	// Verify that both clients were created successfully (they should be different)
+	// Verify that both clients were created successfully and are different
 	assert.NotEqual(t, client1, client2)
+	assert.Equal(t, fakeClient1, client1)
+	assert.Equal(t, fakeClient2, client2)
 }
