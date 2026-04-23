@@ -11,7 +11,7 @@ require (
 	github.com/kcp-dev/sdk v0.31.0
 	github.com/oapi-codegen/runtime v1.4.0
 	github.com/openfga/api/proto v0.0.0-20260319214821-f153694bfc20
-	github.com/platform-mesh/account-operator v0.14.6
+	github.com/platform-mesh/account-operator v0.14.7
 	github.com/platform-mesh/golang-commons v0.15.7
 	github.com/platform-mesh/security-operator v0.30.6
 	github.com/rs/zerolog v1.35.0
@@ -65,7 +65,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/onsi/gomega v1.39.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/platform-mesh/subroutines v0.3.1 // indirect
+	github.com/platform-mesh/subroutines v0.3.2 // indirect
 	github.com/pquerna/cachecontrol v0.2.0 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
