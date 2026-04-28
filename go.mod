@@ -14,7 +14,7 @@ require (
 	github.com/platform-mesh/account-operator v0.14.13
 	github.com/platform-mesh/golang-commons v0.16.3
 	github.com/platform-mesh/security-operator v0.30.17
-	github.com/rs/zerolog v1.35.0
+	github.com/rs/zerolog v1.35.1
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
 	github.com/vektah/gqlparser/v2 v2.5.32
