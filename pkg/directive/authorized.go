@@ -24,6 +24,7 @@ import (
 	"github.com/platform-mesh/iam-service/pkg/fga/store"
 	"github.com/platform-mesh/iam-service/pkg/fga/tuples"
 	"github.com/platform-mesh/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/metrics"
 	"github.com/platform-mesh/iam-service/pkg/workspace"
 )
 
@@ -132,6 +133,10 @@ func (a AuthorizedDirective) Authorized(ctx context.Context, _ any, next graphql
 }
 
 func (a AuthorizedDirective) testIfAllowed(ctx context.Context, ai *accountsv1alpha1.AccountInfo, rctx *graph.ResourceContext, permission string, token jwt.WebToken) (bool, error) {
+	start := time.Now()
+	defer func() {
+		metrics.AuthorizationDuration.WithLabelValues(permission).Observe(time.Since(start).Seconds())
+	}()
 
 	ct := tuples.GenerateContextualTuples(rctx, ai)
 
@@ -165,7 +170,14 @@ func (a AuthorizedDirective) testIfAllowed(ctx context.Context, ai *accountsv1al
 
 	res, err := a.fga.Check(ctx, &req)
 	if err != nil {
+		metrics.AuthorizationChecks.WithLabelValues("error").Inc()
 		return false, errors.Wrap(err, "failed to check permission with openfga")
+	}
+
+	if res.Allowed {
+		metrics.AuthorizationChecks.WithLabelValues("allowed").Inc()
+	} else {
+		metrics.AuthorizationChecks.WithLabelValues("denied").Inc()
 	}
 
 	return res.Allowed, nil

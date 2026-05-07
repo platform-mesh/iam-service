@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/coreos/go-oidc"
 	"github.com/platform-mesh/golang-commons/errors"
@@ -18,6 +19,7 @@ import (
 	appcontext "github.com/platform-mesh/iam-service/pkg/context"
 	"github.com/platform-mesh/iam-service/pkg/graph"
 	keycloakClient "github.com/platform-mesh/iam-service/pkg/keycloak/client"
+	"github.com/platform-mesh/iam-service/pkg/metrics"
 )
 
 // sanitizeEmail returns a sanitized version of the email for logging (first 3 chars + ***)
@@ -76,8 +78,14 @@ func New(ctx context.Context, cfg *config.ServiceConfig) (*Service, error) {
 }
 
 func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, error) {
+	start := time.Now()
+	defer func() {
+		metrics.KeycloakDuration.WithLabelValues("user_by_mail").Observe(time.Since(start).Seconds())
+	}()
+
 	kctx, err := appcontext.GetKCPContext(ctx)
 	if err != nil {
+		metrics.KeycloakRequests.WithLabelValues("user_by_mail", "error").Inc()
 		return nil, errors.Wrap(err, "failed to get KCP user context")
 	}
 
@@ -93,6 +101,7 @@ func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, e
 	// Cache miss - fetch from Keycloak
 	user, err := s.fetchUserFromKeycloak(ctx, realm, userID)
 	if err != nil {
+		metrics.KeycloakRequests.WithLabelValues("user_by_mail", "error").Inc()
 		return nil, errors.Wrap(err, "failed to fetch user from Keycloak for email %s", userID)
 	}
 
@@ -101,14 +110,21 @@ func (s *Service) UserByMail(ctx context.Context, userID string) (*graph.User, e
 		s.userCache.Set(realm, userID, user)
 	}
 
+	metrics.KeycloakRequests.WithLabelValues("user_by_mail", "success").Inc()
 	return user, nil
 }
 
 func (s *Service) GetUsers(ctx context.Context) ([]*graph.User, error) {
 	log := logger.LoadLoggerFromContext(ctx)
 
+	start := time.Now()
+	defer func() {
+		metrics.KeycloakDuration.WithLabelValues("get_users").Observe(time.Since(start).Seconds())
+	}()
+
 	kctx, err := appcontext.GetKCPContext(ctx)
 	if err != nil {
+		metrics.KeycloakRequests.WithLabelValues("get_users", "error").Inc()
 		return nil, errors.Wrap(err, "failed to get KCP user context")
 	}
 
@@ -121,6 +137,7 @@ func (s *Service) GetUsers(ctx context.Context) ([]*graph.User, error) {
 	// Fetch all users with pagination and caching
 	users, err := s.fetchAllUsers(ctx, realm)
 	if err != nil {
+		metrics.KeycloakRequests.WithLabelValues("get_users", "error").Inc()
 		return nil, errors.Wrap(err, "failed to fetch all users from Keycloak for realm %s", realm)
 	}
 
@@ -129,6 +146,7 @@ func (s *Service) GetUsers(ctx context.Context) ([]*graph.User, error) {
 		Str("realm", realm).
 		Msg("Successfully fetched all users from Keycloak")
 
+	metrics.KeycloakRequests.WithLabelValues("get_users", "success").Inc()
 	return users, nil
 }
 
@@ -183,12 +201,19 @@ func (s *Service) fetchUserFromKeycloak(ctx context.Context, realm, email string
 
 func (s *Service) GetUsersByEmails(ctx context.Context, emails []string) (map[string]*graph.User, error) {
 	log := logger.LoadLoggerFromContext(ctx)
+
+	start := time.Now()
+	defer func() {
+		metrics.KeycloakDuration.WithLabelValues("get_users_by_emails").Observe(time.Since(start).Seconds())
+	}()
+
 	if len(emails) == 0 {
 		return map[string]*graph.User{}, nil
 	}
 
 	kctx, err := appcontext.GetKCPContext(ctx)
 	if err != nil {
+		metrics.KeycloakRequests.WithLabelValues("get_users_by_emails", "error").Inc()
 		return nil, errors.Wrap(err, "failed to get KCP user context")
 	}
 
@@ -222,6 +247,7 @@ func (s *Service) GetUsersByEmails(ctx context.Context, emails []string) (map[st
 	if len(missingEmails) > 0 {
 		fetchedUsers, err := s.fetchUsersInParallel(ctx, realm, missingEmails)
 		if err != nil {
+			metrics.KeycloakRequests.WithLabelValues("get_users_by_emails", "error").Inc()
 			return nil, errors.Wrap(err, "failed to fetch users in parallel for realm %s", realm)
 		}
 
@@ -242,6 +268,7 @@ func (s *Service) GetUsersByEmails(ctx context.Context, emails []string) (map[st
 		Int("api_calls", len(missingEmails)).
 		Msg("Completed user lookup with cache")
 
+	metrics.KeycloakRequests.WithLabelValues("get_users_by_emails", "success").Inc()
 	return result, nil
 }
 
@@ -409,6 +436,11 @@ func (s *Service) fetchUsersInParallel(ctx context.Context, realm string, emails
 // EnrichUserRoles enriches user roles with complete user information from Keycloak
 // Updates the UserRoles slice in-place with FirstName, LastName, and UserID from Keycloak
 func (s *Service) EnrichUserRoles(ctx context.Context, userRoles []*graph.UserRoles) error {
+	start := time.Now()
+	defer func() {
+		metrics.KeycloakDuration.WithLabelValues("enrich_user_roles").Observe(time.Since(start).Seconds())
+	}()
+
 	if len(userRoles) == 0 {
 		return nil
 	}
@@ -433,6 +465,7 @@ func (s *Service) EnrichUserRoles(ctx context.Context, userRoles []*graph.UserRo
 	// Batch call to get all users at once
 	userMap, err := s.GetUsersByEmails(ctx, emails)
 	if err != nil {
+		metrics.KeycloakRequests.WithLabelValues("enrich_user_roles", "error").Inc()
 		return errors.Wrap(err, "failed to get users by emails for enrichment")
 	}
 
@@ -449,5 +482,6 @@ func (s *Service) EnrichUserRoles(ctx context.Context, userRoles []*graph.UserRo
 		}
 	}
 
+	metrics.KeycloakRequests.WithLabelValues("enrich_user_roles", "success").Inc()
 	return nil
 }
