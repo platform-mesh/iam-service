@@ -182,8 +182,8 @@ github.com/platform-mesh/account-operator v0.14.30 h1:itOLlI5vm0woqFzQr8m+fGGI0b
 github.com/platform-mesh/account-operator v0.14.30/go.mod h1:vHERFog/M+jTZIbR4BCq4H56fw7i0pqeW30x+IkXiLc=
 github.com/platform-mesh/golang-commons v0.16.12 h1:uqXrkX0IgEICO+pd7loV3fXBsbG6BkkJ3Uil8LNJrgA=
 github.com/platform-mesh/golang-commons v0.16.12/go.mod h1:N1N8/nCQGNWcQWVFublHBU/tWTY6msGVQ7k+tGWRF2k=
-github.com/platform-mesh/security-operator v0.30.55 h1:Qa7DWYrWLfFXFa+Ny8jOLjwbFEnu7aV6pct662ZPU9A=
-github.com/platform-mesh/security-operator v0.30.55/go.mod h1:+IeUVYMYu5+Gi9EkNsy6YJUhyDMY8DlFVDpdcah5X2w=
+github.com/platform-mesh/security-operator v0.30.56 h1:WF4XMQtlAhwyZ1JTJBpGZmF8mYCzV9JBBt5/hXkDkkM=
+github.com/platform-mesh/security-operator v0.30.56/go.mod h1:rELUNfzp6WMBzkhWRP+s4fxXGusoTd5HJqYkXICHRzk=
 github.com/platform-mesh/subroutines v0.3.3 h1:WKz0ZJnceC5KvUYrbmAdGTRnECkI6I4YXAEq3vKEV3Q=
 github.com/platform-mesh/subroutines v0.3.3/go.mod h1:4NmIkZXmbndYu4JzHWPu9JNoDipJcXP4oy4OPnLNT0Q=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
