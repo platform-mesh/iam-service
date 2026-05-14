@@ -13,7 +13,7 @@ require (
 	github.com/openfga/api/proto v0.0.0-20260319214821-f153694bfc20
 	github.com/platform-mesh/account-operator v0.14.30
 	github.com/platform-mesh/golang-commons v0.16.12
-	github.com/platform-mesh/security-operator v0.30.57
+	github.com/platform-mesh/security-operator v0.31.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/pflag v1.0.10
@@ -114,7 +114,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sosodev/duration v1.4.0 // indirect
 	github.com/spf13/cobra v1.10.2
-	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/stretchr/objx v0.5.3 // indirect
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	golang.org/x/net v0.53.0 // indirect
