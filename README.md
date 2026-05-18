@@ -3,7 +3,7 @@
 
 # Platform Mesh - iam-service
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/platform-mesh/iam-service/badge)](https://scorecard.dev/viewer/?uri=github.com/platform-mesh/iam-service)
-![Build Status](https://github.com/platform-mesh/iam-service/actions/workflows/pipeline.yml/badge.svg)
+![Build Status](https://github.com/platform-mesh/iam-service/actions/workflows/ci.yml/badge.svg)
 
 ## Description
 
@@ -39,4 +39,3 @@ Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file in this repository f
 Please refer to our [Code of Conduct](https://github.com/platform-mesh/.github/blob/main/CODE_OF_CONDUCT.md) for information on the expected conduct for contributing to Platform Mesh.
 
 <p align="center"><img alt="Bundesministerium für Wirtschaft und Energie (BMWE)-EU funding logo" src="https://apeirora.eu/assets/img/BMWK-EU.png" width="400"/></p>
-
