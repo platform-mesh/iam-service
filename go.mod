@@ -11,9 +11,10 @@ require (
 	github.com/kcp-dev/sdk v0.31.1
 	github.com/oapi-codegen/runtime v1.4.0
 	github.com/openfga/api/proto v0.0.0-20260319214821-f153694bfc20
-	github.com/platform-mesh/account-operator v0.14.28
-	github.com/platform-mesh/golang-commons v0.16.12
-	github.com/platform-mesh/security-operator v0.30.52
+	github.com/platform-mesh/account-operator v0.14.33
+	github.com/platform-mesh/golang-commons v0.16.15
+	github.com/platform-mesh/security-operator v0.31.3
+	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
@@ -25,7 +26,7 @@ require (
 	golang.org/x/sync v0.20.0
 	google.golang.org/grpc v1.81.0
 	k8s.io/client-go v0.35.4
-	k8s.io/utils v0.0.0-20260319190234-28399d86e0b5
+	k8s.io/utils v0.0.0-20260507154919-ff6756f316d2
 	sigs.k8s.io/controller-runtime v0.23.3
 	sigs.k8s.io/multicluster-runtime v0.23.1
 )
@@ -62,12 +63,12 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kcp-dev/apimachinery/v2 v2.31.1 // indirect
+	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/onsi/gomega v1.39.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/platform-mesh/subroutines v0.3.3 // indirect
 	github.com/pquerna/cachecontrol v0.2.0 // indirect
-	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.19.2 // indirect
@@ -97,7 +98,7 @@ require (
 	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.3.3 // indirect
-	github.com/getsentry/sentry-go v0.46.0 // indirect
+	github.com/getsentry/sentry-go v0.46.1 // indirect
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -113,7 +114,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sosodev/duration v1.4.0 // indirect
 	github.com/spf13/cobra v1.10.2
-	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/stretchr/objx v0.5.3 // indirect
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	golang.org/x/net v0.53.0 // indirect

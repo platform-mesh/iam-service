@@ -1,8 +1,10 @@
 package router
 
 import (
+	"context"
 	"net/http"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
@@ -15,6 +17,7 @@ import (
 
 	"github.com/platform-mesh/iam-service/pkg/config"
 	"github.com/platform-mesh/iam-service/pkg/graph"
+	"github.com/platform-mesh/iam-service/pkg/metrics"
 )
 
 func CreateRouter(
@@ -42,6 +45,24 @@ func CreateRouter(
 	gqHandler.Use(extension.Introspection{})
 	gqHandler.Use(extension.AutomaticPersistedQuery{
 		Cache: lru.New[string](100),
+	})
+
+	gqHandler.AroundOperations(func(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
+		oc := graphql.GetOperationContext(ctx)
+		opName := oc.OperationName
+		if opName == "" {
+			opName = "unknown"
+		}
+		rh := next(ctx)
+		return func(ctx context.Context) *graphql.Response {
+			resp := rh(ctx)
+			result := "success"
+			if resp != nil && len(resp.Errors) > 0 {
+				result = "error"
+			}
+			metrics.GraphQLRequests.WithLabelValues(opName, result).Inc()
+			return resp
+		}
 	})
 
 	if commonCfg.IsLocal {
