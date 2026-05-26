@@ -178,8 +178,8 @@ github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4
 github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
-github.com/platform-mesh/account-operator v0.14.37 h1:5CsCfOrK9BrwYaNdD6UwWEcv7lU4/OknLbGNEY1dl5M=
-github.com/platform-mesh/account-operator v0.14.37/go.mod h1:EX8FdThEVlnfIzSIKxFQq6l4a/0gOdm6SSOia9IEkaE=
+github.com/platform-mesh/account-operator v0.14.39 h1:ZNOqPFGCpJXJH5Q6lu1HNPqdye99shfviHvf7Ok6CZY=
+github.com/platform-mesh/account-operator v0.14.39/go.mod h1:c+Lxr99dTarhuVIF6kmRxHRo7+by6JaugBIw7+KoEzY=
 github.com/platform-mesh/golang-commons v0.17.0 h1:v3TAw+loKMQsEiQ+9cc/IJNFe0ALTvxdKWs8G1uGKro=
 github.com/platform-mesh/golang-commons v0.17.0/go.mod h1:VdE01kZ5nGekAASRxRg6fSvfT1LW+KrsVzoLNHsT5wA=
 github.com/platform-mesh/security-operator v0.31.3 h1:8DjTtLNpjkaFmWExhaalQj+gCR+rXh/hsp34cfN7rBY=
