@@ -8,7 +8,7 @@ require (
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/kcp-dev/logicalcluster/v3 v3.0.5
 	github.com/kcp-dev/multicluster-provider v0.5.1
-	github.com/kcp-dev/sdk v0.31.1
+	github.com/kcp-dev/sdk v0.31.2
 	github.com/oapi-codegen/runtime v1.4.1
 	github.com/openfga/api/proto v0.0.0-20260319214821-f153694bfc20
 	github.com/platform-mesh/account-operator v0.14.42
@@ -62,7 +62,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/kcp-dev/apimachinery/v2 v2.31.1 // indirect
+	github.com/kcp-dev/apimachinery/v2 v2.31.2 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/onsi/gomega v1.39.1 // indirect
