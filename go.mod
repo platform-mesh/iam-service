@@ -12,7 +12,7 @@ require (
 	github.com/oapi-codegen/runtime v1.4.1
 	github.com/openfga/api/proto v0.0.0-20260319214821-f153694bfc20
 	github.com/platform-mesh/account-operator v0.14.42
-	github.com/platform-mesh/golang-commons v0.17.1
+	github.com/platform-mesh/golang-commons v0.17.2
 	github.com/platform-mesh/security-operator v0.31.3
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.35.1
