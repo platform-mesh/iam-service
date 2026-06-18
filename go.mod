@@ -3,7 +3,7 @@ module github.com/platform-mesh/iam-service
 go 1.26.0
 
 require (
-	github.com/99designs/gqlgen v0.17.90
+	github.com/99designs/gqlgen v0.17.91
 	github.com/coreos/go-oidc v2.5.0+incompatible
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/kcp-dev/logicalcluster/v3 v3.0.5
@@ -36,6 +36,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/coder/websocket v1.8.14 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
